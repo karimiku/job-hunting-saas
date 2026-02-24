@@ -64,3 +64,14 @@ func (s Stage) Label() string {
 func (s Stage) Equals(other Stage) bool {
 	return s.kind == other.kind && s.label == other.label
 }
+
+// MustNewStage は NewStage のパニック版。
+// ハードコードされた既知の値に対して使う。
+// 不正な値が渡された場合はプログラマのバグなのでパニックする。
+func MustNewStage(kind string, label string) Stage {
+	s, err := NewStage(kind, label)
+	if err != nil {
+		panic("invalid stage: " + err.Error())
+	}
+	return s
+}
