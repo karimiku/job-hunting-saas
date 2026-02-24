@@ -2,18 +2,16 @@ package entity
 
 import (
 	"testing"
-
-	"github.com/google/uuid"
 )
 
 func TestNewStageHistory(t *testing.T) {
-	entryID := NewID()
+	entryID := NewEntryID()
 	stage := newTestStage(t, "interview", "一次面接")
 
 	t.Run("valid stage history", func(t *testing.T) {
 		h := NewStageHistory(entryID, stage, "オンライン面接")
-		if h.ID() == uuid.Nil {
-			t.Error("ID should not be nil")
+		if h.ID().IsZero() {
+			t.Error("ID should not be zero")
 		}
 		if h.EntryID() != entryID {
 			t.Errorf("EntryID() = %v, want %v", h.EntryID(), entryID)

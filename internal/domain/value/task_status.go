@@ -42,3 +42,9 @@ func (s TaskStatus) Equals(other TaskStatus) bool {
 func (s TaskStatus) IsDone() bool {
 	return s.value == taskStatusDone
 }
+
+// --- 定数コンストラクタ ---
+// ハードコードされた既知の値に対して、エラーなしでインスタンスを返す。
+
+func TaskStatusTodo() TaskStatus { return TaskStatus{value: taskStatusTodo} }
+func TaskStatusDone() TaskStatus { return TaskStatus{value: taskStatusDone} }

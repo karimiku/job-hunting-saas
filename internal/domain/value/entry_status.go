@@ -48,3 +48,13 @@ func (s EntryStatus) Equals(other EntryStatus) bool {
 func (s EntryStatus) IsOpen() bool {
 	return s.value == entryStatusInProgress || s.value == entryStatusOffered
 }
+
+// --- 定数コンストラクタ ---
+// ハードコードされた既知の値に対して、エラーなしでインスタンスを返す。
+// エンティティのファクトリ関数やメソッド内で `_, _ :=` のエラー握りつぶしを避けるために使う。
+
+func EntryStatusInProgress() EntryStatus { return EntryStatus{value: entryStatusInProgress} }
+func EntryStatusOffered() EntryStatus    { return EntryStatus{value: entryStatusOffered} }
+func EntryStatusAccepted() EntryStatus   { return EntryStatus{value: entryStatusAccepted} }
+func EntryStatusRejected() EntryStatus   { return EntryStatus{value: entryStatusRejected} }
+func EntryStatusWithdrawn() EntryStatus  { return EntryStatus{value: entryStatusWithdrawn} }

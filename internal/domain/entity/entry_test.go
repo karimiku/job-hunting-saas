@@ -3,7 +3,6 @@ package entity
 import (
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
 
@@ -35,8 +34,8 @@ func newTestEntryStatus(t *testing.T, raw string) value.EntryStatus {
 }
 
 func TestNewEntry(t *testing.T) {
-	userID := NewID()
-	companyID := NewID()
+	userID := NewUserID()
+	companyID := NewCompanyID()
 	source := newTestSource(t)
 
 	t.Run("valid entry", func(t *testing.T) {
@@ -44,8 +43,8 @@ func TestNewEntry(t *testing.T) {
 		if err != nil {
 			t.Fatalf("NewEntry should succeed, but got error: %v", err)
 		}
-		if entry.ID() == uuid.Nil {
-			t.Error("ID should not be nil")
+		if entry.ID().IsZero() {
+			t.Error("ID should not be zero")
 		}
 		if entry.UserID() != userID {
 			t.Errorf("UserID() = %v, want %v", entry.UserID(), userID)
@@ -86,8 +85,8 @@ func TestNewEntry(t *testing.T) {
 }
 
 func TestEntry_UpdateStage(t *testing.T) {
-	userID := NewID()
-	companyID := NewID()
+	userID := NewUserID()
+	companyID := NewCompanyID()
 	source := newTestSource(t)
 	entry, _ := NewEntry(userID, companyID, "本選考", source)
 
@@ -103,8 +102,8 @@ func TestEntry_UpdateStage(t *testing.T) {
 }
 
 func TestEntry_UpdateStatus(t *testing.T) {
-	userID := NewID()
-	companyID := NewID()
+	userID := NewUserID()
+	companyID := NewCompanyID()
 	source := newTestSource(t)
 	entry, _ := NewEntry(userID, companyID, "本選考", source)
 
@@ -117,12 +116,15 @@ func TestEntry_UpdateStatus(t *testing.T) {
 }
 
 func TestEntry_UpdateSource(t *testing.T) {
-	userID := NewID()
-	companyID := NewID()
+	userID := NewUserID()
+	companyID := NewCompanyID()
 	source := newTestSource(t)
 	entry, _ := NewEntry(userID, companyID, "本選考", source)
 
-	newSource, _ := value.NewSource("リクナビ")
+	newSource, err := value.NewSource("リクナビ")
+	if err != nil {
+		t.Fatalf("NewSource failed: %v", err)
+	}
 	entry.UpdateSource(newSource)
 
 	if entry.Source().String() != "リクナビ" {
@@ -131,8 +133,8 @@ func TestEntry_UpdateSource(t *testing.T) {
 }
 
 func TestEntry_UpdateMemo(t *testing.T) {
-	userID := NewID()
-	companyID := NewID()
+	userID := NewUserID()
+	companyID := NewCompanyID()
 	source := newTestSource(t)
 	entry, _ := NewEntry(userID, companyID, "本選考", source)
 

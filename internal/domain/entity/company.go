@@ -20,18 +20,33 @@ type Company struct {
 }
 
 func NewCompany(userID UserID, name string) (*Company, error) {
-	if strings.TrimSpace(name) == "" {
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
 		return nil, ErrCompanyNameEmpty
 	}
 	now := time.Now()
 	return &Company{
-		id:        NewID(),
+		id:        NewCompanyID(),
 		userID:    userID,
-		name:      name,
+		name:      trimmed,
 		memo:      "",
 		createdAt: now,
 		updatedAt: now,
 	}, nil
+}
+
+// ReconstructCompany はDBから読み取ったデータでCompanyを復元する。
+// バリデーションをスキップする（永続化済みデータは検証済みの前提）。
+// Infra層（Repository実装）からのみ呼び出すこと。
+func ReconstructCompany(id CompanyID, userID UserID, name string, memo string, createdAt, updatedAt time.Time) *Company {
+	return &Company{
+		id:        id,
+		userID:    userID,
+		name:      name,
+		memo:      memo,
+		createdAt: createdAt,
+		updatedAt: updatedAt,
+	}
 }
 
 func (c *Company) ID() CompanyID      { return c.id }
@@ -42,10 +57,11 @@ func (c *Company) CreatedAt() time.Time { return c.createdAt }
 func (c *Company) UpdatedAt() time.Time { return c.updatedAt }
 
 func (c *Company) Rename(name string) error {
-	if strings.TrimSpace(name) == "" {
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
 		return ErrCompanyNameEmpty
 	}
-	c.name = name
+	c.name = trimmed
 	c.updatedAt = time.Now()
 	return nil
 }

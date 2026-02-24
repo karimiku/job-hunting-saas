@@ -21,18 +21,31 @@ type User struct {
 }
 
 func NewUser(email value.Email, name string) (*User, error) {
-	if strings.TrimSpace(name) == "" {
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
 		return nil, ErrUserNameEmpty
 	}
 
 	now := time.Now()
 	return &User{
-		id:        NewID(),
+		id:        NewUserID(),
 		email:     email,
-		name:      name,
+		name:      trimmed,
 		createdAt: now,
 		updatedAt: now,
 	}, nil
+}
+
+// ReconstructUser はDBから読み取ったデータでUserを復元する。
+// Infra層（Repository実装）からのみ呼び出すこと。
+func ReconstructUser(id UserID, email value.Email, name string, createdAt, updatedAt time.Time) *User {
+	return &User{
+		id:        id,
+		email:     email,
+		name:      name,
+		createdAt: createdAt,
+		updatedAt: updatedAt,
+	}
 }
 
 func (u *User) ID() UserID          { return u.id }
@@ -42,10 +55,11 @@ func (u *User) CreatedAt() time.Time { return u.createdAt }
 func (u *User) UpdatedAt() time.Time { return u.updatedAt }
 
 func (u *User) Rename(name string) error {
-	if strings.TrimSpace(name) == "" {
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
 		return ErrUserNameEmpty
 	}
-	u.name = name
+	u.name = trimmed
 	u.updatedAt = time.Now()
 	return nil
 }

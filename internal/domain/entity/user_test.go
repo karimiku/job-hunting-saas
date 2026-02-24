@@ -3,7 +3,6 @@ package entity
 import (
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
 
@@ -24,8 +23,8 @@ func TestNewUser(t *testing.T) {
 		if err != nil {
 			t.Fatalf("NewUser should succeed, but got error: %v", err)
 		}
-		if user.ID() == uuid.Nil {
-			t.Error("ID should not be nil")
+		if user.ID().IsZero() {
+			t.Error("ID should not be zero")
 		}
 		if user.Email().String() != "test@example.com" {
 			t.Errorf("Email() = %q, want %q", user.Email().String(), "test@example.com")

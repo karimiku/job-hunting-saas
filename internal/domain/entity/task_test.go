@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
 
@@ -18,7 +17,7 @@ func newTestTaskType(t *testing.T, raw string) value.TaskType {
 }
 
 func TestNewTask(t *testing.T) {
-	entryID := NewID()
+	entryID := NewEntryID()
 	taskType := newTestTaskType(t, "deadline")
 
 	t.Run("valid task", func(t *testing.T) {
@@ -26,8 +25,8 @@ func TestNewTask(t *testing.T) {
 		if err != nil {
 			t.Fatalf("NewTask should succeed, but got error: %v", err)
 		}
-		if task.ID() == uuid.Nil {
-			t.Error("ID should not be nil")
+		if task.ID().IsZero() {
+			t.Error("ID should not be zero")
 		}
 		if task.EntryID() != entryID {
 			t.Errorf("EntryID() = %v, want %v", task.EntryID(), entryID)
@@ -68,7 +67,7 @@ func TestNewTask(t *testing.T) {
 }
 
 func TestTask_Complete(t *testing.T) {
-	entryID := NewID()
+	entryID := NewEntryID()
 	taskType := newTestTaskType(t, "deadline")
 	task, _ := NewTask(entryID, "ES提出", taskType)
 
@@ -79,7 +78,7 @@ func TestTask_Complete(t *testing.T) {
 }
 
 func TestTask_Uncomplete(t *testing.T) {
-	entryID := NewID()
+	entryID := NewEntryID()
 	taskType := newTestTaskType(t, "deadline")
 	task, _ := NewTask(entryID, "ES提出", taskType)
 
@@ -91,7 +90,7 @@ func TestTask_Uncomplete(t *testing.T) {
 }
 
 func TestTask_SetDueDate(t *testing.T) {
-	entryID := NewID()
+	entryID := NewEntryID()
 	taskType := newTestTaskType(t, "schedule")
 	task, _ := NewTask(entryID, "一次面接", taskType)
 
@@ -107,7 +106,7 @@ func TestTask_SetDueDate(t *testing.T) {
 }
 
 func TestTask_ClearDueDate(t *testing.T) {
-	entryID := NewID()
+	entryID := NewEntryID()
 	taskType := newTestTaskType(t, "deadline")
 	task, _ := NewTask(entryID, "ES提出", taskType)
 
@@ -121,7 +120,7 @@ func TestTask_ClearDueDate(t *testing.T) {
 }
 
 func TestTask_SetNotify(t *testing.T) {
-	entryID := NewID()
+	entryID := NewEntryID()
 	taskType := newTestTaskType(t, "deadline")
 	task, _ := NewTask(entryID, "ES提出", taskType)
 
@@ -137,7 +136,7 @@ func TestTask_SetNotify(t *testing.T) {
 }
 
 func TestTask_UpdateMemo(t *testing.T) {
-	entryID := NewID()
+	entryID := NewEntryID()
 	taskType := newTestTaskType(t, "deadline")
 	task, _ := NewTask(entryID, "ES提出", taskType)
 

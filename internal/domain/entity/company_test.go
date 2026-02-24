@@ -2,20 +2,18 @@ package entity
 
 import (
 	"testing"
-
-	"github.com/google/uuid"
 )
 
 func TestNewCompany(t *testing.T) {
-	userID := NewID()
+	userID := NewUserID()
 
 	t.Run("valid company", func(t *testing.T) {
 		company, err := NewCompany(userID, "トヨタ自動車")
 		if err != nil {
 			t.Fatalf("NewCompany should succeed, but got error: %v", err)
 		}
-		if company.ID() == uuid.Nil {
-			t.Error("ID should not be nil")
+		if company.ID().IsZero() {
+			t.Error("ID should not be zero")
 		}
 		if company.UserID() != userID {
 			t.Errorf("UserID() = %v, want %v", company.UserID(), userID)
@@ -50,7 +48,7 @@ func TestNewCompany(t *testing.T) {
 }
 
 func TestCompany_Rename(t *testing.T) {
-	userID := NewID()
+	userID := NewUserID()
 	company, _ := NewCompany(userID, "旧社名")
 
 	t.Run("valid rename", func(t *testing.T) {
@@ -72,7 +70,7 @@ func TestCompany_Rename(t *testing.T) {
 }
 
 func TestCompany_UpdateMemo(t *testing.T) {
-	userID := NewID()
+	userID := NewUserID()
 	company, _ := NewCompany(userID, "テスト株式会社")
 
 	company.UpdateMemo("いい会社")

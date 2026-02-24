@@ -26,19 +26,21 @@ type Entry struct {
 }
 
 func NewEntry(userID UserID, companyID CompanyID, route string, source value.Source) (*Entry, error) {
-	if strings.TrimSpace(route) == "" {
+	trimmed := strings.TrimSpace(route)
+	if trimmed == "" {
 		return nil, ErrEntryRouteEmpty
 	}
 
-	status, _ := value.NewEntryStatus("in_progress")
-	stage, _ := value.NewStage("application", "応募")
+	// 定数コンストラクタを使い、エラー握りつぶし（_, _）を回避する
+	status := value.EntryStatusInProgress()
+	stage := value.MustNewStage("application", "応募")
 
 	now := time.Now()
 	return &Entry{
-		id:        NewID(),
+		id:        NewEntryID(),
 		userID:    userID,
 		companyID: companyID,
-		route:     route,
+		route:     trimmed,
 		source:    source,
 		status:    status,
 		stage:     stage,
@@ -48,16 +50,37 @@ func NewEntry(userID UserID, companyID CompanyID, route string, source value.Sou
 	}, nil
 }
 
-func (e *Entry) ID() EntryID           { return e.id }
-func (e *Entry) UserID() UserID         { return e.userID }
-func (e *Entry) CompanyID() CompanyID   { return e.companyID }
-func (e *Entry) Route() string          { return e.route }
-func (e *Entry) Source() value.Source    { return e.source }
+// ReconstructEntry はDBから読み取ったデータでEntryを復元する。
+// Infra層（Repository実装）からのみ呼び出すこと。
+func ReconstructEntry(
+	id EntryID, userID UserID, companyID CompanyID,
+	route string, source value.Source, status value.EntryStatus,
+	stage value.Stage, memo string, createdAt, updatedAt time.Time,
+) *Entry {
+	return &Entry{
+		id:        id,
+		userID:    userID,
+		companyID: companyID,
+		route:     route,
+		source:    source,
+		status:    status,
+		stage:     stage,
+		memo:      memo,
+		createdAt: createdAt,
+		updatedAt: updatedAt,
+	}
+}
+
+func (e *Entry) ID() EntryID              { return e.id }
+func (e *Entry) UserID() UserID            { return e.userID }
+func (e *Entry) CompanyID() CompanyID      { return e.companyID }
+func (e *Entry) Route() string             { return e.route }
+func (e *Entry) Source() value.Source       { return e.source }
 func (e *Entry) Status() value.EntryStatus { return e.status }
-func (e *Entry) Stage() value.Stage     { return e.stage }
-func (e *Entry) Memo() string           { return e.memo }
-func (e *Entry) CreatedAt() time.Time   { return e.createdAt }
-func (e *Entry) UpdatedAt() time.Time   { return e.updatedAt }
+func (e *Entry) Stage() value.Stage        { return e.stage }
+func (e *Entry) Memo() string              { return e.memo }
+func (e *Entry) CreatedAt() time.Time      { return e.createdAt }
+func (e *Entry) UpdatedAt() time.Time      { return e.updatedAt }
 
 func (e *Entry) UpdateSource(source value.Source) {
 	e.source = source

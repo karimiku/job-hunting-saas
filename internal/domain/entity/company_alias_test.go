@@ -2,21 +2,19 @@ package entity
 
 import (
 	"testing"
-
-	"github.com/google/uuid"
 )
 
 func TestNewCompanyAlias(t *testing.T) {
-	userID := NewID()
-	companyID := NewID()
+	userID := NewUserID()
+	companyID := NewCompanyID()
 
 	t.Run("valid alias", func(t *testing.T) {
 		alias, err := NewCompanyAlias(userID, companyID, "ソニー")
 		if err != nil {
 			t.Fatalf("NewCompanyAlias should succeed, but got error: %v", err)
 		}
-		if alias.ID() == uuid.Nil {
-			t.Error("ID should not be nil")
+		if alias.ID().IsZero() {
+			t.Error("ID should not be zero")
 		}
 		if alias.UserID() != userID {
 			t.Errorf("UserID() = %v, want %v", alias.UserID(), userID)
