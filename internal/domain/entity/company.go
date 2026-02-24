@@ -34,29 +34,12 @@ func NewCompany(userID UserID, name string) (*Company, error) {
 	}, nil
 }
 
-func (c *Company) ID() CompanyID {
-	return c.id
-}
-
-func (c *Company) UserID() UserID {
-	return c.userID
-}
-
-func (c *Company) Name() string {
-	return c.name
-}
-
-func (c *Company) Memo() string {
-	return c.memo
-}
-
-func (c *Company) CreatedAt() time.Time {
-	return c.createdAt
-}
-
-func (c *Company) UpdatedAt() time.Time {
-	return c.updatedAt
-}
+func (c *Company) ID() CompanyID      { return c.id }
+func (c *Company) UserID() UserID      { return c.userID }
+func (c *Company) Name() string        { return c.name }
+func (c *Company) Memo() string        { return c.memo }
+func (c *Company) CreatedAt() time.Time { return c.createdAt }
+func (c *Company) UpdatedAt() time.Time { return c.updatedAt }
 
 func (c *Company) Rename(name string) error {
 	if strings.TrimSpace(name) == "" {
