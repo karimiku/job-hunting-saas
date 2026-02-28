@@ -8,11 +8,10 @@ import (
 )
 
 // EntryFilter はエントリー一覧取得時のフィルタ条件。
-// nil または空文字のフィールドはフィルタを適用しない。
-// TODO: StageKind を値オブジェクト化してポインタに統一する（issue #3）
+// nil のフィールドはフィルタを適用しない。
 type EntryFilter struct {
 	Status    *value.EntryStatus
-	StageKind string
+	StageKind *value.StageKind
 	Source    *value.Source
 }
 

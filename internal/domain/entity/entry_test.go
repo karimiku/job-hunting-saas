@@ -17,7 +17,11 @@ func newTestSource(t *testing.T) value.Source {
 
 func newTestStage(t *testing.T, kind, label string) value.Stage {
 	t.Helper()
-	s, err := value.NewStage(kind, label)
+	k, err := value.NewStageKind(kind)
+	if err != nil {
+		t.Fatalf("NewStageKind failed: %v", err)
+	}
+	s, err := value.NewStage(k, label)
 	if err != nil {
 		t.Fatalf("NewStage failed: %v", err)
 	}
@@ -61,8 +65,8 @@ func TestNewEntry(t *testing.T) {
 		if entry.Status().String() != "in_progress" {
 			t.Errorf("Status() should be in_progress, got %q", entry.Status().String())
 		}
-		if entry.Stage().Kind() != "application" {
-			t.Errorf("Stage().Kind() should be application, got %q", entry.Stage().Kind())
+		if entry.Stage().Kind().String() != "application" {
+			t.Errorf("Stage().Kind() should be application, got %q", entry.Stage().Kind().String())
 		}
 		if entry.Memo() != "" {
 			t.Errorf("Memo() should be empty, got %q", entry.Memo())
@@ -93,8 +97,8 @@ func TestEntry_UpdateStage(t *testing.T) {
 	newStage := newTestStage(t, "interview", "一次面接")
 	entry.UpdateStage(newStage)
 
-	if entry.Stage().Kind() != "interview" {
-		t.Errorf("Stage().Kind() = %q, want %q", entry.Stage().Kind(), "interview")
+	if entry.Stage().Kind().String() != "interview" {
+		t.Errorf("Stage().Kind() = %q, want %q", entry.Stage().Kind().String(), "interview")
 	}
 	if entry.Stage().Label() != "一次面接" {
 		t.Errorf("Stage().Label() = %q, want %q", entry.Stage().Label(), "一次面接")
