@@ -2,42 +2,37 @@ package entity
 
 import (
 	"testing"
+
+	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
+
+func newTestAlias(t *testing.T, raw string) value.Alias {
+	t.Helper()
+	alias, err := value.NewAlias(raw)
+	if err != nil {
+		t.Fatalf("NewAlias failed: %v", err)
+	}
+	return alias
+}
 
 func TestNewCompanyAlias(t *testing.T) {
 	userID := NewUserID()
 	companyID := NewCompanyID()
+	alias := newTestAlias(t, "ソニー")
 
 	t.Run("valid alias", func(t *testing.T) {
-		alias, err := NewCompanyAlias(userID, companyID, "ソニー")
-		if err != nil {
-			t.Fatalf("NewCompanyAlias should succeed, but got error: %v", err)
-		}
-		if alias.ID().IsZero() {
+		ca := NewCompanyAlias(userID, companyID, alias)
+		if ca.ID().IsZero() {
 			t.Error("ID should not be zero")
 		}
-		if alias.UserID() != userID {
-			t.Errorf("UserID() = %v, want %v", alias.UserID(), userID)
+		if ca.UserID() != userID {
+			t.Errorf("UserID() = %v, want %v", ca.UserID(), userID)
 		}
-		if alias.CompanyID() != companyID {
-			t.Errorf("CompanyID() = %v, want %v", alias.CompanyID(), companyID)
+		if ca.CompanyID() != companyID {
+			t.Errorf("CompanyID() = %v, want %v", ca.CompanyID(), companyID)
 		}
-		if alias.Alias() != "ソニー" {
-			t.Errorf("Alias() = %q, want %q", alias.Alias(), "ソニー")
-		}
-	})
-
-	t.Run("empty alias", func(t *testing.T) {
-		_, err := NewCompanyAlias(userID, companyID, "")
-		if err == nil {
-			t.Error("NewCompanyAlias with empty alias should return error")
-		}
-	})
-
-	t.Run("whitespace alias", func(t *testing.T) {
-		_, err := NewCompanyAlias(userID, companyID, "   ")
-		if err == nil {
-			t.Error("NewCompanyAlias with whitespace alias should return error")
+		if ca.Alias().String() != "ソニー" {
+			t.Errorf("Alias() = %q, want %q", ca.Alias().String(), "ソニー")
 		}
 	})
 }
