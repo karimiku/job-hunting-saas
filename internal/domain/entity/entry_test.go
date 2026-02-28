@@ -15,6 +15,15 @@ func newTestSource(t *testing.T) value.Source {
 	return s
 }
 
+func newTestRoute(t *testing.T, raw string) value.Route {
+	t.Helper()
+	r, err := value.NewRoute(raw)
+	if err != nil {
+		t.Fatalf("NewRoute failed: %v", err)
+	}
+	return r
+}
+
 func newTestStage(t *testing.T, kind, label string) value.Stage {
 	t.Helper()
 	k, err := value.NewStageKind(kind)
@@ -41,12 +50,10 @@ func TestNewEntry(t *testing.T) {
 	userID := NewUserID()
 	companyID := NewCompanyID()
 	source := newTestSource(t)
+	route := newTestRoute(t, "本選考")
 
 	t.Run("valid entry", func(t *testing.T) {
-		entry, err := NewEntry(userID, companyID, "本選考", source)
-		if err != nil {
-			t.Fatalf("NewEntry should succeed, but got error: %v", err)
-		}
+		entry := NewEntry(userID, companyID, route, source)
 		if entry.ID().IsZero() {
 			t.Error("ID should not be zero")
 		}
@@ -56,8 +63,8 @@ func TestNewEntry(t *testing.T) {
 		if entry.CompanyID() != companyID {
 			t.Errorf("CompanyID() = %v, want %v", entry.CompanyID(), companyID)
 		}
-		if entry.Route() != "本選考" {
-			t.Errorf("Route() = %q, want %q", entry.Route(), "本選考")
+		if entry.Route().String() != "本選考" {
+			t.Errorf("Route() = %q, want %q", entry.Route().String(), "本選考")
 		}
 		if entry.Source().String() != "マイナビ" {
 			t.Errorf("Source() = %q, want %q", entry.Source().String(), "マイナビ")
@@ -72,27 +79,14 @@ func TestNewEntry(t *testing.T) {
 			t.Errorf("Memo() should be empty, got %q", entry.Memo())
 		}
 	})
-
-	t.Run("empty route", func(t *testing.T) {
-		_, err := NewEntry(userID, companyID, "", source)
-		if err == nil {
-			t.Error("NewEntry with empty route should return error")
-		}
-	})
-
-	t.Run("whitespace route", func(t *testing.T) {
-		_, err := NewEntry(userID, companyID, "   ", source)
-		if err == nil {
-			t.Error("NewEntry with whitespace route should return error")
-		}
-	})
 }
 
 func TestEntry_UpdateStage(t *testing.T) {
 	userID := NewUserID()
 	companyID := NewCompanyID()
 	source := newTestSource(t)
-	entry, _ := NewEntry(userID, companyID, "本選考", source)
+	route := newTestRoute(t, "本選考")
+	entry := NewEntry(userID, companyID, route, source)
 
 	newStage := newTestStage(t, "interview", "一次面接")
 	entry.UpdateStage(newStage)
@@ -109,7 +103,8 @@ func TestEntry_UpdateStatus(t *testing.T) {
 	userID := NewUserID()
 	companyID := NewCompanyID()
 	source := newTestSource(t)
-	entry, _ := NewEntry(userID, companyID, "本選考", source)
+	route := newTestRoute(t, "本選考")
+	entry := NewEntry(userID, companyID, route, source)
 
 	offered := newTestEntryStatus(t, "offered")
 	entry.UpdateStatus(offered)
@@ -123,7 +118,8 @@ func TestEntry_UpdateSource(t *testing.T) {
 	userID := NewUserID()
 	companyID := NewCompanyID()
 	source := newTestSource(t)
-	entry, _ := NewEntry(userID, companyID, "本選考", source)
+	route := newTestRoute(t, "本選考")
+	entry := NewEntry(userID, companyID, route, source)
 
 	newSource, err := value.NewSource("リクナビ")
 	if err != nil {
@@ -140,7 +136,8 @@ func TestEntry_UpdateMemo(t *testing.T) {
 	userID := NewUserID()
 	companyID := NewCompanyID()
 	source := newTestSource(t)
-	entry, _ := NewEntry(userID, companyID, "本選考", source)
+	route := newTestRoute(t, "本選考")
+	entry := NewEntry(userID, companyID, route, source)
 
 	entry.UpdateMemo("第一志望")
 	if entry.Memo() != "第一志望" {
