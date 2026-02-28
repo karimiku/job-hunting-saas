@@ -35,7 +35,7 @@ func NewEntry(userID UserID, companyID CompanyID, route string, source value.Sou
 
 	// 定数コンストラクタを使い、エラー握りつぶし（_, _）を回避する
 	status := value.EntryStatusInProgress()
-	stage := value.MustNewStage("application", "応募")
+	stage := value.MustNewStage(value.StageKindApplication(), "応募")
 
 	now := time.Now()
 	return &Entry{
