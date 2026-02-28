@@ -17,6 +17,8 @@ var validTaskTypes = map[string]bool{
 	taskTypeSchedule: true,
 }
 
+// TaskType はタスクの種別を表す値オブジェクト。
+// deadline（締切までにやる作業）または schedule（日時確定の予定）のいずれか。
 type TaskType struct {
 	value string
 }

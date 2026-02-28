@@ -10,6 +10,8 @@ var (
 	ErrCompanyNameEmpty = errors.New("company name must not be empty")
 )
 
+// Company は応募先の企業を表すエンティティ。
+// ユーザー単位で管理され、複数の Entry が紐づくマスターデータ。
 type Company struct {
 	id        CompanyID
 	userID    UserID

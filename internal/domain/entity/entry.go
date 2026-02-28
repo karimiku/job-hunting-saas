@@ -12,6 +12,8 @@ var (
 	ErrEntryRouteEmpty = errors.New("entry route must not be empty")
 )
 
+// Entry は企業への応募（インターン・本選考等）を表すエンティティ。
+// サービスの中心的な管理単位であり、Task や StageHistory が紐づく。
 type Entry struct {
 	id        EntryID
 	userID    UserID

@@ -23,6 +23,8 @@ var validEntryStatuses = map[string]bool{
 	entryStatusWithdrawn:  true,
 }
 
+// EntryStatus は応募の進捗状態を表す値オブジェクト。
+// in_progress / offered / accepted / rejected / withdrawn のいずれか。
 type EntryStatus struct {
 	value string
 }

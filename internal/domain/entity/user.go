@@ -12,6 +12,8 @@ var (
 	ErrUserNameEmpty = errors.New("user name must not be empty")
 )
 
+// User はサービス利用者を表すエンティティ。
+// Google OAuth で認証されたアカウントに対応し、全データの所有者となる。
 type User struct {
 	id        UserID
 	email     value.Email

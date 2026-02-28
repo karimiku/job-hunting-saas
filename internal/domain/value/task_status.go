@@ -17,6 +17,8 @@ var validTaskStatuses = map[string]bool{
 	taskStatusDone: true,
 }
 
+// TaskStatus はタスクの完了状態を表す値オブジェクト。
+// todo（未完了）または done（完了）のいずれか。
 type TaskStatus struct {
 	value string
 }

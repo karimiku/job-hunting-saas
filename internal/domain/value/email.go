@@ -13,6 +13,8 @@ var (
 	emailRegex = regexp.MustCompile(`^[a-zA-Z0-9]+([.+_-][a-zA-Z0-9]+)*@[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$`)
 )
 
+// Email はメールアドレスを表す値オブジェクト。
+// Google OAuth 認証で取得したアドレスをユーザー識別に使用する。
 type Email struct {
 	value string
 }

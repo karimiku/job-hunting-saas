@@ -11,6 +11,8 @@ var (
 	ErrURLInvalid = errors.New("url format is invalid")
 )
 
+// URL はHTTPS URLを表す値オブジェクト。
+// 企業ページやマイページ等のリンク保存に使用する。
 type URL struct {
 	value string
 }

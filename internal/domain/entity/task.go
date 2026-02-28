@@ -12,6 +12,8 @@ var (
 	ErrTaskTitleEmpty = errors.New("task title must not be empty")
 )
 
+// Task は Entry に紐づく作業や予定を表すエンティティ。
+// 締切管理（deadline）と日程管理（schedule）の両方を統合的に扱う。
 type Task struct {
 	id        TaskID
 	entryID   EntryID

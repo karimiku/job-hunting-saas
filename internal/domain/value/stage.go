@@ -32,6 +32,8 @@ var validStageKinds = map[string]bool{
 	StageKindOther:       true,
 }
 
+// Stage は選考フェーズを表す値オブジェクト。
+// kind（応募・ES・テスト・面接等のカテゴリ）と label（表示名）の組で構成される。
 type Stage struct {
 	kind  string
 	label string
