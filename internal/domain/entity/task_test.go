@@ -16,23 +16,30 @@ func newTestTaskType(t *testing.T, raw string) value.TaskType {
 	return tt
 }
 
+func newTestTaskTitle(t *testing.T, raw string) value.TaskTitle {
+	t.Helper()
+	title, err := value.NewTaskTitle(raw)
+	if err != nil {
+		t.Fatalf("NewTaskTitle failed: %v", err)
+	}
+	return title
+}
+
 func TestNewTask(t *testing.T) {
 	entryID := NewEntryID()
 	taskType := newTestTaskType(t, "deadline")
+	title := newTestTaskTitle(t, "ES提出")
 
 	t.Run("valid task", func(t *testing.T) {
-		task, err := NewTask(entryID, "ES提出", taskType)
-		if err != nil {
-			t.Fatalf("NewTask should succeed, but got error: %v", err)
-		}
+		task := NewTask(entryID, title, taskType)
 		if task.ID().IsZero() {
 			t.Error("ID should not be zero")
 		}
 		if task.EntryID() != entryID {
 			t.Errorf("EntryID() = %v, want %v", task.EntryID(), entryID)
 		}
-		if task.Title() != "ES提出" {
-			t.Errorf("Title() = %q, want %q", task.Title(), "ES提出")
+		if task.Title().String() != "ES提出" {
+			t.Errorf("Title() = %q, want %q", task.Title().String(), "ES提出")
 		}
 		if task.TaskType().String() != "deadline" {
 			t.Errorf("TaskType() = %q, want %q", task.TaskType().String(), "deadline")
@@ -50,26 +57,13 @@ func TestNewTask(t *testing.T) {
 			t.Errorf("Memo() should be empty, got %q", task.Memo())
 		}
 	})
-
-	t.Run("empty title", func(t *testing.T) {
-		_, err := NewTask(entryID, "", taskType)
-		if err == nil {
-			t.Error("NewTask with empty title should return error")
-		}
-	})
-
-	t.Run("whitespace title", func(t *testing.T) {
-		_, err := NewTask(entryID, "   ", taskType)
-		if err == nil {
-			t.Error("NewTask with whitespace title should return error")
-		}
-	})
 }
 
 func TestTask_Complete(t *testing.T) {
 	entryID := NewEntryID()
 	taskType := newTestTaskType(t, "deadline")
-	task, _ := NewTask(entryID, "ES提出", taskType)
+	title := newTestTaskTitle(t, "ES提出")
+	task := NewTask(entryID, title, taskType)
 
 	task.Complete()
 	if !task.Status().IsDone() {
@@ -80,7 +74,8 @@ func TestTask_Complete(t *testing.T) {
 func TestTask_Uncomplete(t *testing.T) {
 	entryID := NewEntryID()
 	taskType := newTestTaskType(t, "deadline")
-	task, _ := NewTask(entryID, "ES提出", taskType)
+	title := newTestTaskTitle(t, "ES提出")
+	task := NewTask(entryID, title, taskType)
 
 	task.Complete()
 	task.Uncomplete()
@@ -92,7 +87,8 @@ func TestTask_Uncomplete(t *testing.T) {
 func TestTask_SetDueDate(t *testing.T) {
 	entryID := NewEntryID()
 	taskType := newTestTaskType(t, "schedule")
-	task, _ := NewTask(entryID, "一次面接", taskType)
+	title := newTestTaskTitle(t, "一次面接")
+	task := NewTask(entryID, title, taskType)
 
 	due := time.Date(2026, 3, 15, 14, 0, 0, 0, time.Local)
 	task.SetDueDate(due)
@@ -108,7 +104,8 @@ func TestTask_SetDueDate(t *testing.T) {
 func TestTask_ClearDueDate(t *testing.T) {
 	entryID := NewEntryID()
 	taskType := newTestTaskType(t, "deadline")
-	task, _ := NewTask(entryID, "ES提出", taskType)
+	title := newTestTaskTitle(t, "ES提出")
+	task := NewTask(entryID, title, taskType)
 
 	due := time.Date(2026, 3, 15, 14, 0, 0, 0, time.Local)
 	task.SetDueDate(due)
@@ -122,7 +119,8 @@ func TestTask_ClearDueDate(t *testing.T) {
 func TestTask_SetNotify(t *testing.T) {
 	entryID := NewEntryID()
 	taskType := newTestTaskType(t, "deadline")
-	task, _ := NewTask(entryID, "ES提出", taskType)
+	title := newTestTaskTitle(t, "ES提出")
+	task := NewTask(entryID, title, taskType)
 
 	task.SetNotify(true)
 	if task.Notify() != true {
@@ -138,7 +136,8 @@ func TestTask_SetNotify(t *testing.T) {
 func TestTask_UpdateMemo(t *testing.T) {
 	entryID := NewEntryID()
 	taskType := newTestTaskType(t, "deadline")
-	task, _ := NewTask(entryID, "ES提出", taskType)
+	title := newTestTaskTitle(t, "ES提出")
+	task := NewTask(entryID, title, taskType)
 
 	task.UpdateMemo("早めに出す")
 	if task.Memo() != "早めに出す" {
