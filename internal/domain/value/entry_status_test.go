@@ -1,6 +1,7 @@
 package value
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -8,31 +9,28 @@ func TestNewEntryStatus(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
-		wantErr bool
+		wantErr error
 	}{
 		// 正常系
-		{"in progress", "in_progress", false},
-		{"offered", "offered", false},
-		{"accepted", "accepted", false},
-		{"rejected", "rejected", false},
-		{"withdrawn", "withdrawn", false},
+		{"in progress", "in_progress", nil},
+		{"offered", "offered", nil},
+		{"accepted", "accepted", nil},
+		{"rejected", "rejected", nil},
+		{"withdrawn", "withdrawn", nil},
 
 		// 異常系
-		{"empty", "", true},
-		{"unknown value", "pending", true},
-		{"uppercase", "In_Progress", true},
-		{"all caps", "OFFERED", true},
-		{"with space", "in progress", true},
+		{"empty", "", ErrEntryStatusEmpty},
+		{"unknown value", "pending", ErrEntryStatusInvalid},
+		{"uppercase", "In_Progress", ErrEntryStatusInvalid},
+		{"all caps", "OFFERED", ErrEntryStatusInvalid},
+		{"with space", "in progress", ErrEntryStatusInvalid},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewEntryStatus(tt.input)
-			if tt.wantErr && err == nil {
-				t.Errorf("NewEntryStatus(%q) should return error, but got nil", tt.input)
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("NewEntryStatus(%q) should succeed, but got error: %v", tt.input, err)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("NewEntryStatus(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
 			}
 		})
 	}
