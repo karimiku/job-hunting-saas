@@ -1,6 +1,7 @@
 package value
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -8,26 +9,23 @@ func TestNewTaskStatus(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
-		wantErr bool
+		wantErr error
 	}{
 		// 正常系
-		{"todo", "todo", false},
-		{"done", "done", false},
+		{"todo", "todo", nil},
+		{"done", "done", nil},
 
 		// 異常系
-		{"empty", "", true},
-		{"unknown", "in_progress", true},
-		{"uppercase", "Todo", true},
+		{"empty", "", ErrTaskStatusEmpty},
+		{"unknown", "in_progress", ErrTaskStatusInvalid},
+		{"uppercase", "Todo", ErrTaskStatusInvalid},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewTaskStatus(tt.input)
-			if tt.wantErr && err == nil {
-				t.Errorf("NewTaskStatus(%q) should return error, but got nil", tt.input)
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("NewTaskStatus(%q) should succeed, but got error: %v", tt.input, err)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("NewTaskStatus(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
 			}
 		})
 	}
