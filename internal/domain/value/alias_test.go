@@ -1,6 +1,7 @@
 package value
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -8,27 +9,24 @@ func TestNewAlias(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
-		wantErr bool
+		wantErr error
 	}{
 		// 正常系
-		{"japanese alias", "ソニー", false},
-		{"english alias", "Sony", false},
+		{"japanese alias", "ソニー", nil},
+		{"english alias", "Sony", nil},
 
 		// 異常系
-		{"empty", "", true},
-		{"whitespace only", " ", true},
-		{"leading space", " ソニー", true},
-		{"trailing space", "ソニー ", true},
+		{"empty", "", ErrAliasEmpty},
+		{"whitespace only", " ", ErrAliasEmpty},
+		{"leading space", " ソニー", ErrAliasInvalid},
+		{"trailing space", "ソニー ", ErrAliasInvalid},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewAlias(tt.input)
-			if tt.wantErr && err == nil {
-				t.Errorf("NewAlias(%q) should return error, but got nil", tt.input)
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("NewAlias(%q) should succeed, but got error: %v", tt.input, err)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("NewAlias(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
 			}
 		})
 	}

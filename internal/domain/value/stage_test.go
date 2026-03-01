@@ -1,6 +1,7 @@
 package value
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -8,31 +9,28 @@ func TestNewStageKind(t *testing.T) {
 	tests := []struct {
 		name    string
 		raw     string
-		wantErr bool
+		wantErr error
 	}{
 		// 正常系
-		{"application", "application", false},
-		{"document", "document", false},
-		{"test", "test", false},
-		{"interview", "interview", false},
-		{"group", "group", false},
-		{"offer", "offer", false},
-		{"other", "other", false},
+		{"application", "application", nil},
+		{"document", "document", nil},
+		{"test", "test", nil},
+		{"interview", "interview", nil},
+		{"group", "group", nil},
+		{"offer", "offer", nil},
+		{"other", "other", nil},
 
 		// 異常系
-		{"empty", "", true},
-		{"invalid", "unknown", true},
-		{"leading space", " interview", true},
+		{"empty", "", ErrStageKindEmpty},
+		{"invalid", "unknown", ErrStageKindInvalid},
+		{"leading space", " interview", ErrStageKindInvalid},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewStageKind(tt.raw)
-			if tt.wantErr && err == nil {
-				t.Errorf("NewStageKind(%q) should return error, but got nil", tt.raw)
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("NewStageKind(%q) should succeed, but got error: %v", tt.raw, err)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("NewStageKind(%q) error = %v, wantErr %v", tt.raw, err, tt.wantErr)
 			}
 		})
 	}
@@ -91,34 +89,31 @@ func TestNewStage(t *testing.T) {
 		name    string
 		kind    StageKind
 		label   string
-		wantErr bool
+		wantErr error
 	}{
 		// 正常系
-		{"application", StageKindApplication(), "応募", false},
-		{"document", StageKindDocument(), "ES提出", false},
-		{"test", StageKindTest(), "Webテスト", false},
-		{"coding test", StageKindTest(), "コーディングテスト", false},
-		{"interview first", StageKindInterview(), "一次面接", false},
-		{"interview final", StageKindInterview(), "最終面接", false},
-		{"interview casual", StageKindInterview(), "カジュアル面談", false},
-		{"group discussion", StageKindGroup(), "GD", false},
-		{"offer", StageKindOffer(), "内定", false},
-		{"other", StageKindOther(), "座談会", false},
+		{"application", StageKindApplication(), "応募", nil},
+		{"document", StageKindDocument(), "ES提出", nil},
+		{"test", StageKindTest(), "Webテスト", nil},
+		{"coding test", StageKindTest(), "コーディングテスト", nil},
+		{"interview first", StageKindInterview(), "一次面接", nil},
+		{"interview final", StageKindInterview(), "最終面接", nil},
+		{"interview casual", StageKindInterview(), "カジュアル面談", nil},
+		{"group discussion", StageKindGroup(), "GD", nil},
+		{"offer", StageKindOffer(), "内定", nil},
+		{"other", StageKindOther(), "座談会", nil},
 
 		// 異常系
-		{"empty label", StageKindInterview(), "", true},
-		{"label leading space", StageKindInterview(), " 一次面接", true},
-		{"label trailing space", StageKindInterview(), "一次面接 ", true},
+		{"empty label", StageKindInterview(), "", ErrStageLabelEmpty},
+		{"label leading space", StageKindInterview(), " 一次面接", ErrStageLabelInvalid},
+		{"label trailing space", StageKindInterview(), "一次面接 ", ErrStageLabelInvalid},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewStage(tt.kind, tt.label)
-			if tt.wantErr && err == nil {
-				t.Errorf("NewStage(%q, %q) should return error, but got nil", tt.kind.String(), tt.label)
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("NewStage(%q, %q) should succeed, but got error: %v", tt.kind.String(), tt.label, err)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("NewStage(%q, %q) error = %v, wantErr %v", tt.kind.String(), tt.label, err, tt.wantErr)
 			}
 		})
 	}

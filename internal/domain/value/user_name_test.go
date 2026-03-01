@@ -1,6 +1,7 @@
 package value
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -8,27 +9,24 @@ func TestNewUserName(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
-		wantErr bool
+		wantErr error
 	}{
 		// 正常系
-		{"japanese name", "田中太郎", false},
-		{"english name", "John Doe", false},
+		{"japanese name", "田中太郎", nil},
+		{"english name", "John Doe", nil},
 
 		// 異常系
-		{"empty", "", true},
-		{"whitespace only", " ", true},
-		{"leading space", " 田中太郎", true},
-		{"trailing space", "田中太郎 ", true},
+		{"empty", "", ErrUserNameEmpty},
+		{"whitespace only", " ", ErrUserNameEmpty},
+		{"leading space", " 田中太郎", ErrUserNameInvalid},
+		{"trailing space", "田中太郎 ", ErrUserNameInvalid},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewUserName(tt.input)
-			if tt.wantErr && err == nil {
-				t.Errorf("NewUserName(%q) should return error, but got nil", tt.input)
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("NewUserName(%q) should succeed, but got error: %v", tt.input, err)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("NewUserName(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
 			}
 		})
 	}

@@ -1,6 +1,7 @@
 package value
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -8,27 +9,24 @@ func TestNewCompanyName(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
-		wantErr bool
+		wantErr error
 	}{
 		// 正常系
-		{"japanese name", "トヨタ自動車", false},
-		{"english name", "Google", false},
+		{"japanese name", "トヨタ自動車", nil},
+		{"english name", "Google", nil},
 
 		// 異常系
-		{"empty", "", true},
-		{"whitespace only", " ", true},
-		{"leading space", " トヨタ自動車", true},
-		{"trailing space", "トヨタ自動車 ", true},
+		{"empty", "", ErrCompanyNameEmpty},
+		{"whitespace only", " ", ErrCompanyNameEmpty},
+		{"leading space", " トヨタ自動車", ErrCompanyNameInvalid},
+		{"trailing space", "トヨタ自動車 ", ErrCompanyNameInvalid},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewCompanyName(tt.input)
-			if tt.wantErr && err == nil {
-				t.Errorf("NewCompanyName(%q) should return error, but got nil", tt.input)
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("NewCompanyName(%q) should succeed, but got error: %v", tt.input, err)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("NewCompanyName(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
 			}
 		})
 	}

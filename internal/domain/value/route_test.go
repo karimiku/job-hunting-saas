@@ -1,6 +1,7 @@
 package value
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -8,27 +9,24 @@ func TestNewRoute(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
-		wantErr bool
+		wantErr error
 	}{
 		// 正常系
-		{"japanese route", "本選考", false},
-		{"internship", "インターン", false},
+		{"japanese route", "本選考", nil},
+		{"internship", "インターン", nil},
 
 		// 異常系
-		{"empty", "", true},
-		{"whitespace only", " ", true},
-		{"leading space", " 本選考", true},
-		{"trailing space", "本選考 ", true},
+		{"empty", "", ErrRouteEmpty},
+		{"whitespace only", " ", ErrRouteEmpty},
+		{"leading space", " 本選考", ErrRouteInvalid},
+		{"trailing space", "本選考 ", ErrRouteInvalid},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewRoute(tt.input)
-			if tt.wantErr && err == nil {
-				t.Errorf("NewRoute(%q) should return error, but got nil", tt.input)
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("NewRoute(%q) should succeed, but got error: %v", tt.input, err)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("NewRoute(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
 			}
 		})
 	}
