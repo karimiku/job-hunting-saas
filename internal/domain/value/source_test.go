@@ -1,6 +1,7 @@
 package value
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -8,30 +9,27 @@ func TestNewSource(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
-		wantErr bool
+		wantErr error
 	}{
 		// 正常系
-		{"japanese", "マイナビ", false},
-		{"japanese 2", "リクナビ", false},
-		{"company hp", "企業HP", false},
-		{"free input", "友人紹介", false},
-		{"english", "OfferBox", false},
+		{"japanese", "マイナビ", nil},
+		{"japanese 2", "リクナビ", nil},
+		{"company hp", "企業HP", nil},
+		{"free input", "友人紹介", nil},
+		{"english", "OfferBox", nil},
 
 		// 異常系
-		{"empty", "", true},
-		{"whitespace only", " ", true},
-		{"leading space", " マイナビ", true},
-		{"trailing space", "マイナビ ", true},
+		{"empty", "", ErrSourceEmpty},
+		{"whitespace only", " ", ErrSourceEmpty},
+		{"leading space", " マイナビ", ErrSourceInvalid},
+		{"trailing space", "マイナビ ", ErrSourceInvalid},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewSource(tt.input)
-			if tt.wantErr && err == nil {
-				t.Errorf("NewSource(%q) should return error, but got nil", tt.input)
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("NewSource(%q) should succeed, but got error: %v", tt.input, err)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("NewSource(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
 			}
 		})
 	}
