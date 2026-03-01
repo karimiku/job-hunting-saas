@@ -1,6 +1,7 @@
 package value
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -8,41 +9,38 @@ func TestNewURL(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
-		wantErr bool
+		wantErr error
 	}{
 		// 正常系
-		{"basic", "https://example.com", false},
-		{"mynavi", "https://www.mynavi.jp/company/123", false},
-		{"rikunabi", "https://job.rikunabi.com/2027/company/r123/", false},
-		{"onecareer", "https://www.onecareer.jp/companies/12345", false},
-		{"i-web ats", "https://mypage.i-web.jpn.com/company2027/", false},
-		{"query params", "https://example.com/path?q=test&page=1", false},
-		{"fragment", "https://example.com/event#seminar", false},
-		{"encoded japanese", "https://example.com/search?q=%E5%B0%B1%E6%B4%BB", false},
-		{"deep path", "https://careers.company.co.jp/graduate/2027/mypage/login", false},
+		{"basic", "https://example.com", nil},
+		{"mynavi", "https://www.mynavi.jp/company/123", nil},
+		{"rikunabi", "https://job.rikunabi.com/2027/company/r123/", nil},
+		{"onecareer", "https://www.onecareer.jp/companies/12345", nil},
+		{"i-web ats", "https://mypage.i-web.jpn.com/company2027/", nil},
+		{"query params", "https://example.com/path?q=test&page=1", nil},
+		{"fragment", "https://example.com/event#seminar", nil},
+		{"encoded japanese", "https://example.com/search?q=%E5%B0%B1%E6%B4%BB", nil},
+		{"deep path", "https://careers.company.co.jp/graduate/2027/mypage/login", nil},
 
 		// 異常系
-		{"empty", "", true},
-		{"whitespace only", "   ", true},
-		{"http", "http://example.com", true},
-		{"ftp", "ftp://example.com", true},
-		{"no scheme", "example.com", true},
-		{"leading space", " https://example.com", true},
-		{"trailing space", "https://example.com ", true},
-		{"no host", "https://", true},
-		{"no host with path", "https:///path", true},
-		{"space in host", "https://exa mple.com", true},
-		{"uppercase scheme", "HTTPS://example.com", true},
+		{"empty", "", ErrURLEmpty},
+		{"whitespace only", "   ", ErrURLEmpty},
+		{"http", "http://example.com", ErrURLInvalid},
+		{"ftp", "ftp://example.com", ErrURLInvalid},
+		{"no scheme", "example.com", ErrURLInvalid},
+		{"leading space", " https://example.com", ErrURLInvalid},
+		{"trailing space", "https://example.com ", ErrURLInvalid},
+		{"no host", "https://", ErrURLInvalid},
+		{"no host with path", "https:///path", ErrURLInvalid},
+		{"space in host", "https://exa mple.com", ErrURLInvalid},
+		{"uppercase scheme", "HTTPS://example.com", ErrURLInvalid},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewURL(tt.input)
-			if tt.wantErr && err == nil {
-				t.Errorf("NewURL(%q) should return error, but got nil", tt.input)
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("NewURL(%q) should succeed, but got error: %v", tt.input, err)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("NewURL(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
 			}
 		})
 	}
