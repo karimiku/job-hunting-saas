@@ -1,6 +1,7 @@
 package value
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -8,41 +9,38 @@ func TestNewEmail(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
-		wantErr bool
+		wantErr error
 	}{
 		// 正常系
-		{"basic email", "user@example.com", false},
-		{"subdomain", "test.name@company.co.jp", false},
-		{"minimal", "a@b.co", false},
-		{"underscore", "user_name@example.com", false},
-		{"hyphen", "user-name@example.com", false},
-		{"plus tag", "user+tag@example.com", false},
-		{"uppercase input", "USER@EXAMPLE.COM", false},
+		{"basic email", "user@example.com", nil},
+		{"subdomain", "test.name@company.co.jp", nil},
+		{"minimal", "a@b.co", nil},
+		{"underscore", "user_name@example.com", nil},
+		{"hyphen", "user-name@example.com", nil},
+		{"plus tag", "user+tag@example.com", nil},
+		{"uppercase input", "USER@EXAMPLE.COM", nil},
 
 		// 異常系
-		{"empty", "", true},
-		{"no at sign", "invalid", true},
-		{"no local part", "@example.com", true},
-		{"no domain", "user@", true},
-		{"domain starts with dot", "user@.com", true},
-		{"no tld", "user@example", true},
-		{"double at sign", "user@@example.com", true},
-		{"leading dot local", ".user@example.com", true},
-		{"trailing dot local", "user.@example.com", true},
-		{"consecutive dots local", "us..er@example.com", true},
-		{"consecutive dots domain", "user@example..com", true},
-		{"leading space", " user@example.com", true},
-		{"trailing space", "user@example.com ", true},
+		{"empty", "", ErrEmailEmpty},
+		{"no at sign", "invalid", ErrEmailInvalid},
+		{"no local part", "@example.com", ErrEmailInvalid},
+		{"no domain", "user@", ErrEmailInvalid},
+		{"domain starts with dot", "user@.com", ErrEmailInvalid},
+		{"no tld", "user@example", ErrEmailInvalid},
+		{"double at sign", "user@@example.com", ErrEmailInvalid},
+		{"leading dot local", ".user@example.com", ErrEmailInvalid},
+		{"trailing dot local", "user.@example.com", ErrEmailInvalid},
+		{"consecutive dots local", "us..er@example.com", ErrEmailInvalid},
+		{"consecutive dots domain", "user@example..com", ErrEmailInvalid},
+		{"leading space", " user@example.com", ErrEmailInvalid},
+		{"trailing space", "user@example.com ", ErrEmailInvalid},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := NewEmail(tt.input)
-			if tt.wantErr && err == nil {
-				t.Errorf("NewEmail(%q) should return error, but got nil", tt.input)
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("NewEmail(%q) should succeed, but got error: %v", tt.input, err)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("NewEmail(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
 			}
 		})
 	}
