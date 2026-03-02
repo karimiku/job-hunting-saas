@@ -40,18 +40,18 @@ func (uc *AuthenticateUser) Execute(ctx context.Context, input AuthenticateUserI
 		return nil, err
 	}
 
-	existing, err := uc.userRepo.FindByEmail(ctx, email)
+	existingUser, err := uc.userRepo.FindByEmail(ctx, email)
 	if err == nil {
-		return &AuthenticateUserOutput{User: existing, Created: false}, nil
+		return &AuthenticateUserOutput{User: existingUser, Created: false}, nil
 	}
 	if !errors.Is(err, repository.ErrNotFound) {
 		return nil, err
 	}
 
-	user := entity.NewUser(email, name)
-	if err := uc.userRepo.Save(ctx, user); err != nil {
+	newUser := entity.NewUser(email, name)
+	if err := uc.userRepo.Save(ctx, newUser); err != nil {
 		return nil, err
 	}
 
-	return &AuthenticateUserOutput{User: user, Created: true}, nil
+	return &AuthenticateUserOutput{User: newUser, Created: true}, nil
 }
