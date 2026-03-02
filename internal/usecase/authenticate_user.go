@@ -9,13 +9,11 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
 
-// AuthenticateUserInput はAuthenticateUser UseCaseの入力。
 type AuthenticateUserInput struct {
 	Email string
 	Name  string
 }
 
-// AuthenticateUserOutput はAuthenticateUser UseCaseの出力。
 type AuthenticateUserOutput struct {
 	User    *entity.User
 	Created bool // 新規作成されたか
@@ -26,7 +24,6 @@ type AuthenticateUser struct {
 	userRepo repository.UserRepository
 }
 
-// NewAuthenticateUser はAuthenticateUserを生成する。
 func NewAuthenticateUser(userRepo repository.UserRepository) *AuthenticateUser {
 	return &AuthenticateUser{userRepo: userRepo}
 }
