@@ -15,6 +15,7 @@ type ListCompaniesOutput struct {
 	Companies []*entity.Company
 }
 
+// ListCompanies はユーザーに紐づく企業一覧を取得するUseCase。
 type ListCompanies struct {
 	companyRepo repository.CompanyRepository
 }
@@ -23,6 +24,7 @@ func NewListCompanies(companyRepo repository.CompanyRepository) *ListCompanies {
 	return &ListCompanies{companyRepo: companyRepo}
 }
 
+// Execute はユーザーIDで企業一覧を検索して返す。
 func (uc *ListCompanies) Execute(ctx context.Context, input ListCompaniesInput) (*ListCompaniesOutput, error) {
 	companies, err := uc.companyRepo.ListByUserID(ctx, input.UserID)
 	if err != nil {

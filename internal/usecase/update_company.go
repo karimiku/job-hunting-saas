@@ -19,6 +19,7 @@ type UpdateCompanyOutput struct {
 	Company *entity.Company
 }
 
+// UpdateCompany は既存企業の名前・メモを更新するUseCase。
 type UpdateCompany struct {
 	companyRepo repository.CompanyRepository
 }
@@ -27,6 +28,7 @@ func NewUpdateCompany(companyRepo repository.CompanyRepository) *UpdateCompany {
 	return &UpdateCompany{companyRepo: companyRepo}
 }
 
+// Execute は企業名をバリデーションし、既存Companyを取得して名前・メモを更新する。
 func (uc *UpdateCompany) Execute(ctx context.Context, input UpdateCompanyInput) (*UpdateCompanyOutput, error) {
 	name, err := value.NewCompanyName(input.Name)
 	if err != nil {
