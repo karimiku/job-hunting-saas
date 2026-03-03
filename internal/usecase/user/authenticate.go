@@ -1,4 +1,4 @@
-package usecase
+package user
 
 import (
 	"context"
@@ -9,27 +9,27 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
 
-type AuthenticateUserInput struct {
+type AuthenticateInput struct {
 	Email string
 	Name  string
 }
 
-type AuthenticateUserOutput struct {
+type AuthenticateOutput struct {
 	User    *entity.User
 	Created bool // 新規作成されたか
 }
 
-// AuthenticateUser はGoogle OAuthログイン時のFind or Createを行うUseCase。
-type AuthenticateUser struct {
+// Authenticate はGoogle OAuthログイン時のFind or Createを行うUseCase。
+type Authenticate struct {
 	userRepo repository.UserRepository
 }
 
-func NewAuthenticateUser(userRepo repository.UserRepository) *AuthenticateUser {
-	return &AuthenticateUser{userRepo: userRepo}
+func NewAuthenticate(userRepo repository.UserRepository) *Authenticate {
+	return &Authenticate{userRepo: userRepo}
 }
 
 // Execute はメールで既存ユーザーを検索し、いなければ新規作成して返す。
-func (uc *AuthenticateUser) Execute(ctx context.Context, input AuthenticateUserInput) (*AuthenticateUserOutput, error) {
+func (uc *Authenticate) Execute(ctx context.Context, input AuthenticateInput) (*AuthenticateOutput, error) {
 	email, err := value.NewEmail(input.Email)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func (uc *AuthenticateUser) Execute(ctx context.Context, input AuthenticateUserI
 
 	existingUser, err := uc.userRepo.FindByEmail(ctx, email)
 	if err == nil {
-		return &AuthenticateUserOutput{User: existingUser, Created: false}, nil
+		return &AuthenticateOutput{User: existingUser, Created: false}, nil
 	}
 	if !errors.Is(err, repository.ErrNotFound) {
 		return nil, err
@@ -53,5 +53,5 @@ func (uc *AuthenticateUser) Execute(ctx context.Context, input AuthenticateUserI
 		return nil, err
 	}
 
-	return &AuthenticateUserOutput{User: newUser, Created: true}, nil
+	return &AuthenticateOutput{User: newUser, Created: true}, nil
 }

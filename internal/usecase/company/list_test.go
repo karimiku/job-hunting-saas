@@ -1,4 +1,4 @@
-package usecase
+package company
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 )
 
-func TestListCompanies_Multiple(t *testing.T) {
+func TestList_Multiple(t *testing.T) {
 	userID := entity.NewUserID()
 	c1 := newTestCompany(t, userID)
 	c2 := newTestCompany(t, userID)
@@ -18,8 +18,8 @@ func TestListCompanies_Multiple(t *testing.T) {
 		},
 	}
 
-	uc := NewListCompanies(repo)
-	out, err := uc.Execute(context.Background(), ListCompaniesInput{
+	uc := NewList(repo)
+	out, err := uc.Execute(context.Background(), ListInput{
 		UserID: userID,
 	})
 
@@ -31,11 +31,11 @@ func TestListCompanies_Multiple(t *testing.T) {
 	}
 }
 
-func TestListCompanies_Empty(t *testing.T) {
+func TestList_Empty(t *testing.T) {
 	repo := &mockCompanyRepo{}
 
-	uc := NewListCompanies(repo)
-	out, err := uc.Execute(context.Background(), ListCompaniesInput{
+	uc := NewList(repo)
+	out, err := uc.Execute(context.Background(), ListInput{
 		UserID: entity.NewUserID(),
 	})
 
@@ -47,7 +47,7 @@ func TestListCompanies_Empty(t *testing.T) {
 	}
 }
 
-func TestListCompanies_DBError(t *testing.T) {
+func TestList_DBError(t *testing.T) {
 	dbErr := errors.New("db connection failed")
 	repo := &mockCompanyRepo{
 		listByUserFn: func(_ context.Context, _ entity.UserID) ([]*entity.Company, error) {
@@ -55,8 +55,8 @@ func TestListCompanies_DBError(t *testing.T) {
 		},
 	}
 
-	uc := NewListCompanies(repo)
-	_, err := uc.Execute(context.Background(), ListCompaniesInput{
+	uc := NewList(repo)
+	_, err := uc.Execute(context.Background(), ListInput{
 		UserID: entity.NewUserID(),
 	})
 

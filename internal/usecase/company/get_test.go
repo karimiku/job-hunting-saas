@@ -1,4 +1,4 @@
-package usecase
+package company
 
 import (
 	"context"
@@ -19,7 +19,7 @@ func newTestCompany(t *testing.T, userID entity.UserID) *entity.Company {
 	return entity.NewCompany(userID, name)
 }
 
-func TestGetCompany_Found(t *testing.T) {
+func TestGet_Found(t *testing.T) {
 	userID := entity.NewUserID()
 	expected := newTestCompany(t, userID)
 	repo := &mockCompanyRepo{
@@ -28,8 +28,8 @@ func TestGetCompany_Found(t *testing.T) {
 		},
 	}
 
-	uc := NewGetCompany(repo)
-	out, err := uc.Execute(context.Background(), GetCompanyInput{
+	uc := NewGet(repo)
+	out, err := uc.Execute(context.Background(), GetInput{
 		UserID:    userID,
 		CompanyID: expected.ID(),
 	})
@@ -42,11 +42,11 @@ func TestGetCompany_Found(t *testing.T) {
 	}
 }
 
-func TestGetCompany_NotFound(t *testing.T) {
+func TestGet_NotFound(t *testing.T) {
 	repo := &mockCompanyRepo{}
 
-	uc := NewGetCompany(repo)
-	_, err := uc.Execute(context.Background(), GetCompanyInput{
+	uc := NewGet(repo)
+	_, err := uc.Execute(context.Background(), GetInput{
 		UserID:    entity.NewUserID(),
 		CompanyID: entity.NewCompanyID(),
 	})
@@ -59,7 +59,7 @@ func TestGetCompany_NotFound(t *testing.T) {
 	}
 }
 
-func TestGetCompany_DBError(t *testing.T) {
+func TestGet_DBError(t *testing.T) {
 	dbErr := errors.New("db connection failed")
 	repo := &mockCompanyRepo{
 		findByIDFn: func(_ context.Context, _ entity.UserID, _ entity.CompanyID) (*entity.Company, error) {
@@ -67,8 +67,8 @@ func TestGetCompany_DBError(t *testing.T) {
 		},
 	}
 
-	uc := NewGetCompany(repo)
-	_, err := uc.Execute(context.Background(), GetCompanyInput{
+	uc := NewGet(repo)
+	_, err := uc.Execute(context.Background(), GetInput{
 		UserID:    entity.NewUserID(),
 		CompanyID: entity.NewCompanyID(),
 	})
