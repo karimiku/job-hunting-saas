@@ -1,4 +1,4 @@
-package usecase
+package user
 
 import (
 	"context"
@@ -69,7 +69,7 @@ func newExistingUser(t *testing.T) *entity.User {
 
 // --- tests ---
 
-func TestAuthenticateUser_NewUser(t *testing.T) {
+func TestAuthenticate_NewUser(t *testing.T) {
 	saveCalled := false
 	repo := &mockUserRepo{
 		findByEmailFn: func(_ context.Context, _ value.Email) (*entity.User, error) {
@@ -81,8 +81,8 @@ func TestAuthenticateUser_NewUser(t *testing.T) {
 		},
 	}
 
-	uc := NewAuthenticateUser(repo)
-	out, err := uc.Execute(context.Background(), AuthenticateUserInput{
+	uc := NewAuthenticate(repo)
+	out, err := uc.Execute(context.Background(), AuthenticateInput{
 		Email: "new@example.com",
 		Name:  "新規ユーザー",
 	})
@@ -104,7 +104,7 @@ func TestAuthenticateUser_NewUser(t *testing.T) {
 	}
 }
 
-func TestAuthenticateUser_ExistingUser(t *testing.T) {
+func TestAuthenticate_ExistingUser(t *testing.T) {
 	existing := newExistingUser(t)
 	saveCalled := false
 	repo := &mockUserRepo{
@@ -117,8 +117,8 @@ func TestAuthenticateUser_ExistingUser(t *testing.T) {
 		},
 	}
 
-	uc := NewAuthenticateUser(repo)
-	out, err := uc.Execute(context.Background(), AuthenticateUserInput{
+	uc := NewAuthenticate(repo)
+	out, err := uc.Execute(context.Background(), AuthenticateInput{
 		Email: "existing@example.com",
 		Name:  "既存ユーザー",
 	})
@@ -137,11 +137,11 @@ func TestAuthenticateUser_ExistingUser(t *testing.T) {
 	}
 }
 
-func TestAuthenticateUser_EmailValidationError(t *testing.T) {
+func TestAuthenticate_EmailValidationError(t *testing.T) {
 	repo := &mockUserRepo{}
-	uc := NewAuthenticateUser(repo)
+	uc := NewAuthenticate(repo)
 
-	_, err := uc.Execute(context.Background(), AuthenticateUserInput{
+	_, err := uc.Execute(context.Background(), AuthenticateInput{
 		Email: "",
 		Name:  "テスト",
 	})
@@ -154,11 +154,11 @@ func TestAuthenticateUser_EmailValidationError(t *testing.T) {
 	}
 }
 
-func TestAuthenticateUser_UserNameValidationError(t *testing.T) {
+func TestAuthenticate_UserNameValidationError(t *testing.T) {
 	repo := &mockUserRepo{}
-	uc := NewAuthenticateUser(repo)
+	uc := NewAuthenticate(repo)
 
-	_, err := uc.Execute(context.Background(), AuthenticateUserInput{
+	_, err := uc.Execute(context.Background(), AuthenticateInput{
 		Email: "test@example.com",
 		Name:  "",
 	})
@@ -171,7 +171,7 @@ func TestAuthenticateUser_UserNameValidationError(t *testing.T) {
 	}
 }
 
-func TestAuthenticateUser_FindByEmailError(t *testing.T) {
+func TestAuthenticate_FindByEmailError(t *testing.T) {
 	dbErr := errors.New("db connection failed")
 	repo := &mockUserRepo{
 		findByEmailFn: func(_ context.Context, _ value.Email) (*entity.User, error) {
@@ -179,8 +179,8 @@ func TestAuthenticateUser_FindByEmailError(t *testing.T) {
 		},
 	}
 
-	uc := NewAuthenticateUser(repo)
-	_, err := uc.Execute(context.Background(), AuthenticateUserInput{
+	uc := NewAuthenticate(repo)
+	_, err := uc.Execute(context.Background(), AuthenticateInput{
 		Email: "test@example.com",
 		Name:  "テスト",
 	})
@@ -193,7 +193,7 @@ func TestAuthenticateUser_FindByEmailError(t *testing.T) {
 	}
 }
 
-func TestAuthenticateUser_SaveError(t *testing.T) {
+func TestAuthenticate_SaveError(t *testing.T) {
 	saveErr := errors.New("db write failed")
 	repo := &mockUserRepo{
 		findByEmailFn: func(_ context.Context, _ value.Email) (*entity.User, error) {
@@ -204,8 +204,8 @@ func TestAuthenticateUser_SaveError(t *testing.T) {
 		},
 	}
 
-	uc := NewAuthenticateUser(repo)
-	_, err := uc.Execute(context.Background(), AuthenticateUserInput{
+	uc := NewAuthenticate(repo)
+	_, err := uc.Execute(context.Background(), AuthenticateInput{
 		Email: "test@example.com",
 		Name:  "テスト",
 	})

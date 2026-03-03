@@ -1,4 +1,4 @@
-package usecase
+package company
 
 import (
 	"context"

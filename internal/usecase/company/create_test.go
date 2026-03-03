@@ -1,4 +1,4 @@
-package usecase
+package company
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
 
-func TestCreateCompany_NameOnly(t *testing.T) {
+func TestCreate_NameOnly(t *testing.T) {
 	saveCalled := false
 	repo := &mockCompanyRepo{
 		saveFn: func(_ context.Context, _ *entity.Company) error {
@@ -18,8 +18,8 @@ func TestCreateCompany_NameOnly(t *testing.T) {
 		},
 	}
 
-	uc := NewCreateCompany(repo)
-	out, err := uc.Execute(context.Background(), CreateCompanyInput{
+	uc := NewCreate(repo)
+	out, err := uc.Execute(context.Background(), CreateInput{
 		UserID: entity.NewUserID(),
 		Name:   "株式会社テスト",
 	})
@@ -41,11 +41,11 @@ func TestCreateCompany_NameOnly(t *testing.T) {
 	}
 }
 
-func TestCreateCompany_WithMemo(t *testing.T) {
+func TestCreate_WithMemo(t *testing.T) {
 	repo := &mockCompanyRepo{}
 
-	uc := NewCreateCompany(repo)
-	out, err := uc.Execute(context.Background(), CreateCompanyInput{
+	uc := NewCreate(repo)
+	out, err := uc.Execute(context.Background(), CreateInput{
 		UserID: entity.NewUserID(),
 		Name:   "株式会社テスト",
 		Memo:   "メモ内容",
@@ -59,11 +59,11 @@ func TestCreateCompany_WithMemo(t *testing.T) {
 	}
 }
 
-func TestCreateCompany_EmptyName(t *testing.T) {
+func TestCreate_EmptyName(t *testing.T) {
 	repo := &mockCompanyRepo{}
 
-	uc := NewCreateCompany(repo)
-	_, err := uc.Execute(context.Background(), CreateCompanyInput{
+	uc := NewCreate(repo)
+	_, err := uc.Execute(context.Background(), CreateInput{
 		UserID: entity.NewUserID(),
 		Name:   "",
 	})
@@ -76,7 +76,7 @@ func TestCreateCompany_EmptyName(t *testing.T) {
 	}
 }
 
-func TestCreateCompany_SaveError(t *testing.T) {
+func TestCreate_SaveError(t *testing.T) {
 	saveErr := errors.New("db write failed")
 	repo := &mockCompanyRepo{
 		saveFn: func(_ context.Context, _ *entity.Company) error {
@@ -84,8 +84,8 @@ func TestCreateCompany_SaveError(t *testing.T) {
 		},
 	}
 
-	uc := NewCreateCompany(repo)
-	_, err := uc.Execute(context.Background(), CreateCompanyInput{
+	uc := NewCreate(repo)
+	_, err := uc.Execute(context.Background(), CreateInput{
 		UserID: entity.NewUserID(),
 		Name:   "株式会社テスト",
 	})

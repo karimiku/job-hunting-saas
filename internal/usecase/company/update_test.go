@@ -1,4 +1,4 @@
-package usecase
+package company
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
 
-func TestUpdateCompany_Success(t *testing.T) {
+func TestUpdate_Success(t *testing.T) {
 	userID := entity.NewUserID()
 	existing := newTestCompany(t, userID)
 	saveCalled := false
@@ -24,8 +24,8 @@ func TestUpdateCompany_Success(t *testing.T) {
 		},
 	}
 
-	uc := NewUpdateCompany(repo)
-	out, err := uc.Execute(context.Background(), UpdateCompanyInput{
+	uc := NewUpdate(repo)
+	out, err := uc.Execute(context.Background(), UpdateInput{
 		UserID:    userID,
 		CompanyID: existing.ID(),
 		Name:      "新しい社名",
@@ -46,11 +46,11 @@ func TestUpdateCompany_Success(t *testing.T) {
 	}
 }
 
-func TestUpdateCompany_EmptyName(t *testing.T) {
+func TestUpdate_EmptyName(t *testing.T) {
 	repo := &mockCompanyRepo{}
 
-	uc := NewUpdateCompany(repo)
-	_, err := uc.Execute(context.Background(), UpdateCompanyInput{
+	uc := NewUpdate(repo)
+	_, err := uc.Execute(context.Background(), UpdateInput{
 		UserID:    entity.NewUserID(),
 		CompanyID: entity.NewCompanyID(),
 		Name:      "",
@@ -64,11 +64,11 @@ func TestUpdateCompany_EmptyName(t *testing.T) {
 	}
 }
 
-func TestUpdateCompany_NotFound(t *testing.T) {
+func TestUpdate_NotFound(t *testing.T) {
 	repo := &mockCompanyRepo{}
 
-	uc := NewUpdateCompany(repo)
-	_, err := uc.Execute(context.Background(), UpdateCompanyInput{
+	uc := NewUpdate(repo)
+	_, err := uc.Execute(context.Background(), UpdateInput{
 		UserID:    entity.NewUserID(),
 		CompanyID: entity.NewCompanyID(),
 		Name:      "株式会社テスト",
@@ -82,7 +82,7 @@ func TestUpdateCompany_NotFound(t *testing.T) {
 	}
 }
 
-func TestUpdateCompany_SaveError(t *testing.T) {
+func TestUpdate_SaveError(t *testing.T) {
 	userID := entity.NewUserID()
 	existing := newTestCompany(t, userID)
 	saveErr := errors.New("db write failed")
@@ -95,8 +95,8 @@ func TestUpdateCompany_SaveError(t *testing.T) {
 		},
 	}
 
-	uc := NewUpdateCompany(repo)
-	_, err := uc.Execute(context.Background(), UpdateCompanyInput{
+	uc := NewUpdate(repo)
+	_, err := uc.Execute(context.Background(), UpdateInput{
 		UserID:    userID,
 		CompanyID: existing.ID(),
 		Name:      "株式会社テスト",

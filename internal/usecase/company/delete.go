@@ -1,4 +1,4 @@
-package usecase
+package company
 
 import (
 	"context"
@@ -7,21 +7,21 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 )
 
-type DeleteCompanyInput struct {
+type DeleteInput struct {
 	UserID    entity.UserID
 	CompanyID entity.CompanyID
 }
 
-// DeleteCompany は指定IDの企業を削除するUseCase。
-type DeleteCompany struct {
+// Delete は指定IDの企業を削除するUseCase。
+type Delete struct {
 	companyRepo repository.CompanyRepository
 }
 
-func NewDeleteCompany(companyRepo repository.CompanyRepository) *DeleteCompany {
-	return &DeleteCompany{companyRepo: companyRepo}
+func NewDelete(companyRepo repository.CompanyRepository) *Delete {
+	return &Delete{companyRepo: companyRepo}
 }
 
 // Execute はユーザーに紐づく企業をIDで削除する。
-func (uc *DeleteCompany) Execute(ctx context.Context, input DeleteCompanyInput) error {
+func (uc *Delete) Execute(ctx context.Context, input DeleteInput) error {
 	return uc.companyRepo.Delete(ctx, input.UserID, input.CompanyID)
 }

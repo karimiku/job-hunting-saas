@@ -1,4 +1,4 @@
-package usecase
+package company
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 )
 
-func TestDeleteCompany_Success(t *testing.T) {
+func TestDelete_Success(t *testing.T) {
 	deleteCalled := false
 	repo := &mockCompanyRepo{
 		deleteFn: func(_ context.Context, _ entity.UserID, _ entity.CompanyID) error {
@@ -17,8 +17,8 @@ func TestDeleteCompany_Success(t *testing.T) {
 		},
 	}
 
-	uc := NewDeleteCompany(repo)
-	err := uc.Execute(context.Background(), DeleteCompanyInput{
+	uc := NewDelete(repo)
+	err := uc.Execute(context.Background(), DeleteInput{
 		UserID:    entity.NewUserID(),
 		CompanyID: entity.NewCompanyID(),
 	})
@@ -31,7 +31,7 @@ func TestDeleteCompany_Success(t *testing.T) {
 	}
 }
 
-func TestDeleteCompany_DBError(t *testing.T) {
+func TestDelete_DBError(t *testing.T) {
 	dbErr := errors.New("db connection failed")
 	repo := &mockCompanyRepo{
 		deleteFn: func(_ context.Context, _ entity.UserID, _ entity.CompanyID) error {
@@ -39,8 +39,8 @@ func TestDeleteCompany_DBError(t *testing.T) {
 		},
 	}
 
-	uc := NewDeleteCompany(repo)
-	err := uc.Execute(context.Background(), DeleteCompanyInput{
+	uc := NewDelete(repo)
+	err := uc.Execute(context.Background(), DeleteInput{
 		UserID:    entity.NewUserID(),
 		CompanyID: entity.NewCompanyID(),
 	})
