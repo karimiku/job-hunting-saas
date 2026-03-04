@@ -1,0 +1,50 @@
+package stagehistory
+
+import (
+	"context"
+
+	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
+	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
+)
+
+type mockHistoryRepo struct {
+	createFn      func(ctx context.Context, history *entity.StageHistory) error
+	listByEntryFn func(ctx context.Context, entryID entity.EntryID) ([]*entity.StageHistory, error)
+}
+
+func (m *mockHistoryRepo) Create(ctx context.Context, history *entity.StageHistory) error {
+	if m.createFn != nil {
+		return m.createFn(ctx, history)
+	}
+	return nil
+}
+
+func (m *mockHistoryRepo) ListByEntryID(ctx context.Context, entryID entity.EntryID) ([]*entity.StageHistory, error) {
+	if m.listByEntryFn != nil {
+		return m.listByEntryFn(ctx, entryID)
+	}
+	return []*entity.StageHistory{}, nil
+}
+
+type mockEntryRepo struct {
+	findByIDFn func(ctx context.Context, userID entity.UserID, id entity.EntryID) (*entity.Entry, error)
+}
+
+func (m *mockEntryRepo) Save(ctx context.Context, entry *entity.Entry) error {
+	return nil
+}
+
+func (m *mockEntryRepo) FindByID(ctx context.Context, userID entity.UserID, id entity.EntryID) (*entity.Entry, error) {
+	if m.findByIDFn != nil {
+		return m.findByIDFn(ctx, userID, id)
+	}
+	return nil, repository.ErrNotFound
+}
+
+func (m *mockEntryRepo) ListByUserID(ctx context.Context, userID entity.UserID, filter repository.EntryFilter) ([]*entity.Entry, error) {
+	return []*entity.Entry{}, nil
+}
+
+func (m *mockEntryRepo) Delete(ctx context.Context, userID entity.UserID, id entity.EntryID) error {
+	return nil
+}
