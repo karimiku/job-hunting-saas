@@ -69,6 +69,16 @@ func (t *Task) Memo() string               { return t.memo }
 func (t *Task) CreatedAt() time.Time       { return t.createdAt }
 func (t *Task) UpdatedAt() time.Time       { return t.updatedAt }
 
+func (t *Task) UpdateTitle(title value.TaskTitle) {
+	t.title = title
+	t.updatedAt = time.Now()
+}
+
+func (t *Task) UpdateTaskType(taskType value.TaskType) {
+	t.taskType = taskType
+	t.updatedAt = time.Now()
+}
+
 func (t *Task) Complete() {
 	t.status = value.TaskStatusDone()
 	t.updatedAt = time.Now()
