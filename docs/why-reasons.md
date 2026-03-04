@@ -57,7 +57,50 @@ Web UI     → Handler B ─┘
 
 ---
 
-## 4. Chi（Goルーター）
+## 4. sqlc（SQLコード生成）
+
+### なぜsqlc？
+
+- SQLを書いて `sqlc generate` を実行すると、Go の関数と構造体が自動生成される。スキーマ定義（schema.sql）とクエリ（query.sql）をコード生成時に照合するため、カラム名のタイポや型の不一致が**コード生成時点**で検出される。アプリを動かす前に弾ける
+- PostgreSQL 自体も型安全だが、それは SQL がDBに届いた「実行時」の話。sqlc はその2段階前（コード生成時 → コンパイル時）に型チェックを持ってくる
+
+```
+schema.sql（テーブル定義）
+    ↓
+query.sql（SQLクエリ）
+    ↓
+sqlc generate  ← ここでカラム名・型の不一致を検出
+    ↓
+Go コード生成（関数 + 構造体）
+    ↓
+go build  ← 生成コードを使う側も型チェック
+    ↓
+実行時（PostgreSQL）← ここまで来る前に弾ける
+```
+
+- 生成コードはインフラ層に閉じ込められる。ドメイン層の Entry 構造体に DB のタグが混入しない。ビジネスルールと DB の都合が完全に分離される
+- openapi.yaml → oapi-codegen、schema.sql → sqlc。外側を自動生成、中心を手動という設計思想が全レイヤーで一貫する
+
+### なぜGORMじゃない？
+
+- GORM はリフレクションで構造体を読むため、フィールドを公開（大文字）にしないと動かない。このプロジェクトのエンティティは小文字フィールド + getter でカプセル化しており、GORM を使うとこの設計が崩壊する
+- `gorm.Model` や `gorm:"column:..."` タグがドメイン構造体に混入し、ドメイン層が DB のカラム名やテーブル構造を知ってしまう。Clean Architecture / DDD の「ドメイン層は外部に依存しない」原則に違反する
+- 値オブジェクト（`value.CompanyName` 等）を GORM が理解できないため、`string` に戻すか変換処理が必要になる。型安全なドメインモデルが無意味になる
+- SQL が隠蔽されて何が発行されてるか分からない。ダッシュボードのような複合クエリのチューニングが困難
+
+### なぜsqlxじゃない？
+
+- sqlx は SQL を文字列で書いて構造体タグで自動マッピングする。カラム名を間違えてもコンパイルは通り、実行して初めてエラーが分かる
+- sqlc なら同じ間違いがコード生成時に検出される。年間95万Entryを扱うSaaSで、型の不一致が本番で発覚するリスクは取りたくない
+
+### なぜ database/sql（標準ライブラリ）じゃない？
+
+- 結果を1カラムずつ `row.Scan(&c.ID, &c.Name, ...)` で手動マッピングする必要がある。カラム数が多いとボイラープレートが膨大で、順番を間違えても実行時まで気づけない
+- sqlc はこのマッピングも自動生成するので、手動の Scan ミスが構造的に起きない
+
+---
+
+## 5. Chi（Goルーター）
 
 ### なぜChi？
 
@@ -75,7 +118,7 @@ Web UI     → Handler B ─┘
 
 ---
 
-## 5. OpenAPI + oapi-codegen
+## 6. OpenAPI + oapi-codegen
 
 ### なぜスキーマ駆動？
 
@@ -89,7 +132,7 @@ Web UI     → Handler B ─┘
 
 ---
 
-## 6. TDD
+## 7. TDD
 
 ### なぜTDD？
 
@@ -99,7 +142,7 @@ Web UI     → Handler B ─┘
 
 ---
 
-## 7. ローカル開発環境: Docker Compose（Go + PostgreSQL）
+## 8. ローカル開発環境: Docker Compose（Go + PostgreSQL）
 
 ### なぜ全部Dockerに入れる？
 
@@ -115,7 +158,8 @@ Web UI     → Handler B ─┘
 
 ```
 外側（自動生成で型安全を担保）
-└── openapi.yaml → oapi-codegen → Handler層
+├── openapi.yaml → oapi-codegen → Handler層
+├── schema.sql   → sqlc         → Repository層
 
 中心（手動 + TDDで品質を担保）
 └── Domain層 + UseCase層
@@ -134,6 +178,6 @@ Web UI     → Handler B ─┘
 4. UseCase層のinterfaceとテストを先に書く（Red）
 5. UseCase・Domainの中身を実装する（Green）
 6. 自動生成されたHandlerとUseCaseを繋ぐ
-7. Repository実装を作成
+7. schema.sql → sqlc でRepository実装を生成・ラップ
 8. main.go でDI配線
 ```
