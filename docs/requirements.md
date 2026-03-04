@@ -1,4 +1,4 @@
-# 就活管理サービス 要件定義書 v1
+# 就活管理サービス 要件定義書
 
 ---
 
@@ -14,7 +14,7 @@
 
 1. 就活活動を「応募（Entry）単位」で一元管理し、サイト横断の進捗把握を可能にする
 2. **すべての機能は手動入力で完結できる**ことを前提とし、Chrome拡張による自動入力で省力化する（拡張は必須ではなく"加速装置"）
-3. 次アクション（Task）と予定（Event）を分離し、漏れを実質ゼロに近づける
+3. Task（作業・予定）で締切と日程を一元管理し、漏れを実質ゼロに近づける
 4. 「この応募のフロー何だっけ？」に、テンプレ + 実績ログで即答できる
 
 **注**: マネタイズは本フェーズの要件に含めない。
@@ -26,7 +26,7 @@
 本サービスは **手動入力と自動入力の両方に対応** する。どちらか一方に依存せず、ユーザーが自由に使い分けられる設計とする。
 
 ### 手動入力（Web UI）
-- Chrome拡張なしでも、Web画面からすべてのデータ（Company / Entry / Task / Event / Evidence）を作成・編集・削除できる
+- Chrome拡張なしでも、Web画面からすべてのデータ（Company / Entry / Task / Clip）を作成・編集・削除できる
 - スマホ（レスポンシブ）からも手動入力が可能（URL貼付 + メモ等）
 - 拡張を使わないユーザーにとっても、単体で完結するプロダクトとして成立する
 
@@ -39,7 +39,7 @@
 ### 両対応の原則
 - **同じデータに対して、手動入力と自動入力のどちらで作成されたかを区別しない**（データモデルは統一）
 - 自動入力で作成されたデータも、Web UIから自由に編集・修正できる
-- 拡張で保存したInboxアイテムを、Web UIで手動整理（Entry割当）できる
+- 拡張で保存した未整理 Clip を、Web UIで手動整理（Entry割当）できる
 
 ---
 
@@ -47,8 +47,8 @@
 
 - **Company（企業）** はマスター情報
 - **Entry（応募）** が運用単位（インターン、本選考、職種別などを別Entryとして扱う）
-- Evidence / Task / Event / StageHistory は Entry に紐づく
-- InboxItem は Entry 未割当の一時保管（後から割当）
+- Task / Clip / StageHistory は Entry に紐づく
+- Clip の `entry_id` が未設定のものが Inbox（未整理箱）として機能する
 
 ---
 
@@ -62,11 +62,11 @@
 
 ### 利用率別の年間規模
 
-| 利用率 | ユーザー数 | Entry | Evidence（×3） | Task（×2） | Event（×1） |
-|--------|-----------|-------|---------------|-----------|------------|
-| 1% | 約5,800人 | 約19万 | 約57万 | 約38万 | 約19万 |
-| **5%（設計ターゲット）** | **約29,000人** | **約95万** | **約285万** | **約190万** | **約95万** |
-| 10% | 約58,000人 | 約190万 | 約570万 | 約380万 | 約190万 |
+| 利用率 | ユーザー数 | Entry | Clip（×3） | Task（×3） |
+|--------|-----------|-------|-----------|-----------|
+| 1% | 約5,800人 | 約19万 | 約57万 | 約57万 |
+| **5%（設計ターゲット）** | **約29,000人** | **約95万** | **約285万** | **約285万** |
+| 10% | 約58,000人 | 約190万 | 約570万 | 約570万 |
 
 ### ストレージ目安
 - RDBテキストデータのみ: 5%利用時で年間数GB〜十数GB程度（添付ファイルなし前提）
@@ -76,21 +76,27 @@
 
 ## 6. スコープ
 
-### 6.1 MVP（初期提供）
+### 6.1 MVP-1（最小で価値が出る形）
 
 - Company管理（マスター / 別名はユーザー単位）
-- Entry管理（応募ルート、職種/メモ、媒体、状態）
-- Stage（フェーズ）+ 履歴（StageHistory）
-- Task（作業と締切）
-- Event（日時確定の予定）
-- Evidence（証跡URL・タイトル等）
-- Inbox（未整理箱）+ ゴミ屋敷化防止導線
-- Chrome拡張（媒体推定・会社推定の候補提示・必ず保存できるフォールバック）
-- モバイル（レスポンシブ）: 閲覧 + 手動追加 + タスク処理
-- 通知（メール）: 締切リマインド + Inbox消化促進
-- 退会（全データ削除）+ データエクスポート
+- Entry管理（応募ルート、メモ、媒体、状態）
+- Stage（フェーズ: 種別選択 + 自由入力ラベル）+ 履歴（StageHistory）
+- Task（作業・予定を統合、締切/日時管理）
+- Chrome拡張: URL・タイトル自動取得 + source推定 + 企業名候補提示（Entry保存の入力補助）
+- ダッシュボード（一覧 / 検索 / フィルタ / 締切表示）
+- レスポンシブ（スマホ閲覧 + 手動追加 + タスク処理）
+- メール通知（締切3日前/24時間前、日次まとめ）
+- 退会 + エクスポート
 
-### 6.2 将来拡張（MVP外）
+### 6.2 MVP-2（早期追加）
+
+- Clip（証跡URL・タイトル等 + Inbox機能を内包）
+- 重複統合（別名辞書の活用）
+- 拡張の「直近Entryに即保存」導線
+- 実績タイムライン表示（StageHistory + Clip）
+- Inbox（未整理Clip）の整理促進強化
+
+### 6.3 将来拡張（MVP外）
 
 - ESの自動生成（生成AI利用）
 - 会話情報・下書き・提出履歴の長期保存（ナレッジ化）
@@ -120,9 +126,9 @@
 
 - **横断統合**: サイトをまたいだ応募・選考の情報を「Entry単位」に集約
 - **入力最小化**: 拡張による文脈取得（ドメイン・URL・タイトル・ページ情報）で手入力を削減
-- **漏れ防止**: TaskとEventを分離し、締切と予定を中心に据えた運用設計
+- **漏れ防止**: Task で作業と予定を一元管理し、締切を中心に据えた運用設計
 - **検索性**: 証跡（URL履歴）が残るため「どこに何があったか」を後から辿れる
-- **壊れにくさ**: Inbox + フォールバックで、抽出精度が低くても運用が破綻しない
+- **壊れにくさ**: Inbox（未整理Clip）+ フォールバックで、抽出精度が低くても運用が破綻しない
 
 ### 競合に対するポジショニング
 - 大手ナビ（リクナビ/マイナビ）: 自社エコシステム内の管理に強いが、横断管理はビジネス上やりにくい
@@ -138,10 +144,11 @@
 
 | ID | 要件 |
 |----|------|
-| FR-01 | ユーザー登録 / ログイン / ログアウト |
+| FR-01 | ユーザー登録 / ログイン / ログアウト（Google OAuth のみ。対象ブラウザは Chrome 系） |
 | FR-02 | 退会（全データ削除） |
 | FR-03 | 拡張とWebの認証連携（拡張がユーザーを特定できる状態を作る） |
-| FR-04 | データエクスポート（CSV等）: Companies / Entries / Tasks / Events / Evidence / Inbox |
+| FR-04a | アカウント登録フローにChrome拡張のインストール案内を組み込む（拡張の機能説明 + 追加導線） |
+| FR-04 | データエクスポート（CSV等）: Companies / Entries / Tasks / Clips |
 
 ### 9.2 Company（企業マスター）
 
@@ -156,72 +163,61 @@
 | ID | 要件 |
 |----|------|
 | FR-20 | 応募の作成 / 編集 / 削除 |
-| FR-21 | Entry が保持する項目: Company参照（必須）、応募ルート（自由入力可）、source（媒体）、状態（Open / Closed-Win / Closed-Lose / Closed-Drop）、現在Stage（またはカスタムステータス）、次アクション要約、締切、タグ/メモ |
-| FR-22 | 一覧（検索・フィルタ）: 状態、Stage、source、締切近い順、更新順 |
+| FR-21 | Entry が保持する項目: Company参照（必須）、応募ルート（自由入力）、source（媒体: 自由入力）、状態、現在Stage（種別 + ラベル）、メモ |
+| FR-22 | 一覧（検索・フィルタ）: 状態、Stage種別、source、更新順 |
 | FR-23 | クローズ（お祈り/辞退/内定承諾等）→ デフォルト非表示、アーカイブビューで閲覧 |
 
 ### 9.4 Stage（選考フェーズ）と履歴
 
 | ID | 要件 |
 |----|------|
-| FR-30 | デフォルトテンプレ提供（応募 → ES → テスト → 面接 → 内定 など） |
-| FR-31 | Entryに「カスタムステータス（自由入力）」を用意（テンプレで破綻しない逃げ道） |
+| FR-30 | デフォルト種別提供（application / document / test / interview / group / offer / other） |
+| FR-31 | 各種別に自由入力のラベルを付与可能。other 種別で完全な自由入力が可能 |
 | FR-32 | Stage更新は手動、更新履歴（StageHistory）を保持しタイムライン表示 |
-| FR-33 | Entry単位でステージ追加可能（並び替え等はMVPでは必須でない） |
+| FR-33 | StageHistory にはメモ（note）を付与可能 |
 
-### 9.5 Task（作業）
+### 9.5 Task（作業・予定）
 
 | ID | 要件 |
 |----|------|
 | FR-40 | Entryに紐づくタスクの作成 / 完了 / 編集 |
-| FR-41 | 期限（締切）・優先度（任意）・通知ON/OFF（任意） |
-| FR-42 | ダッシュボードで期限が近い未完了Taskを強調表示 |
+| FR-41 | タスク種別（task_type）: deadline（締切までにやる作業）/ schedule（日時確定の予定: 面接、説明会等） |
+| FR-42 | 期限/日時（due_date、任意）・通知ON/OFF（任意） |
+| FR-43 | ダッシュボードで期限が近い未完了Taskを強調表示 |
+| FR-44 | ダッシュボードに直近の予定（task_type=schedule）を別枠で表示 |
 
-### 9.6 Event（予定）
-
-| ID | 要件 |
-|----|------|
-| FR-50 | Entryに紐づく予定の作成 / 編集（面接、説明会、座談会、適性検査 等） |
-| FR-51 | Event は「完了」ではなく「実施済み / 結果待ち」等の自然な状態遷移を持つ |
-| FR-52 | ダッシュボードに直近EventをTaskと別枠で表示 |
-
-### 9.7 Evidence（証跡）
+### 9.6 Clip（証跡）・Inbox（未整理箱）【MVP-2】
 
 | ID | 要件 |
 |----|------|
 | FR-60 | Entryに紐づく証跡保存（URL、タイトル、保存日時、source、任意メモ） |
 | FR-61 | 証跡一覧から外部ページへ再訪できる |
-| FR-62 | 証跡の付け替え（誤紐付け修正） |
-
-### 9.8 Inbox（未整理箱）
-
-| ID | 要件 |
-|----|------|
-| FR-70 | Entry未選択でも証跡を必ず保存できる（失敗しないUX） |
-| FR-71 | Inbox → Entryへの割当が数秒でできる（推定候補を最上段に提示） |
+| FR-62 | 証跡の付け替え（誤紐付け修正 = entry_id の変更） |
+| FR-70 | Entry未選択でも証跡を必ず保存できる（entry_id = null で保存 → Inbox扱い） |
+| FR-71 | Inbox（entry_id未設定のClip一覧）→ Entryへの割当が数秒でできる（推定候補を最上段に提示） |
 | FR-72 | ダッシュボード上部に未整理件数を常時表示 |
 | FR-73 | 自動アーカイブ（例: 30日経過でアーカイブへ、検索は可能） |
 | FR-74 | 通知メールに未整理が多い場合の整理促進メッセージを含める |
 
-### 9.9 Chrome拡張
+### 9.7 Chrome拡張
 
 | ID | 要件 |
 |----|------|
 | FR-80 | source推定は複数シグナルで行う（ドメイン、タイトル、見出し、ページ内固定語）。ATSドメイン（i-web/SONAR等）でも機能する設計 |
 | FR-81 | company推定は候補提示まで（確定はユーザー操作） |
-| FR-82 | 抽出失敗しても「URL + タイトル + 時刻 + 推定source」で必ず保存（Inbox行き） |
+| FR-82 | 抽出失敗しても「URL + タイトル + 時刻 + 推定source」で必ず保存（Inbox行き = entry_id null の Clip） |
 | FR-83 | 直近Entryへの即保存導線（入力削減） |
 | FR-84 | SPA等でタイトル/DOM取得が不安定な場合のフォールバック（手入力 + Inbox） |
 
-### 9.10 モバイル（スマホ）
+### 9.8 モバイル（スマホ）
 
 | ID | 要件 |
 |----|------|
-| FR-90 | レスポンシブでダッシュボード / Entry詳細 / Inboxを閲覧 |
-| FR-91 | スマホから手動でEvidence追加（URL貼付 + メモ） |
-| FR-92 | Task完了 / 期限変更 / メモ追記、Eventの確認・更新 |
+| FR-90 | レスポンシブでダッシュボード / Entry詳細 / Inbox（未整理Clip）を閲覧 |
+| FR-91 | スマホから手動でClip追加（URL貼付 + メモ） |
+| FR-92 | Task完了 / 期限変更 / メモ追記 |
 
-### 9.11 通知（メール）
+### 9.9 通知（メール）
 
 | ID | 要件 |
 |----|------|
@@ -229,7 +225,7 @@
 | FR-101 | 未完了Taskのみ通知対象 |
 | FR-102 | 通知タイミング: 締切3日前・24時間前 |
 | FR-103 | 1日1回のまとめ送信（スパム抑制） |
-| FR-104 | 未整理Inbox件数が多い場合の整理促進メッセージ |
+| FR-104 | 未整理Clip件数が多い場合の整理促進メッセージ |
 
 ---
 
@@ -261,9 +257,9 @@
 
 | ID | 要件 |
 |----|------|
-| NFR-01 | **パフォーマンス**: 「自分のデータだけ」を高速に扱える（ユーザー単位クエリ前提）。ダッシュボード（Open Entry + 近いTask/Event）は体感遅延なし。設計ターゲット: 年間95万Entry規模 |
-| NFR-02 | **データライフサイクル**: Closed Entryはデフォルト非表示（アーカイブ退避）。Inboxは自動アーカイブ。Evidence/ログはアーカイブ後も参照可能（削除はユーザー操作のみ） |
-| NFR-03 | **データ整合性**: Entry / Task / Event / Evidence / Inbox の参照整合性。誤紐付けの修正（付け替え・統合）を常に可能にする |
+| NFR-01 | **パフォーマンス**: 「自分のデータだけ」を高速に扱える（ユーザー単位クエリ前提）。ダッシュボード（進行中Entry + 近いTask）は体感遅延なし。設計ターゲット: 年間95万Entry規模 |
+| NFR-02 | **データライフサイクル**: クローズ済みEntryはデフォルト非表示（アーカイブ退避）。未整理Clipは自動アーカイブ。Clip/ログはアーカイブ後も参照可能（削除はユーザー操作のみ） |
+| NFR-03 | **データ整合性**: Entry / Task / Clip の参照整合性。誤紐付けの修正（付け替え・統合）を常に可能にする |
 | NFR-04 | **セキュリティ・信頼性**: 通信はHTTPS。退会 = 全データ削除。エクスポート提供。別名辞書はユーザー単位（汚染防止）。認証トークンの安全な保持 |
 | NFR-05 | **保守性**: サイトごとのDOM依存を最小化し、候補提示 + 確定で吸収する。サイト別ロジックはプラガブルに |
 
@@ -278,44 +274,64 @@ User
  ├── 1:N Company
  │    └── 1:N CompanyAlias（ユーザー単位の表記揺れ辞書）
  ├── 1:N Entry（必ず1つのCompanyに属する）
- │    ├── 1:N Task
- │    ├── 1:N Event
- │    ├── 1:N Evidence
+ │    ├── 1:N Task（作業・予定を統合）
+ │    ├── 1:N Clip（entry_id ありの証跡）【MVP-2】
  │    └── 1:N StageHistory
- └── 1:N InboxItem（後からEntryへ割当可能）
+ └── 1:N Clip（entry_id なし = Inbox）【MVP-2】
 ```
 
 ### 各エンティティの主要項目
 
-| エンティティ | 主要項目 |
-|-------------|---------|
-| User | id, email, name, created_at |
-| Company | id, user_id, canonical_name, memo |
-| CompanyAlias | id, user_id, company_id, alias |
-| Entry | id, user_id, company_id, route（応募ルート）, source, status（Open/Closed-Win/Closed-Lose/Closed-Drop）, current_stage, custom_status, next_action, deadline, tags, memo |
-| Task | id, entry_id, title, due_date, status, priority, notify |
-| Event | id, entry_id, title, event_type, datetime, location_or_url, status（未実施/実施済み/結果待ち）, memo |
-| Evidence | id, entry_id, url, page_title, source, memo, created_at |
-| StageHistory | id, entry_id, stage, changed_at |
-| InboxItem | id, user_id, url, page_title, source_guess, memo, created_at, archived |
+| エンティティ | 主要項目 | 実装状態 |
+|-------------|---------|---------|
+| User | id, email, name, created_at, updated_at | 実装済み |
+| Company | id, user_id, name, memo, created_at, updated_at | 実装済み |
+| CompanyAlias | id, user_id, company_id, alias, created_at | 実装済み（イミュータブル） |
+| Entry | id, user_id, company_id, route, source, status, stage, memo, created_at, updated_at | 実装済み |
+| Task | id, entry_id, title, task_type, due_date(nullable), status, notify, memo, created_at, updated_at | 実装済み |
+| StageHistory | id, entry_id, stage, note, created_at | 実装済み（イミュータブル） |
+| Clip | id, user_id, entry_id(nullable), url, page_title, source, memo, archived, created_at | 未実装（MVP-2） |
+
+### 値オブジェクト
+
+| 値オブジェクト | 内部値 | 説明 |
+|--------------|--------|------|
+| EntryStatus（応募状態） | `in_progress`（選考中） / `offered`（内定提示） / `accepted`（内定承諾） / `rejected`（不合格） / `withdrawn`（辞退） | 応募の進捗状態。`in_progress` と `offered` が進行中（IsOpen = true） |
+| Stage（選考フェーズ） | kind（種別: StageKind）+ label（表示ラベル: 自由入力） | 選考フェーズ。種別 + 表示ラベルの組 |
+| StageKind（フェーズ種別） | `application`（応募） / `document`（書類選考） / `test`（テスト・適性検査） / `interview`（面接） / `group`（グループ選考） / `offer`（内定） / `other`（その他） | 選考フェーズの種別 |
+| Source（媒体） | 自由入力文字列 | 応募経由の媒体（リクナビ、マイナビ、企業HP等） |
+| Route（応募経路） | 自由入力文字列 | 応募経路（本選考、インターン等） |
+| TaskType（タスク種別） | `deadline`（締切: 期限までにやる作業） / `schedule`（予定: 日時確定のイベント） | 作業と予定を区別する種別 |
+| TaskStatus（タスク状態） | `todo`（未完了） / `done`（完了） | タスクの完了状態 |
+| TaskTitle（タスク件名） | 自由入力文字列 | タスクの件名 |
+| CompanyName（企業名） | 自由入力文字列 | 企業の正式名称 |
+| Alias（別名） | 自由入力文字列 | 企業名の別名（表記揺れ吸収用） |
+| Email（メール） | メールアドレス形式 | ユーザーの識別子（Google OAuth由来） |
+| UserName（表示名） | 自由入力文字列 | ユーザーの表示名 |
+
+### 設計上の特記事項
+
+- **Task は UserID を保持しない**: Entry → Company → User の関係で辿れるため、Task エンティティに UserID を持たせない設計。UseCase 層で EntryRepository を注入して所有権を検証する
+- **イミュータブルエンティティ**: CompanyAlias と StageHistory は作成後に変更しない。変更が必要な場合は削除→再作成。Repository は `Create`（`Save` ではない）を使用
+- **StageHistory は監査ログ**: 作成と一覧取得のみ。個別取得・更新・削除はない
+- **所有権検証パターン**: 子エンティティ（Task, StageHistory等）の操作時に、親エンティティの Repository を注入して UseCase 層でアクセス制御を行う
 
 ---
 
 ## 13. 画面要件（UI概要）
 
 ### ダッシュボード
-- Entry一覧（フェーズ / 次アクション / 締切 / source / 最終更新）
-- フィルタ（状態、Stage、source、タグ）、検索
-- 直近Event（Task とは別枠で表示）
-- 期限が近い未完了Taskの強調表示
-- 未整理Inbox件数の常時表示（上部）
+- Entry一覧（フェーズ / source / 最終更新）
+- フィルタ（状態、Stage種別、source）、検索
+- 直近の予定（task_type=schedule のTask）を別枠で表示
+- 期限が近い未完了Task（task_type=deadline）の強調表示
+- 未整理Clip件数の常時表示（上部）【MVP-2】
 
 ### Entry詳細
 - 企業基本情報、応募ルート、source
-- 現在Stage + カスタムステータス
-- タスク一覧
-- Event一覧
-- 証跡一覧（URL履歴）
+- 現在Stage（種別 + ラベル）
+- タスク一覧（作業・予定を統合表示）
+- 証跡一覧（URL履歴）【MVP-2】
 - 選考フロー（テンプレ + 実績タイムライン）
 - メモ
 
@@ -325,52 +341,29 @@ User
 - 保存ボタン（Entry指定 or Inbox行き）
 - 直近Entryのショートカット
 
-### Inbox
-- 未整理アイテム一覧（保存日時順）
+### Inbox（未整理Clip一覧）【MVP-2】
+- entry_id 未設定の Clip 一覧（保存日時順）
 - Entry割当UI（推定候補を上段に提示、ワンクリック割当）
 - アーカイブ済みの閲覧
 
 ---
 
-## 14. MVP定義
-
-### MVP-1（最小で価値が出る形）
-- Entry CRUD + 状態管理（Open / Closed）
-- Stage更新（手動）+ カスタムステータス
-- Task（作業 + 締切）
-- Event（予定）
-- Evidence（証跡保存）
-- Inbox（未整理箱 + 割当）
-- Chrome拡張: source推定 + 企業名候補 + 保存（Entry/Inbox）
-- ダッシュボード（一覧 / 検索 / フィルタ / 締切表示）
-- レスポンシブ（スマホ閲覧 + 手動追加 + タスク処理）
-- メール通知（締切3日前/24時間前、日次まとめ）
-- 退会 + エクスポート
-
-### MVP-2（早期追加）
-- 重複統合（別名辞書の活用）
-- 拡張の「直近Entryに即保存」導線
-- 実績タイムライン表示（StageHistory + Evidence）
-- Inboxの整理促進強化
-
----
-
-## 15. 制約・リスクと対策
+## 14. 制約・リスクと対策
 
 | リスク | 対策 |
 |--------|------|
 | DOM変更で拡張の抽出が壊れる | 100%自動にしない。候補提示 + 確定UIを基本設計に。Inboxでフォールバック |
 | ATSドメイン（i-web/SONAR等）で企業判定が困難 | 複数シグナル推定（ドメイン + タイトル + 見出し + 固定語） |
 | 会社名の表記揺れ・同名 | ユーザー単位の別名辞書。ドメイン/URLを補助キーに |
-| Inboxのゴミ屋敷化 | 未整理件数の常時表示 + 高速割当UI + 30日自動アーカイブ |
+| 未整理Clipのゴミ屋敷化 | 未整理件数の常時表示 + 高速割当UI + 30日自動アーカイブ |
 | CompanyAlias のマスター汚染 | ユーザー単位に閉じる（共有辞書はMVP外） |
 | 機微情報の漏洩リスク | HTTPS、退会時全削除、エクスポート提供、認証トークン安全保持 |
 
 ---
 
-## 16. 成功指標
+## 15. 成功指標
 
-- 初回10分で: Entry数件 + Task + Evidence が登録され、運用が回り始める
+- 初回10分で: Entry数件 + Task が登録され、運用が回り始める
 - 保存成功率: 拡張利用時に「保存が失敗しない」（Inbox退避含む）
 - Inbox滞留: 未整理警告 + 簡易割当で自然に減る
 - 締切漏れ: 通知メールにより自己申告の漏れが減少
@@ -378,7 +371,7 @@ User
 
 ---
 
-## 17. 将来拡張ロードマップ
+## 16. 将来拡張ロードマップ
 
 | 優先度 | 機能 | 備考 |
 |--------|------|------|
@@ -388,3 +381,21 @@ User
 | 中 | 会話情報・下書きの長期保存 | 検索可能なナレッジとしてEntry/Companyに紐付け |
 | 低 | 共有別名辞書 | レビュー/スコアリング/汚染対策が必要 |
 | 低 | フロー推定の高度化 | 統計・学習ベース |
+| 低 | Task の自動生成 | Stage 変更時に次の Task を自動作成 |
+
+---
+
+## 付録: v1 からの設計変更履歴
+
+| 変更 | 内容 | 理由 |
+|------|------|------|
+| Event を Task に統合 | Task に `task_type`（deadline/schedule）を追加し、Event エンティティを廃止 | 作業も予定も「Entry に紐づく、やること/起きること」で本質は同じ |
+| InboxItem を Clip に統合 | Clip の `entry_id` を nullable にし、InboxItem エンティティを廃止 | どちらも「保存した URL」で、Entry に紐付いているかどうかの違いだけ |
+| Evidence → Clip にリネーム | 「証跡」より「クリップ」の方が直感的 | |
+| Entry から `next_action` 削除 | Task と重複するため削除 | |
+| Entry から `deadline` 削除 | Entry 自体の締切はスコープ外（Task の due_date で管理） | |
+| Entry から `tags` 削除 | MVP では不要。シンプルさを優先 | |
+| `current_stage` + `custom_status` を Stage に統合 | StageKind（種別選択）+ label（自由入力ラベル）の組で表現 | 2項目に分ける必要がない |
+| Task から `priority` 削除 | MVP では不要。締切順で十分 | |
+| EntryStatus を詳細化 | Open/Closed-Win/Closed-Lose/Closed-Drop → in_progress/offered/accepted/rejected/withdrawn | 就活の実態に即したステータス。「内定提示（offered）」と「内定承諾（accepted）」の区別が必要 |
+| Clip を MVP-2 に移動 | Clip（Inbox機能含む）のドメイン層実装を後回しにし、MVP-2 以降で対応 | Chrome拡張の入力補助は Entry 作成に必要だが、Clip は仕様未確定 |
