@@ -16,7 +16,6 @@ type ListOutput struct {
 	Tasks []*entity.Task
 }
 
-// List はエントリーに紐づくタスク一覧を取得するUseCase。
 type List struct {
 	taskRepo repository.TaskRepository
 }
@@ -25,7 +24,6 @@ func NewList(taskRepo repository.TaskRepository) *List {
 	return &List{taskRepo: taskRepo}
 }
 
-// Execute はユーザー・エントリーに紐づくタスク一覧を検索して返す。
 func (uc *List) Execute(ctx context.Context, input ListInput) (*ListOutput, error) {
 	tasks, err := uc.taskRepo.ListByEntryID(ctx, input.UserID, input.EntryID)
 	if err != nil {
