@@ -22,7 +22,6 @@ type CreateOutput struct {
 	Task *entity.Task
 }
 
-// Create は新しいタスクを登録するUseCase。
 type Create struct {
 	taskRepo  repository.TaskRepository
 	entryRepo repository.EntryRepository
@@ -32,13 +31,13 @@ func NewCreate(taskRepo repository.TaskRepository, entryRepo repository.EntryRep
 	return &Create{taskRepo: taskRepo, entryRepo: entryRepo}
 }
 
-// Execute はEntryIDの存在・所有を検証し、Title/TaskTypeをバリデーションして新規Taskを生成・永続化する。
 func (uc *Create) Execute(ctx context.Context, input CreateInput) (*CreateOutput, error) {
+	// 指定されたEntryが存在し、かつ操作ユーザーが所有していることを検証する
 	if _, err := uc.entryRepo.FindByID(ctx, input.UserID, input.EntryID); err != nil {
 		return nil, err
 	}
 
-	title, err := value.NewTaskTitle(input.Title)
+	taskTitle, err := value.NewTaskTitle(input.Title)
 	if err != nil {
 		return nil, err
 	}
@@ -48,19 +47,19 @@ func (uc *Create) Execute(ctx context.Context, input CreateInput) (*CreateOutput
 		return nil, err
 	}
 
-	t := entity.NewTask(input.EntryID, title, taskType)
+	task := entity.NewTask(input.EntryID, taskTitle, taskType)
 
 	if input.DueDate != nil {
-		t.SetDueDate(*input.DueDate)
+		task.SetDueDate(*input.DueDate)
 	}
 
 	if input.Memo != "" {
-		t.UpdateMemo(input.Memo)
+		task.UpdateMemo(input.Memo)
 	}
 
-	if err := uc.taskRepo.Save(ctx, t); err != nil {
+	if err := uc.taskRepo.Save(ctx, task); err != nil {
 		return nil, err
 	}
 
-	return &CreateOutput{Task: t}, nil
+	return &CreateOutput{Task: task}, nil
 }
