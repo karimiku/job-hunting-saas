@@ -7,6 +7,11 @@ import (
 	"os"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/karimiku/job-hunting-saas/internal/gen/openapi"
+	"github.com/karimiku/job-hunting-saas/internal/handler"
+	"github.com/karimiku/job-hunting-saas/internal/infra/inmemory"
+	"github.com/karimiku/job-hunting-saas/internal/middleware"
+	companyuc "github.com/karimiku/job-hunting-saas/internal/usecase/company"
 )
 
 func main() {
@@ -15,14 +20,28 @@ func main() {
 		port = "8080"
 	}
 
-	r := chi.NewRouter()
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+	// InMemory実装はプロセス再起動でデータが消える。本番ではPostgreSQL実装に差し替える。
+	companyRepo := inmemory.NewCompanyRepository()
+
+	companyHandler := handler.NewCompanyHandler(
+		companyuc.NewCreate(companyRepo),
+		companyuc.NewGet(companyRepo),
+		companyuc.NewList(companyRepo),
+		companyuc.NewUpdate(companyRepo),
+		companyuc.NewDelete(companyRepo),
+	)
+
+	router := chi.NewRouter()
+	router.Use(middleware.Auth)
+	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, "ok")
 	})
+	// oapi-codegen が生成した ServerInterface のルーティングを登録する
+	openapi.HandlerFromMux(companyHandler, router)
 
 	log.Printf("server listening on :%s", port)
-	if err := http.ListenAndServe(":"+port, r); err != nil {
+	if err := http.ListenAndServe(":"+port, router); err != nil {
 		log.Fatal(err)
 	}
 }
