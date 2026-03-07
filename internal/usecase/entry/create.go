@@ -20,7 +20,6 @@ type CreateOutput struct {
 	Entry *entity.Entry
 }
 
-// Create は新しいエントリーを登録するUseCase。
 type Create struct {
 	entryRepo   repository.EntryRepository
 	companyRepo repository.CompanyRepository
@@ -30,31 +29,31 @@ func NewCreate(entryRepo repository.EntryRepository, companyRepo repository.Comp
 	return &Create{entryRepo: entryRepo, companyRepo: companyRepo}
 }
 
-// Execute はCompanyIDの存在・所有を検証し、Route/Sourceをバリデーションして新規Entryを生成・永続化する。
 func (uc *Create) Execute(ctx context.Context, input CreateInput) (*CreateOutput, error) {
+	// 指定されたCompanyが存在し、かつ操作ユーザーが所有していることを検証する
 	if _, err := uc.companyRepo.FindByID(ctx, input.UserID, input.CompanyID); err != nil {
 		return nil, err
 	}
 
-	route, err := value.NewRoute(input.Route)
+	validatedRoute, err := value.NewRoute(input.Route)
 	if err != nil {
 		return nil, err
 	}
 
-	source, err := value.NewSource(input.Source)
+	validatedSource, err := value.NewSource(input.Source)
 	if err != nil {
 		return nil, err
 	}
 
-	e := entity.NewEntry(input.UserID, input.CompanyID, route, source)
+	entry := entity.NewEntry(input.UserID, input.CompanyID, validatedRoute, validatedSource)
 
 	if input.Memo != "" {
-		e.UpdateMemo(input.Memo)
+		entry.UpdateMemo(input.Memo)
 	}
 
-	if err := uc.entryRepo.Save(ctx, e); err != nil {
+	if err := uc.entryRepo.Save(ctx, entry); err != nil {
 		return nil, err
 	}
 
-	return &CreateOutput{Entry: e}, nil
+	return &CreateOutput{Entry: entry}, nil
 }
