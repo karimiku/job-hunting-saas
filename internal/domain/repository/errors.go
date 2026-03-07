@@ -2,5 +2,6 @@ package repository
 
 import "errors"
 
-// ErrNotFound はリポジトリで対象エンティティが見つからない場合に返すセンチネルエラー。
+// ErrNotFound はインフラ層の差異(DB, InMemory等)を隠蔽し、
+// 上位層が統一的にHTTP 404等へ変換するための共通エラー。
 var ErrNotFound = errors.New("entity not found")

@@ -38,8 +38,6 @@ type StageKind struct {
 	value string
 }
 
-// NewStageKind は文字列から StageKind を生成する。
-// 空文字列や未定義の値が渡された場合はエラーを返す。
 func NewStageKind(raw string) (StageKind, error) {
 	if raw == "" {
 		return StageKind{}, ErrStageKindEmpty
@@ -58,9 +56,7 @@ func (k StageKind) Equals(other StageKind) bool {
 	return k.value == other.value
 }
 
-// --- 定数コンストラクタ ---
-// ハードコードされた既知の値に対して、エラーなしでインスタンスを返す。
-
+// 定数コンストラクタ: エンティティのファクトリ関数内で `_, _ :=` のエラー握りつぶしを避けるために使う。
 func StageKindApplication() StageKind { return StageKind{value: stageKindApplication} }
 func StageKindDocument() StageKind    { return StageKind{value: stageKindDocument} }
 func StageKindTest() StageKind        { return StageKind{value: stageKindTest} }
@@ -70,7 +66,7 @@ func StageKindOffer() StageKind       { return StageKind{value: stageKindOffer} 
 func StageKindOther() StageKind       { return StageKind{value: stageKindOther} }
 
 // Stage は選考フェーズを表す値オブジェクト。
-// kind（応募・ES・テスト・面接等のカテゴリ）と label（表示名）の組で構成される。
+// kind（応募・ES・テスト・面接等のカテゴリ）と label（ユーザーが自由に設定する表示名）の組で構成される。
 type Stage struct {
 	kind  StageKind
 	label string
@@ -98,8 +94,7 @@ func (s Stage) Equals(other Stage) bool {
 	return s.kind.Equals(other.kind) && s.label == other.label
 }
 
-// MustNewStage は NewStage のパニック版。
-// ハードコードされた既知の値に対して使う。
+// MustNewStage はハードコードされた既知の値に対してpanicで保証するコンストラクタ。
 // 不正な値が渡された場合はプログラマのバグなのでパニックする。
 func MustNewStage(kind StageKind, label string) Stage {
 	s, err := NewStage(kind, label)

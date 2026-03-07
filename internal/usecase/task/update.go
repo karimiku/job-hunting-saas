@@ -24,7 +24,6 @@ type UpdateOutput struct {
 	Task *entity.Task
 }
 
-// Update は既存タスクのTitle・Type・Status・DueDate・Notify・Memoを更新するUseCase。
 type Update struct {
 	taskRepo repository.TaskRepository
 }
@@ -33,49 +32,48 @@ func NewUpdate(taskRepo repository.TaskRepository) *Update {
 	return &Update{taskRepo: taskRepo}
 }
 
-// Execute は各値をバリデーションし、既存Taskを取得して更新する。
 func (uc *Update) Execute(ctx context.Context, input UpdateInput) (*UpdateOutput, error) {
-	title, err := value.NewTaskTitle(input.Title)
+	validatedTitle, err := value.NewTaskTitle(input.Title)
 	if err != nil {
 		return nil, err
 	}
 
-	taskType, err := value.NewTaskType(input.Type)
+	validatedType, err := value.NewTaskType(input.Type)
 	if err != nil {
 		return nil, err
 	}
 
-	status, err := value.NewTaskStatus(input.Status)
+	validatedStatus, err := value.NewTaskStatus(input.Status)
 	if err != nil {
 		return nil, err
 	}
 
-	t, err := uc.taskRepo.FindByID(ctx, input.UserID, input.TaskID)
+	task, err := uc.taskRepo.FindByID(ctx, input.UserID, input.TaskID)
 	if err != nil {
 		return nil, err
 	}
 
-	t.UpdateTitle(title)
-	t.UpdateTaskType(taskType)
+	task.UpdateTitle(validatedTitle)
+	task.UpdateTaskType(validatedType)
 
-	if status.IsDone() {
-		t.Complete()
+	if validatedStatus.IsDone() {
+		task.Complete()
 	} else {
-		t.Uncomplete()
+		task.Uncomplete()
 	}
 
 	if input.DueDate != nil {
-		t.SetDueDate(*input.DueDate)
+		task.SetDueDate(*input.DueDate)
 	} else {
-		t.ClearDueDate()
+		task.ClearDueDate()
 	}
 
-	t.SetNotify(input.Notify)
-	t.UpdateMemo(input.Memo)
+	task.SetNotify(input.Notify)
+	task.UpdateMemo(input.Memo)
 
-	if err := uc.taskRepo.Save(ctx, t); err != nil {
+	if err := uc.taskRepo.Save(ctx, task); err != nil {
 		return nil, err
 	}
 
-	return &UpdateOutput{Task: t}, nil
+	return &UpdateOutput{Task: task}, nil
 }

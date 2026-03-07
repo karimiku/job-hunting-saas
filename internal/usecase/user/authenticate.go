@@ -16,10 +16,11 @@ type AuthenticateInput struct {
 
 type AuthenticateOutput struct {
 	User    *entity.User
-	Created bool // 新規作成されたか
+	Created bool // 新規作成されたかどうか（初回ログイン判定に使用）
 }
 
-// Authenticate はGoogle OAuthログイン時のFind or Createを行うUseCase。
+// Authenticate はGoogle OAuthログイン時のFind or Createを行う。
+// メールアドレスで既存ユーザーを検索し、いなければ新規作成する。
 type Authenticate struct {
 	userRepo repository.UserRepository
 }
@@ -28,19 +29,19 @@ func NewAuthenticate(userRepo repository.UserRepository) *Authenticate {
 	return &Authenticate{userRepo: userRepo}
 }
 
-// Execute はメールで既存ユーザーを検索し、いなければ新規作成して返す。
 func (uc *Authenticate) Execute(ctx context.Context, input AuthenticateInput) (*AuthenticateOutput, error) {
-	email, err := value.NewEmail(input.Email)
+	validatedEmail, err := value.NewEmail(input.Email)
 	if err != nil {
 		return nil, err
 	}
 
-	name, err := value.NewUserName(input.Name)
+	validatedName, err := value.NewUserName(input.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	existingUser, err := uc.userRepo.FindByEmail(ctx, email)
+	// 既存ユーザーが見つかればそのまま返す（ログイン）
+	existingUser, err := uc.userRepo.FindByEmail(ctx, validatedEmail)
 	if err == nil {
 		return &AuthenticateOutput{User: existingUser, Created: false}, nil
 	}
@@ -48,7 +49,8 @@ func (uc *Authenticate) Execute(ctx context.Context, input AuthenticateInput) (*
 		return nil, err
 	}
 
-	newUser := entity.NewUser(email, name)
+	// ErrNotFound の場合は新規ユーザーを作成する（サインアップ）
+	newUser := entity.NewUser(validatedEmail, validatedName)
 	if err := uc.userRepo.Save(ctx, newUser); err != nil {
 		return nil, err
 	}

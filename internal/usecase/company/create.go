@@ -18,7 +18,6 @@ type CreateOutput struct {
 	Company *entity.Company
 }
 
-// Create は新しい企業を登録するUseCase。
 type Create struct {
 	companyRepo repository.CompanyRepository
 }
@@ -27,22 +26,23 @@ func NewCreate(companyRepo repository.CompanyRepository) *Create {
 	return &Create{companyRepo: companyRepo}
 }
 
-// Execute は企業名をバリデーションし、新規Companyを生成して永続化する。
 func (uc *Create) Execute(ctx context.Context, input CreateInput) (*CreateOutput, error) {
-	name, err := value.NewCompanyName(input.Name)
+	// 値オブジェクトの生成でドメインバリデーションを実行する
+	validatedName, err := value.NewCompanyName(input.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	c := entity.NewCompany(input.UserID, name)
+	// Companyの必須不変条件はコンストラクタで閉じ、任意フィールドのmemoは生成後に反映する
+	company := entity.NewCompany(input.UserID, validatedName)
 
 	if input.Memo != "" {
-		c.UpdateMemo(input.Memo)
+		company.UpdateMemo(input.Memo)
 	}
 
-	if err := uc.companyRepo.Save(ctx, c); err != nil {
+	if err := uc.companyRepo.Save(ctx, company); err != nil {
 		return nil, err
 	}
 
-	return &CreateOutput{Company: c}, nil
+	return &CreateOutput{Company: company}, nil
 }

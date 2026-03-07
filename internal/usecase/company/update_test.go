@@ -24,12 +24,14 @@ func TestUpdate_Success(t *testing.T) {
 		},
 	}
 
+	newName := "新しい社名"
+	newMemo := "新しいメモ"
 	uc := NewUpdate(repo)
 	out, err := uc.Execute(context.Background(), UpdateInput{
 		UserID:    userID,
 		CompanyID: existing.ID(),
-		Name:      "新しい社名",
-		Memo:      "新しいメモ",
+		Name:      &newName,
+		Memo:      &newMemo,
 	})
 
 	if err != nil {
@@ -46,14 +48,53 @@ func TestUpdate_Success(t *testing.T) {
 	}
 }
 
-func TestUpdate_EmptyName(t *testing.T) {
-	repo := &mockCompanyRepo{}
+func TestUpdate_PartialUpdate_NameOnly(t *testing.T) {
+	userID := entity.NewUserID()
+	existing := newTestCompany(t, userID)
+	originalMemo := existing.Memo()
+	repo := &mockCompanyRepo{
+		findByIDFn: func(_ context.Context, _ entity.UserID, _ entity.CompanyID) (*entity.Company, error) {
+			return existing, nil
+		},
+		saveFn: func(_ context.Context, _ *entity.Company) error {
+			return nil
+		},
+	}
 
+	newName := "新しい社名"
+	uc := NewUpdate(repo)
+	out, err := uc.Execute(context.Background(), UpdateInput{
+		UserID:    userID,
+		CompanyID: existing.ID(),
+		Name:      &newName,
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if out.Company.Name().String() != "新しい社名" {
+		t.Errorf("Name = %q, want %q", out.Company.Name().String(), "新しい社名")
+	}
+	if out.Company.Memo() != originalMemo {
+		t.Errorf("Memo = %q, want %q (unchanged)", out.Company.Memo(), originalMemo)
+	}
+}
+
+func TestUpdate_EmptyName(t *testing.T) {
+	userID := entity.NewUserID()
+	existing := newTestCompany(t, userID)
+	repo := &mockCompanyRepo{
+		findByIDFn: func(_ context.Context, _ entity.UserID, _ entity.CompanyID) (*entity.Company, error) {
+			return existing, nil
+		},
+	}
+
+	emptyName := ""
 	uc := NewUpdate(repo)
 	_, err := uc.Execute(context.Background(), UpdateInput{
-		UserID:    entity.NewUserID(),
-		CompanyID: entity.NewCompanyID(),
-		Name:      "",
+		UserID:    userID,
+		CompanyID: existing.ID(),
+		Name:      &emptyName,
 	})
 
 	if err == nil {
@@ -67,11 +108,12 @@ func TestUpdate_EmptyName(t *testing.T) {
 func TestUpdate_NotFound(t *testing.T) {
 	repo := &mockCompanyRepo{}
 
+	newName := "株式会社テスト"
 	uc := NewUpdate(repo)
 	_, err := uc.Execute(context.Background(), UpdateInput{
 		UserID:    entity.NewUserID(),
 		CompanyID: entity.NewCompanyID(),
-		Name:      "株式会社テスト",
+		Name:      &newName,
 	})
 
 	if err == nil {
@@ -95,11 +137,12 @@ func TestUpdate_SaveError(t *testing.T) {
 		},
 	}
 
+	newName := "株式会社テスト"
 	uc := NewUpdate(repo)
 	_, err := uc.Execute(context.Background(), UpdateInput{
 		UserID:    userID,
 		CompanyID: existing.ID(),
-		Name:      "株式会社テスト",
+		Name:      &newName,
 	})
 
 	if err == nil {

@@ -18,7 +18,6 @@ type CreateOutput struct {
 	CompanyAlias *entity.CompanyAlias
 }
 
-// Create は新しい企業別名を登録するUseCase。
 type Create struct {
 	aliasRepo   repository.CompanyAliasRepository
 	companyRepo repository.CompanyRepository
@@ -28,22 +27,22 @@ func NewCreate(aliasRepo repository.CompanyAliasRepository, companyRepo reposito
 	return &Create{aliasRepo: aliasRepo, companyRepo: companyRepo}
 }
 
-// Execute はCompanyIDの存在・所有を検証し、Aliasをバリデーションして新規CompanyAliasを生成・永続化する。
 func (uc *Create) Execute(ctx context.Context, input CreateInput) (*CreateOutput, error) {
+	// 指定されたCompanyが存在し、かつ操作ユーザーが所有していることを検証する
 	if _, err := uc.companyRepo.FindByID(ctx, input.UserID, input.CompanyID); err != nil {
 		return nil, err
 	}
 
-	alias, err := value.NewAlias(input.Alias)
+	validatedAlias, err := value.NewAlias(input.Alias)
 	if err != nil {
 		return nil, err
 	}
 
-	a := entity.NewCompanyAlias(input.UserID, input.CompanyID, alias)
+	companyAlias := entity.NewCompanyAlias(input.UserID, input.CompanyID, validatedAlias)
 
-	if err := uc.aliasRepo.Create(ctx, a); err != nil {
+	if err := uc.aliasRepo.Create(ctx, companyAlias); err != nil {
 		return nil, err
 	}
 
-	return &CreateOutput{CompanyAlias: a}, nil
+	return &CreateOutput{CompanyAlias: companyAlias}, nil
 }
