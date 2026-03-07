@@ -12,7 +12,6 @@ type DeleteInput struct {
 	CompanyAliasID entity.CompanyAliasID
 }
 
-// Delete は指定IDの企業別名を削除するUseCase。
 type Delete struct {
 	aliasRepo repository.CompanyAliasRepository
 }
@@ -21,7 +20,6 @@ func NewDelete(aliasRepo repository.CompanyAliasRepository) *Delete {
 	return &Delete{aliasRepo: aliasRepo}
 }
 
-// Execute はユーザーに紐づく企業別名をIDで削除する。
 func (uc *Delete) Execute(ctx context.Context, input DeleteInput) error {
 	return uc.aliasRepo.Delete(ctx, input.UserID, input.CompanyAliasID)
 }
