@@ -19,7 +19,8 @@ type UpdateOutput struct {
 	Company *entity.Company
 }
 
-// Update は既存企業の名前・メモを更新するUseCase。
+// Update は完全な更新入力(PUT相当)を前提とする。
+// PATCHの未送信フィールドのマージはhandler(adapter)層で解決してからこのUseCaseに渡す。
 type Update struct {
 	companyRepo repository.CompanyRepository
 }
@@ -28,24 +29,23 @@ func NewUpdate(companyRepo repository.CompanyRepository) *Update {
 	return &Update{companyRepo: companyRepo}
 }
 
-// Execute は企業名をバリデーションし、既存Companyを取得して名前・メモを更新する。
 func (uc *Update) Execute(ctx context.Context, input UpdateInput) (*UpdateOutput, error) {
-	name, err := value.NewCompanyName(input.Name)
+	validatedName, err := value.NewCompanyName(input.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := uc.companyRepo.FindByID(ctx, input.UserID, input.CompanyID)
+	company, err := uc.companyRepo.FindByID(ctx, input.UserID, input.CompanyID)
 	if err != nil {
 		return nil, err
 	}
 
-	c.Rename(name)
-	c.UpdateMemo(input.Memo)
+	company.Rename(validatedName)
+	company.UpdateMemo(input.Memo)
 
-	if err := uc.companyRepo.Save(ctx, c); err != nil {
+	if err := uc.companyRepo.Save(ctx, company); err != nil {
 		return nil, err
 	}
 
-	return &UpdateOutput{Company: c}, nil
+	return &UpdateOutput{Company: company}, nil
 }
