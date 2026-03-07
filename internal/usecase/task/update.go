@@ -33,12 +33,12 @@ func NewUpdate(taskRepo repository.TaskRepository) *Update {
 }
 
 func (uc *Update) Execute(ctx context.Context, input UpdateInput) (*UpdateOutput, error) {
-	taskTitle, err := value.NewTaskTitle(input.Title)
+	validatedTitle, err := value.NewTaskTitle(input.Title)
 	if err != nil {
 		return nil, err
 	}
 
-	taskType, err := value.NewTaskType(input.Type)
+	validatedType, err := value.NewTaskType(input.Type)
 	if err != nil {
 		return nil, err
 	}
@@ -53,8 +53,8 @@ func (uc *Update) Execute(ctx context.Context, input UpdateInput) (*UpdateOutput
 		return nil, err
 	}
 
-	task.UpdateTitle(taskTitle)
-	task.UpdateTaskType(taskType)
+	task.UpdateTitle(validatedTitle)
+	task.UpdateTaskType(validatedType)
 
 	if validatedStatus.IsDone() {
 		task.Complete()

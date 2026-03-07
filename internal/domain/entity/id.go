@@ -30,7 +30,6 @@ func (id StageHistoryID) String() string { return uuid.UUID(id).String() }
 func (id CompanyAliasID) String() string { return uuid.UUID(id).String() }
 
 // IsZero はIDが未設定（ゼロ値）かどうかを判定する。
-// 認証ミドルウェア等でIDの有無を検査する際に使用する。
 func (id UserID) IsZero() bool         { return uuid.UUID(id) == uuid.Nil }
 func (id CompanyID) IsZero() bool      { return uuid.UUID(id) == uuid.Nil }
 func (id EntryID) IsZero() bool        { return uuid.UUID(id) == uuid.Nil }

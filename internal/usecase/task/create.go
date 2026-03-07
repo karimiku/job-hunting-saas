@@ -37,17 +37,17 @@ func (uc *Create) Execute(ctx context.Context, input CreateInput) (*CreateOutput
 		return nil, err
 	}
 
-	taskTitle, err := value.NewTaskTitle(input.Title)
+	validatedTitle, err := value.NewTaskTitle(input.Title)
 	if err != nil {
 		return nil, err
 	}
 
-	taskType, err := value.NewTaskType(input.Type)
+	validatedType, err := value.NewTaskType(input.Type)
 	if err != nil {
 		return nil, err
 	}
 
-	task := entity.NewTask(input.EntryID, taskTitle, taskType)
+	task := entity.NewTask(input.EntryID, validatedTitle, validatedType)
 
 	if input.DueDate != nil {
 		task.SetDueDate(*input.DueDate)

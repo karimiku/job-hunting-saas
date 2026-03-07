@@ -28,13 +28,13 @@ func NewCreate(companyRepo repository.CompanyRepository) *Create {
 
 func (uc *Create) Execute(ctx context.Context, input CreateInput) (*CreateOutput, error) {
 	// 値オブジェクトの生成でドメインバリデーションを実行する
-	companyName, err := value.NewCompanyName(input.Name)
+	validatedName, err := value.NewCompanyName(input.Name)
 	if err != nil {
 		return nil, err
 	}
 
 	// Companyの必須不変条件はコンストラクタで閉じ、任意フィールドのmemoは生成後に反映する
-	company := entity.NewCompany(input.UserID, companyName)
+	company := entity.NewCompany(input.UserID, validatedName)
 
 	if input.Memo != "" {
 		company.UpdateMemo(input.Memo)
