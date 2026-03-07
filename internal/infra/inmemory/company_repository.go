@@ -25,7 +25,7 @@ func NewCompanyRepository() *CompanyRepository {
 func (r *CompanyRepository) Save(_ context.Context, company *entity.Company) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.companiesByID[company.ID()] = company
+	r.companiesByID[company.ID()] = cloneCompany(company)
 	return nil
 }
 
@@ -37,7 +37,7 @@ func (r *CompanyRepository) FindByID(_ context.Context, userID entity.UserID, co
 	if !exists || storedCompany.UserID() != userID {
 		return nil, repository.ErrNotFound
 	}
-	return storedCompany, nil
+	return cloneCompany(storedCompany), nil
 }
 
 func (r *CompanyRepository) ListByUserID(_ context.Context, userID entity.UserID) ([]*entity.Company, error) {
@@ -47,10 +47,14 @@ func (r *CompanyRepository) ListByUserID(_ context.Context, userID entity.UserID
 	var ownedCompanies []*entity.Company
 	for _, company := range r.companiesByID {
 		if company.UserID() == userID {
-			ownedCompanies = append(ownedCompanies, company)
+			ownedCompanies = append(ownedCompanies, cloneCompany(company))
 		}
 	}
 	return ownedCompanies, nil
+}
+
+func cloneCompany(c *entity.Company) *entity.Company {
+	return entity.ReconstructCompany(c.ID(), c.UserID(), c.Name(), c.Memo(), c.CreatedAt(), c.UpdatedAt())
 }
 
 func (r *CompanyRepository) Delete(_ context.Context, userID entity.UserID, companyID entity.CompanyID) error {

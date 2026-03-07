@@ -11,16 +11,16 @@ import (
 type UpdateInput struct {
 	UserID    entity.UserID
 	CompanyID entity.CompanyID
-	Name      string
-	Memo      string
+	Name      *string
+	Memo      *string
 }
 
 type UpdateOutput struct {
 	Company *entity.Company
 }
 
-// Update は完全な更新入力(PUT相当)を前提とする。
-// PATCHの未送信フィールドのマージはhandler(adapter)層で解決してからこのUseCaseに渡す。
+// Update はPATCHセマンティクスに対応する。
+// nilフィールドは現在値を維持し、非nilフィールドのみ上書きする。
 type Update struct {
 	companyRepo repository.CompanyRepository
 }
@@ -30,18 +30,22 @@ func NewUpdate(companyRepo repository.CompanyRepository) *Update {
 }
 
 func (uc *Update) Execute(ctx context.Context, input UpdateInput) (*UpdateOutput, error) {
-	validatedName, err := value.NewCompanyName(input.Name)
-	if err != nil {
-		return nil, err
-	}
-
 	company, err := uc.companyRepo.FindByID(ctx, input.UserID, input.CompanyID)
 	if err != nil {
 		return nil, err
 	}
 
-	company.Rename(validatedName)
-	company.UpdateMemo(input.Memo)
+	if input.Name != nil {
+		validatedName, err := value.NewCompanyName(*input.Name)
+		if err != nil {
+			return nil, err
+		}
+		company.Rename(validatedName)
+	}
+
+	if input.Memo != nil {
+		company.UpdateMemo(*input.Memo)
+	}
 
 	if err := uc.companyRepo.Save(ctx, company); err != nil {
 		return nil, err

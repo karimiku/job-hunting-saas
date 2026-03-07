@@ -32,13 +32,14 @@ func main() {
 	)
 
 	router := chi.NewRouter()
-	router.Use(middleware.Auth)
 	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, "ok")
 	})
-	// oapi-codegen が生成した ServerInterface のルーティングを登録する
-	openapi.HandlerFromMux(companyHandler, router)
+	router.Group(func(r chi.Router) {
+		r.Use(middleware.Auth)
+		openapi.HandlerFromMux(companyHandler, r)
+	})
 
 	log.Printf("server listening on :%s", port)
 	if err := http.ListenAndServe(":"+port, router); err != nil {

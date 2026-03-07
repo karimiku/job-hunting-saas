@@ -90,14 +90,13 @@ func (h *CompanyHandler) ListCompanies(w http.ResponseWriter, r *http.Request) {
 		responseItems[i] = toCompanyResponse(company)
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"companies": responseItems,
+	writeJSON(w, http.StatusOK, listCompaniesResponse{
+		Companies: responseItems,
 	})
 }
 
 // UpdateCompany は PATCH リクエストを処理する。
-// UseCaseは完全な更新入力(PUT相当)を前提とするため、
-// HTTP層で現在値を取得し、未送信フィールドを現在値で埋めてから UseCase に渡す。
+// nilフィールドの判定はUseCaseに委譲し、handlerはHTTPリクエストの変換のみ行う。
 func (h *CompanyHandler) UpdateCompany(w http.ResponseWriter, r *http.Request, companyId openapi.CompanyId) {
 	var updateReq openapi.UpdateCompanyRequest
 	if err := json.NewDecoder(r.Body).Decode(&updateReq); err != nil {
@@ -105,34 +104,11 @@ func (h *CompanyHandler) UpdateCompany(w http.ResponseWriter, r *http.Request, c
 		return
 	}
 
-	userID := middleware.GetUserID(r.Context())
-	companyID := entity.CompanyID(companyId)
-
-	existingCompany, err := h.getUseCase.Execute(r.Context(), companyuc.GetInput{
-		UserID:    userID,
-		CompanyID: companyID,
-	})
-	if err != nil {
-		writeError(w, err)
-		return
-	}
-
-	// PATCH: 未送信フィールド(nil)は現在値を維持し、送信されたフィールドのみ上書きする
-	resolvedName := existingCompany.Company.Name().String()
-	if updateReq.Name != nil {
-		resolvedName = *updateReq.Name
-	}
-
-	resolvedMemo := existingCompany.Company.Memo()
-	if updateReq.Memo != nil {
-		resolvedMemo = *updateReq.Memo
-	}
-
 	updatedCompany, err := h.updateUseCase.Execute(r.Context(), companyuc.UpdateInput{
-		UserID:    userID,
-		CompanyID: companyID,
-		Name:      resolvedName,
-		Memo:      resolvedMemo,
+		UserID:    middleware.GetUserID(r.Context()),
+		CompanyID: entity.CompanyID(companyId),
+		Name:      updateReq.Name,
+		Memo:      updateReq.Memo,
 	})
 	if err != nil {
 		writeError(w, err)
@@ -153,6 +129,10 @@ func (h *CompanyHandler) DeleteCompany(w http.ResponseWriter, r *http.Request, c
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+type listCompaniesResponse struct {
+	Companies []openapi.CompanyResponse `json:"companies"`
 }
 
 // toCompanyResponse はドメインエンティティをAPI応答用のDTOに変換する。
