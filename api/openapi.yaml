@@ -226,6 +226,109 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/v1/entries/{entryId}/tasks:
+    parameters:
+      - $ref: "#/components/parameters/EntryId"
+    post:
+      operationId: createTask
+      summary: タスクを新規登録する
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: listTasks
+      summary: エントリーに紐づくタスク一覧を取得する
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TaskResponse"
+                required:
+                  - tasks
+
+  /api/v1/tasks/{taskId}:
+    parameters:
+      - $ref: "#/components/parameters/TaskId"
+    get:
+      operationId: getTask
+      summary: タスクを取得する
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateTask
+      summary: タスクを部分更新する
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaskRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteTask
+      summary: タスクを削除する
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   parameters:
     CompanyId:
@@ -237,6 +340,13 @@ components:
         format: uuid
     EntryId:
       name: entryId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    TaskId:
+      name: taskId
       in: path
       required: true
       schema:
@@ -353,6 +463,83 @@ components:
         - status
         - stageKind
         - stageLabel
+        - memo
+        - createdAt
+        - updatedAt
+
+    CreateTaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        type:
+          type: string
+          enum: [deadline, schedule]
+        dueDate:
+          type: string
+          format: date-time
+        memo:
+          type: string
+      required:
+        - title
+        - type
+
+    UpdateTaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        type:
+          type: string
+          enum: [deadline, schedule]
+        status:
+          type: string
+          enum: [todo, done]
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+        notify:
+          type: boolean
+        memo:
+          type: string
+
+    TaskResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        entryId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+        notify:
+          type: boolean
+        memo:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - entryId
+        - title
+        - type
+        - status
+        - notify
         - memo
         - createdAt
         - updatedAt
