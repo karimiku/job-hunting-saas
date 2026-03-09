@@ -22,6 +22,8 @@ func TestNewPassword(t *testing.T) {
 		{"7 chars", "passwor", ErrPasswordTooShort},
 		{"1 char", "a", ErrPasswordTooShort},
 		{"7 japanese chars", "パスワード１２", ErrPasswordTooShort},
+		{"73 bytes", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", ErrPasswordTooLong},
+		{"72 bytes exactly", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil},
 	}
 
 	for _, tt := range tests {
@@ -48,6 +50,9 @@ func TestPassword_Verify(t *testing.T) {
 	}
 	if pw.Verify("") {
 		t.Error("Verify should return false for empty password")
+	}
+	if pw.Verify("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa") {
+		t.Error("Verify should return false for password exceeding 72 bytes")
 	}
 }
 
