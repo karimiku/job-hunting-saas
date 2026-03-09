@@ -110,10 +110,133 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/v1/entries:
+    post:
+      operationId: createEntry
+      summary: エントリーを新規登録する
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEntryRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntryResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: listEntries
+      summary: エントリー一覧を取得する
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [in_progress, offered, accepted, rejected, withdrawn]
+        - name: stageKind
+          in: query
+          schema:
+            type: string
+            enum: [application, document, test, interview, group, offer, other]
+        - name: source
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EntryResponse"
+                required:
+                  - entries
+
+  /api/v1/entries/{entryId}:
+    parameters:
+      - $ref: "#/components/parameters/EntryId"
+    get:
+      operationId: getEntry
+      summary: エントリーを取得する
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntryResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateEntry
+      summary: エントリーを部分更新する
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEntryRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntryResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteEntry
+      summary: エントリーを削除する
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   parameters:
     CompanyId:
       name: companyId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    EntryId:
+      name: entryId
       in: path
       required: true
       schema:
@@ -158,6 +281,78 @@ components:
       required:
         - id
         - name
+        - memo
+        - createdAt
+        - updatedAt
+
+    CreateEntryRequest:
+      type: object
+      properties:
+        companyId:
+          type: string
+          format: uuid
+        route:
+          type: string
+        source:
+          type: string
+        memo:
+          type: string
+      required:
+        - companyId
+        - route
+        - source
+
+    UpdateEntryRequest:
+      type: object
+      properties:
+        source:
+          type: string
+        status:
+          type: string
+          enum: [in_progress, offered, accepted, rejected, withdrawn]
+        stageKind:
+          type: string
+          enum: [application, document, test, interview, group, offer, other]
+        stageLabel:
+          type: string
+        memo:
+          type: string
+
+    EntryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        companyId:
+          type: string
+          format: uuid
+        route:
+          type: string
+        source:
+          type: string
+        status:
+          type: string
+        stageKind:
+          type: string
+        stageLabel:
+          type: string
+        memo:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - route
+        - source
+        - status
+        - stageKind
+        - stageLabel
         - memo
         - createdAt
         - updatedAt
