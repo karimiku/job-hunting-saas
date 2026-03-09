@@ -8,6 +8,7 @@ type Handler struct {
 	*CompanyHandler
 	*EntryHandler
 	*TaskHandler
+	*StageHistoryHandler
 }
 
 var _ openapi.ServerInterface = (*Handler)(nil)

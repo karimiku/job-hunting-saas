@@ -13,6 +13,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/middleware"
 	companyuc "github.com/karimiku/job-hunting-saas/internal/usecase/company"
 	entryuc "github.com/karimiku/job-hunting-saas/internal/usecase/entry"
+	stagehistoryuc "github.com/karimiku/job-hunting-saas/internal/usecase/stage_history"
 	taskuc "github.com/karimiku/job-hunting-saas/internal/usecase/task"
 )
 
@@ -26,6 +27,7 @@ func main() {
 	companyRepo := inmemory.NewCompanyRepository()
 	entryRepo := inmemory.NewEntryRepository()
 	taskRepo := inmemory.NewTaskRepository(entryRepo)
+	stageHistoryRepo := inmemory.NewStageHistoryRepository()
 
 	companyHandler := handler.NewCompanyHandler(
 		companyuc.NewCreate(companyRepo),
@@ -51,10 +53,16 @@ func main() {
 		taskuc.NewDelete(taskRepo),
 	)
 
+	stageHistoryHandler := handler.NewStageHistoryHandler(
+		stagehistoryuc.NewCreate(stageHistoryRepo, entryRepo),
+		stagehistoryuc.NewList(stageHistoryRepo, entryRepo),
+	)
+
 	h := &handler.Handler{
-		CompanyHandler: companyHandler,
-		EntryHandler:   entryHandler,
-		TaskHandler:    taskHandler,
+		CompanyHandler:      companyHandler,
+		EntryHandler:        entryHandler,
+		TaskHandler:         taskHandler,
+		StageHistoryHandler: stageHistoryHandler,
 	}
 
 	router := chi.NewRouter()

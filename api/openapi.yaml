@@ -269,6 +269,49 @@ paths:
                 required:
                   - tasks
 
+  /api/v1/entries/{entryId}/stage-histories:
+    parameters:
+      - $ref: "#/components/parameters/EntryId"
+    post:
+      operationId: createStageHistory
+      summary: 選考フェーズ履歴を追加する
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStageHistoryRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageHistoryResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: listStageHistories
+      summary: エントリーに紐づく選考フェーズ履歴一覧を取得する
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stageHistories:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/StageHistoryResponse"
+                required:
+                  - stageHistories
+
   /api/v1/tasks/{taskId}:
     parameters:
       - $ref: "#/components/parameters/TaskId"
@@ -543,6 +586,46 @@ components:
         - memo
         - createdAt
         - updatedAt
+
+    CreateStageHistoryRequest:
+      type: object
+      properties:
+        stageKind:
+          type: string
+          enum: [application, document, test, interview, group, offer, other]
+        stageLabel:
+          type: string
+        note:
+          type: string
+      required:
+        - stageKind
+        - stageLabel
+
+    StageHistoryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        entryId:
+          type: string
+          format: uuid
+        stageKind:
+          type: string
+        stageLabel:
+          type: string
+        note:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - entryId
+        - stageKind
+        - stageLabel
+        - note
+        - createdAt
 
     ErrorResponse:
       type: object
