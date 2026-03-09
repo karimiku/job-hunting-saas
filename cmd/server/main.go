@@ -13,6 +13,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/middleware"
 	companyuc "github.com/karimiku/job-hunting-saas/internal/usecase/company"
 	entryuc "github.com/karimiku/job-hunting-saas/internal/usecase/entry"
+	taskuc "github.com/karimiku/job-hunting-saas/internal/usecase/task"
 )
 
 func main() {
@@ -24,6 +25,7 @@ func main() {
 	// InMemory実装はプロセス再起動でデータが消える。本番ではPostgreSQL実装に差し替える。
 	companyRepo := inmemory.NewCompanyRepository()
 	entryRepo := inmemory.NewEntryRepository()
+	taskRepo := inmemory.NewTaskRepository(entryRepo)
 
 	companyHandler := handler.NewCompanyHandler(
 		companyuc.NewCreate(companyRepo),
@@ -41,9 +43,18 @@ func main() {
 		entryuc.NewDelete(entryRepo),
 	)
 
+	taskHandler := handler.NewTaskHandler(
+		taskuc.NewCreate(taskRepo, entryRepo),
+		taskuc.NewGet(taskRepo),
+		taskuc.NewList(taskRepo),
+		taskuc.NewUpdate(taskRepo),
+		taskuc.NewDelete(taskRepo),
+	)
+
 	h := &handler.Handler{
 		CompanyHandler: companyHandler,
 		EntryHandler:   entryHandler,
+		TaskHandler:    taskHandler,
 	}
 
 	router := chi.NewRouter()

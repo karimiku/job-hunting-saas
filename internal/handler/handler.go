@@ -7,6 +7,7 @@ import "github.com/karimiku/job-hunting-saas/internal/gen/openapi"
 type Handler struct {
 	*CompanyHandler
 	*EntryHandler
+	*TaskHandler
 }
 
 var _ openapi.ServerInterface = (*Handler)(nil)
