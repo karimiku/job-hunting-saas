@@ -108,11 +108,11 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request, taskId 
 	}
 
 	userID := middleware.GetUserID(r.Context())
-	tID := entity.TaskID(taskId)
+	taskID := entity.TaskID(taskId)
 
 	existing, err := h.getUseCase.Execute(r.Context(), taskuc.GetInput{
 		UserID: userID,
-		TaskID: tID,
+		TaskID: taskID,
 	})
 	if err != nil {
 		writeError(w, err)
@@ -155,7 +155,7 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request, taskId 
 
 	updated, err := h.updateUseCase.Execute(r.Context(), taskuc.UpdateInput{
 		UserID:  userID,
-		TaskID:  tID,
+		TaskID:  taskID,
 		Title:   resolvedTitle,
 		Type:    resolvedType,
 		Status:  resolvedStatus,
