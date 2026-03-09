@@ -13,6 +13,39 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for CreateStageHistoryRequestStageKind.
+const (
+	CreateStageHistoryRequestStageKindApplication CreateStageHistoryRequestStageKind = "application"
+	CreateStageHistoryRequestStageKindDocument    CreateStageHistoryRequestStageKind = "document"
+	CreateStageHistoryRequestStageKindGroup       CreateStageHistoryRequestStageKind = "group"
+	CreateStageHistoryRequestStageKindInterview   CreateStageHistoryRequestStageKind = "interview"
+	CreateStageHistoryRequestStageKindOffer       CreateStageHistoryRequestStageKind = "offer"
+	CreateStageHistoryRequestStageKindOther       CreateStageHistoryRequestStageKind = "other"
+	CreateStageHistoryRequestStageKindTest        CreateStageHistoryRequestStageKind = "test"
+)
+
+// Valid indicates whether the value is a known member of the CreateStageHistoryRequestStageKind enum.
+func (e CreateStageHistoryRequestStageKind) Valid() bool {
+	switch e {
+	case CreateStageHistoryRequestStageKindApplication:
+		return true
+	case CreateStageHistoryRequestStageKindDocument:
+		return true
+	case CreateStageHistoryRequestStageKindGroup:
+		return true
+	case CreateStageHistoryRequestStageKindInterview:
+		return true
+	case CreateStageHistoryRequestStageKindOffer:
+		return true
+	case CreateStageHistoryRequestStageKindOther:
+		return true
+	case CreateStageHistoryRequestStageKindTest:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for CreateTaskRequestType.
 const (
 	CreateTaskRequestTypeDeadline CreateTaskRequestType = "deadline"
@@ -156,31 +189,31 @@ func (e ListEntriesParamsStatus) Valid() bool {
 
 // Defines values for ListEntriesParamsStageKind.
 const (
-	ListEntriesParamsStageKindApplication ListEntriesParamsStageKind = "application"
-	ListEntriesParamsStageKindDocument    ListEntriesParamsStageKind = "document"
-	ListEntriesParamsStageKindGroup       ListEntriesParamsStageKind = "group"
-	ListEntriesParamsStageKindInterview   ListEntriesParamsStageKind = "interview"
-	ListEntriesParamsStageKindOffer       ListEntriesParamsStageKind = "offer"
-	ListEntriesParamsStageKindOther       ListEntriesParamsStageKind = "other"
-	ListEntriesParamsStageKindTest        ListEntriesParamsStageKind = "test"
+	Application ListEntriesParamsStageKind = "application"
+	Document    ListEntriesParamsStageKind = "document"
+	Group       ListEntriesParamsStageKind = "group"
+	Interview   ListEntriesParamsStageKind = "interview"
+	Offer       ListEntriesParamsStageKind = "offer"
+	Other       ListEntriesParamsStageKind = "other"
+	Test        ListEntriesParamsStageKind = "test"
 )
 
 // Valid indicates whether the value is a known member of the ListEntriesParamsStageKind enum.
 func (e ListEntriesParamsStageKind) Valid() bool {
 	switch e {
-	case ListEntriesParamsStageKindApplication:
+	case Application:
 		return true
-	case ListEntriesParamsStageKindDocument:
+	case Document:
 		return true
-	case ListEntriesParamsStageKindGroup:
+	case Group:
 		return true
-	case ListEntriesParamsStageKindInterview:
+	case Interview:
 		return true
-	case ListEntriesParamsStageKindOffer:
+	case Offer:
 		return true
-	case ListEntriesParamsStageKindOther:
+	case Other:
 		return true
-	case ListEntriesParamsStageKindTest:
+	case Test:
 		return true
 	default:
 		return false
@@ -210,6 +243,16 @@ type CreateEntryRequest struct {
 	Source    string             `json:"source"`
 }
 
+// CreateStageHistoryRequest defines model for CreateStageHistoryRequest.
+type CreateStageHistoryRequest struct {
+	Note       *string                            `json:"note,omitempty"`
+	StageKind  CreateStageHistoryRequestStageKind `json:"stageKind"`
+	StageLabel string                             `json:"stageLabel"`
+}
+
+// CreateStageHistoryRequestStageKind defines model for CreateStageHistoryRequest.StageKind.
+type CreateStageHistoryRequestStageKind string
+
 // CreateTaskRequest defines model for CreateTaskRequest.
 type CreateTaskRequest struct {
 	DueDate *time.Time            `json:"dueDate,omitempty"`
@@ -238,6 +281,16 @@ type EntryResponse struct {
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
 	Message string `json:"message"`
+}
+
+// StageHistoryResponse defines model for StageHistoryResponse.
+type StageHistoryResponse struct {
+	CreatedAt  time.Time          `json:"createdAt"`
+	EntryId    openapi_types.UUID `json:"entryId"`
+	Id         openapi_types.UUID `json:"id"`
+	Note       string             `json:"note"`
+	StageKind  string             `json:"stageKind"`
+	StageLabel string             `json:"stageLabel"`
 }
 
 // TaskResponse defines model for TaskResponse.
@@ -325,6 +378,9 @@ type CreateEntryJSONRequestBody = CreateEntryRequest
 // UpdateEntryJSONRequestBody defines body for UpdateEntry for application/json ContentType.
 type UpdateEntryJSONRequestBody = UpdateEntryRequest
 
+// CreateStageHistoryJSONRequestBody defines body for CreateStageHistory for application/json ContentType.
+type CreateStageHistoryJSONRequestBody = CreateStageHistoryRequest
+
 // CreateTaskJSONRequestBody defines body for CreateTask for application/json ContentType.
 type CreateTaskJSONRequestBody = CreateTaskRequest
 
@@ -363,6 +419,12 @@ type ServerInterface interface {
 	// エントリーを部分更新する
 	// (PATCH /api/v1/entries/{entryId})
 	UpdateEntry(w http.ResponseWriter, r *http.Request, entryId EntryId)
+	// エントリーに紐づく選考フェーズ履歴一覧を取得する
+	// (GET /api/v1/entries/{entryId}/stage-histories)
+	ListStageHistories(w http.ResponseWriter, r *http.Request, entryId EntryId)
+	// 選考フェーズ履歴を追加する
+	// (POST /api/v1/entries/{entryId}/stage-histories)
+	CreateStageHistory(w http.ResponseWriter, r *http.Request, entryId EntryId)
 	// エントリーに紐づくタスク一覧を取得する
 	// (GET /api/v1/entries/{entryId}/tasks)
 	ListTasks(w http.ResponseWriter, r *http.Request, entryId EntryId)
@@ -441,6 +503,18 @@ func (_ Unimplemented) GetEntry(w http.ResponseWriter, r *http.Request, entryId 
 // エントリーを部分更新する
 // (PATCH /api/v1/entries/{entryId})
 func (_ Unimplemented) UpdateEntry(w http.ResponseWriter, r *http.Request, entryId EntryId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// エントリーに紐づく選考フェーズ履歴一覧を取得する
+// (GET /api/v1/entries/{entryId}/stage-histories)
+func (_ Unimplemented) ListStageHistories(w http.ResponseWriter, r *http.Request, entryId EntryId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// 選考フェーズ履歴を追加する
+// (POST /api/v1/entries/{entryId}/stage-histories)
+func (_ Unimplemented) CreateStageHistory(w http.ResponseWriter, r *http.Request, entryId EntryId) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -718,6 +792,56 @@ func (siw *ServerInterfaceWrapper) UpdateEntry(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// ListStageHistories operation middleware
+func (siw *ServerInterfaceWrapper) ListStageHistories(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "entryId" -------------
+	var entryId EntryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "entryId", chi.URLParam(r, "entryId"), &entryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "entryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListStageHistories(w, r, entryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateStageHistory operation middleware
+func (siw *ServerInterfaceWrapper) CreateStageHistory(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "entryId" -------------
+	var entryId EntryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "entryId", chi.URLParam(r, "entryId"), &entryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "entryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateStageHistory(w, r, entryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListTasks operation middleware
 func (siw *ServerInterfaceWrapper) ListTasks(w http.ResponseWriter, r *http.Request) {
 
@@ -985,6 +1109,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/v1/entries/{entryId}", wrapper.UpdateEntry)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/entries/{entryId}/stage-histories", wrapper.ListStageHistories)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/entries/{entryId}/stage-histories", wrapper.CreateStageHistory)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v1/entries/{entryId}/tasks", wrapper.ListTasks)
