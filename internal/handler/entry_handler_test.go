@@ -44,8 +44,14 @@ func seedEntry(t *testing.T, entryRepo *inmemory.EntryRepository, companyRepo *i
 		t.Fatalf("save company: %v", err)
 	}
 
-	route, _ := value.NewRoute("本選考")
-	source, _ := value.NewSource("リクナビ")
+	route, err := value.NewRoute("本選考")
+	if err != nil {
+		t.Fatalf("NewRoute: %v", err)
+	}
+	source, err := value.NewSource("リクナビ")
+	if err != nil {
+		t.Fatalf("NewSource: %v", err)
+	}
 	entry := entity.NewEntry(userID, company.ID(), route, source)
 	if err := entryRepo.Save(context.Background(), entry); err != nil {
 		t.Fatalf("save entry: %v", err)
@@ -118,7 +124,9 @@ func TestUpdateEntry_PatchMerge_OnlyMemoSent(t *testing.T) {
 	}
 
 	var resp openapi.EntryResponse
-	json.NewDecoder(w.Body).Decode(&resp)
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
 
 	if resp.Memo != "更新メモ" {
 		t.Errorf("Memo = %q, want %q", resp.Memo, "更新メモ")

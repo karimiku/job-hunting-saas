@@ -21,14 +21,10 @@ func TestWriteError_NotFound(t *testing.T) {
 func TestWriteError_OtherError(t *testing.T) {
 	w := httptest.NewRecorder()
 
-	writeError(w, repository.ErrNotFound)
+	writeError(w, testErr("validation failed"))
 
-	// 他のエラーは400になることを確認
-	w2 := httptest.NewRecorder()
-	writeError(w2, java_err("validation failed"))
-
-	if w2.Code != 400 {
-		t.Errorf("status = %d, want 400", w2.Code)
+	if w.Code != 400 {
+		t.Errorf("status = %d, want 400", w.Code)
 	}
 }
 
@@ -45,6 +41,6 @@ func TestWriteJSON(t *testing.T) {
 	}
 }
 
-type java_err string
+type testErr string
 
-func (e java_err) Error() string { return string(e) }
+func (e testErr) Error() string { return string(e) }
