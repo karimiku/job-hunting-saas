@@ -12,6 +12,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/infra/inmemory"
 	"github.com/karimiku/job-hunting-saas/internal/middleware"
 	companyuc "github.com/karimiku/job-hunting-saas/internal/usecase/company"
+	entryuc "github.com/karimiku/job-hunting-saas/internal/usecase/entry"
 )
 
 func main() {
@@ -22,6 +23,7 @@ func main() {
 
 	// InMemory実装はプロセス再起動でデータが消える。本番ではPostgreSQL実装に差し替える。
 	companyRepo := inmemory.NewCompanyRepository()
+	entryRepo := inmemory.NewEntryRepository()
 
 	companyHandler := handler.NewCompanyHandler(
 		companyuc.NewCreate(companyRepo),
@@ -31,6 +33,19 @@ func main() {
 		companyuc.NewDelete(companyRepo),
 	)
 
+	entryHandler := handler.NewEntryHandler(
+		entryuc.NewCreate(entryRepo, companyRepo),
+		entryuc.NewGet(entryRepo),
+		entryuc.NewList(entryRepo),
+		entryuc.NewUpdate(entryRepo),
+		entryuc.NewDelete(entryRepo),
+	)
+
+	h := &handler.Handler{
+		CompanyHandler: companyHandler,
+		EntryHandler:   entryHandler,
+	}
+
 	router := chi.NewRouter()
 	router.Use(middleware.Auth)
 	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -38,7 +53,7 @@ func main() {
 		fmt.Fprint(w, "ok")
 	})
 	// oapi-codegen が生成した ServerInterface のルーティングを登録する
-	openapi.HandlerFromMux(companyHandler, router)
+	openapi.HandlerFromMux(h, router)
 
 	log.Printf("server listening on :%s", port)
 	if err := http.ListenAndServe(":"+port, router); err != nil {
