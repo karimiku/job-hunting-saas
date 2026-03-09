@@ -13,6 +13,24 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for CreateTaskRequestType.
+const (
+	CreateTaskRequestTypeDeadline CreateTaskRequestType = "deadline"
+	CreateTaskRequestTypeSchedule CreateTaskRequestType = "schedule"
+)
+
+// Valid indicates whether the value is a known member of the CreateTaskRequestType enum.
+func (e CreateTaskRequestType) Valid() bool {
+	switch e {
+	case CreateTaskRequestTypeDeadline:
+		return true
+	case CreateTaskRequestTypeSchedule:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UpdateEntryRequestStageKind.
 const (
 	UpdateEntryRequestStageKindApplication UpdateEntryRequestStageKind = "application"
@@ -67,6 +85,42 @@ func (e UpdateEntryRequestStatus) Valid() bool {
 	case UpdateEntryRequestStatusRejected:
 		return true
 	case UpdateEntryRequestStatusWithdrawn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdateTaskRequestStatus.
+const (
+	Done UpdateTaskRequestStatus = "done"
+	Todo UpdateTaskRequestStatus = "todo"
+)
+
+// Valid indicates whether the value is a known member of the UpdateTaskRequestStatus enum.
+func (e UpdateTaskRequestStatus) Valid() bool {
+	switch e {
+	case Done:
+		return true
+	case Todo:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdateTaskRequestType.
+const (
+	UpdateTaskRequestTypeDeadline UpdateTaskRequestType = "deadline"
+	UpdateTaskRequestTypeSchedule UpdateTaskRequestType = "schedule"
+)
+
+// Valid indicates whether the value is a known member of the UpdateTaskRequestType enum.
+func (e UpdateTaskRequestType) Valid() bool {
+	switch e {
+	case UpdateTaskRequestTypeDeadline:
+		return true
+	case UpdateTaskRequestTypeSchedule:
 		return true
 	default:
 		return false
@@ -156,6 +210,17 @@ type CreateEntryRequest struct {
 	Source    string             `json:"source"`
 }
 
+// CreateTaskRequest defines model for CreateTaskRequest.
+type CreateTaskRequest struct {
+	DueDate *time.Time            `json:"dueDate,omitempty"`
+	Memo    *string               `json:"memo,omitempty"`
+	Title   string                `json:"title"`
+	Type    CreateTaskRequestType `json:"type"`
+}
+
+// CreateTaskRequestType defines model for CreateTaskRequest.Type.
+type CreateTaskRequestType string
+
 // EntryResponse defines model for EntryResponse.
 type EntryResponse struct {
 	CompanyId  openapi_types.UUID `json:"companyId"`
@@ -173,6 +238,20 @@ type EntryResponse struct {
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
 	Message string `json:"message"`
+}
+
+// TaskResponse defines model for TaskResponse.
+type TaskResponse struct {
+	CreatedAt time.Time          `json:"createdAt"`
+	DueDate   *time.Time         `json:"dueDate,omitempty"`
+	EntryId   openapi_types.UUID `json:"entryId"`
+	Id        openapi_types.UUID `json:"id"`
+	Memo      string             `json:"memo"`
+	Notify    bool               `json:"notify"`
+	Status    string             `json:"status"`
+	Title     string             `json:"title"`
+	Type      string             `json:"type"`
+	UpdatedAt time.Time          `json:"updatedAt"`
 }
 
 // UpdateCompanyRequest defines model for UpdateCompanyRequest.
@@ -196,11 +275,30 @@ type UpdateEntryRequestStageKind string
 // UpdateEntryRequestStatus defines model for UpdateEntryRequest.Status.
 type UpdateEntryRequestStatus string
 
+// UpdateTaskRequest defines model for UpdateTaskRequest.
+type UpdateTaskRequest struct {
+	DueDate *time.Time               `json:"dueDate,omitempty"`
+	Memo    *string                  `json:"memo,omitempty"`
+	Notify  *bool                    `json:"notify,omitempty"`
+	Status  *UpdateTaskRequestStatus `json:"status,omitempty"`
+	Title   *string                  `json:"title,omitempty"`
+	Type    *UpdateTaskRequestType   `json:"type,omitempty"`
+}
+
+// UpdateTaskRequestStatus defines model for UpdateTaskRequest.Status.
+type UpdateTaskRequestStatus string
+
+// UpdateTaskRequestType defines model for UpdateTaskRequest.Type.
+type UpdateTaskRequestType string
+
 // CompanyId defines model for CompanyId.
 type CompanyId = openapi_types.UUID
 
 // EntryId defines model for EntryId.
 type EntryId = openapi_types.UUID
+
+// TaskId defines model for TaskId.
+type TaskId = openapi_types.UUID
 
 // ListEntriesParams defines parameters for ListEntries.
 type ListEntriesParams struct {
@@ -226,6 +324,12 @@ type CreateEntryJSONRequestBody = CreateEntryRequest
 
 // UpdateEntryJSONRequestBody defines body for UpdateEntry for application/json ContentType.
 type UpdateEntryJSONRequestBody = UpdateEntryRequest
+
+// CreateTaskJSONRequestBody defines body for CreateTask for application/json ContentType.
+type CreateTaskJSONRequestBody = CreateTaskRequest
+
+// UpdateTaskJSONRequestBody defines body for UpdateTask for application/json ContentType.
+type UpdateTaskJSONRequestBody = UpdateTaskRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -259,6 +363,21 @@ type ServerInterface interface {
 	// エントリーを部分更新する
 	// (PATCH /api/v1/entries/{entryId})
 	UpdateEntry(w http.ResponseWriter, r *http.Request, entryId EntryId)
+	// エントリーに紐づくタスク一覧を取得する
+	// (GET /api/v1/entries/{entryId}/tasks)
+	ListTasks(w http.ResponseWriter, r *http.Request, entryId EntryId)
+	// タスクを新規登録する
+	// (POST /api/v1/entries/{entryId}/tasks)
+	CreateTask(w http.ResponseWriter, r *http.Request, entryId EntryId)
+	// タスクを削除する
+	// (DELETE /api/v1/tasks/{taskId})
+	DeleteTask(w http.ResponseWriter, r *http.Request, taskId TaskId)
+	// タスクを取得する
+	// (GET /api/v1/tasks/{taskId})
+	GetTask(w http.ResponseWriter, r *http.Request, taskId TaskId)
+	// タスクを部分更新する
+	// (PATCH /api/v1/tasks/{taskId})
+	UpdateTask(w http.ResponseWriter, r *http.Request, taskId TaskId)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -322,6 +441,36 @@ func (_ Unimplemented) GetEntry(w http.ResponseWriter, r *http.Request, entryId 
 // エントリーを部分更新する
 // (PATCH /api/v1/entries/{entryId})
 func (_ Unimplemented) UpdateEntry(w http.ResponseWriter, r *http.Request, entryId EntryId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// エントリーに紐づくタスク一覧を取得する
+// (GET /api/v1/entries/{entryId}/tasks)
+func (_ Unimplemented) ListTasks(w http.ResponseWriter, r *http.Request, entryId EntryId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// タスクを新規登録する
+// (POST /api/v1/entries/{entryId}/tasks)
+func (_ Unimplemented) CreateTask(w http.ResponseWriter, r *http.Request, entryId EntryId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// タスクを削除する
+// (DELETE /api/v1/tasks/{taskId})
+func (_ Unimplemented) DeleteTask(w http.ResponseWriter, r *http.Request, taskId TaskId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// タスクを取得する
+// (GET /api/v1/tasks/{taskId})
+func (_ Unimplemented) GetTask(w http.ResponseWriter, r *http.Request, taskId TaskId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// タスクを部分更新する
+// (PATCH /api/v1/tasks/{taskId})
+func (_ Unimplemented) UpdateTask(w http.ResponseWriter, r *http.Request, taskId TaskId) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -569,6 +718,131 @@ func (siw *ServerInterfaceWrapper) UpdateEntry(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// ListTasks operation middleware
+func (siw *ServerInterfaceWrapper) ListTasks(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "entryId" -------------
+	var entryId EntryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "entryId", chi.URLParam(r, "entryId"), &entryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "entryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTasks(w, r, entryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateTask operation middleware
+func (siw *ServerInterfaceWrapper) CreateTask(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "entryId" -------------
+	var entryId EntryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "entryId", chi.URLParam(r, "entryId"), &entryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "entryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateTask(w, r, entryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteTask operation middleware
+func (siw *ServerInterfaceWrapper) DeleteTask(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "taskId" -------------
+	var taskId TaskId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "taskId", chi.URLParam(r, "taskId"), &taskId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "taskId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteTask(w, r, taskId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetTask operation middleware
+func (siw *ServerInterfaceWrapper) GetTask(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "taskId" -------------
+	var taskId TaskId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "taskId", chi.URLParam(r, "taskId"), &taskId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "taskId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTask(w, r, taskId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateTask operation middleware
+func (siw *ServerInterfaceWrapper) UpdateTask(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "taskId" -------------
+	var taskId TaskId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "taskId", chi.URLParam(r, "taskId"), &taskId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "taskId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateTask(w, r, taskId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -711,6 +985,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/v1/entries/{entryId}", wrapper.UpdateEntry)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/entries/{entryId}/tasks", wrapper.ListTasks)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/entries/{entryId}/tasks", wrapper.CreateTask)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v1/tasks/{taskId}", wrapper.DeleteTask)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/tasks/{taskId}", wrapper.GetTask)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v1/tasks/{taskId}", wrapper.UpdateTask)
 	})
 
 	return r
