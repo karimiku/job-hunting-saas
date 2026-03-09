@@ -13,6 +13,126 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for UpdateEntryRequestStageKind.
+const (
+	UpdateEntryRequestStageKindApplication UpdateEntryRequestStageKind = "application"
+	UpdateEntryRequestStageKindDocument    UpdateEntryRequestStageKind = "document"
+	UpdateEntryRequestStageKindGroup       UpdateEntryRequestStageKind = "group"
+	UpdateEntryRequestStageKindInterview   UpdateEntryRequestStageKind = "interview"
+	UpdateEntryRequestStageKindOffer       UpdateEntryRequestStageKind = "offer"
+	UpdateEntryRequestStageKindOther       UpdateEntryRequestStageKind = "other"
+	UpdateEntryRequestStageKindTest        UpdateEntryRequestStageKind = "test"
+)
+
+// Valid indicates whether the value is a known member of the UpdateEntryRequestStageKind enum.
+func (e UpdateEntryRequestStageKind) Valid() bool {
+	switch e {
+	case UpdateEntryRequestStageKindApplication:
+		return true
+	case UpdateEntryRequestStageKindDocument:
+		return true
+	case UpdateEntryRequestStageKindGroup:
+		return true
+	case UpdateEntryRequestStageKindInterview:
+		return true
+	case UpdateEntryRequestStageKindOffer:
+		return true
+	case UpdateEntryRequestStageKindOther:
+		return true
+	case UpdateEntryRequestStageKindTest:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for UpdateEntryRequestStatus.
+const (
+	UpdateEntryRequestStatusAccepted   UpdateEntryRequestStatus = "accepted"
+	UpdateEntryRequestStatusInProgress UpdateEntryRequestStatus = "in_progress"
+	UpdateEntryRequestStatusOffered    UpdateEntryRequestStatus = "offered"
+	UpdateEntryRequestStatusRejected   UpdateEntryRequestStatus = "rejected"
+	UpdateEntryRequestStatusWithdrawn  UpdateEntryRequestStatus = "withdrawn"
+)
+
+// Valid indicates whether the value is a known member of the UpdateEntryRequestStatus enum.
+func (e UpdateEntryRequestStatus) Valid() bool {
+	switch e {
+	case UpdateEntryRequestStatusAccepted:
+		return true
+	case UpdateEntryRequestStatusInProgress:
+		return true
+	case UpdateEntryRequestStatusOffered:
+		return true
+	case UpdateEntryRequestStatusRejected:
+		return true
+	case UpdateEntryRequestStatusWithdrawn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListEntriesParamsStatus.
+const (
+	ListEntriesParamsStatusAccepted   ListEntriesParamsStatus = "accepted"
+	ListEntriesParamsStatusInProgress ListEntriesParamsStatus = "in_progress"
+	ListEntriesParamsStatusOffered    ListEntriesParamsStatus = "offered"
+	ListEntriesParamsStatusRejected   ListEntriesParamsStatus = "rejected"
+	ListEntriesParamsStatusWithdrawn  ListEntriesParamsStatus = "withdrawn"
+)
+
+// Valid indicates whether the value is a known member of the ListEntriesParamsStatus enum.
+func (e ListEntriesParamsStatus) Valid() bool {
+	switch e {
+	case ListEntriesParamsStatusAccepted:
+		return true
+	case ListEntriesParamsStatusInProgress:
+		return true
+	case ListEntriesParamsStatusOffered:
+		return true
+	case ListEntriesParamsStatusRejected:
+		return true
+	case ListEntriesParamsStatusWithdrawn:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ListEntriesParamsStageKind.
+const (
+	ListEntriesParamsStageKindApplication ListEntriesParamsStageKind = "application"
+	ListEntriesParamsStageKindDocument    ListEntriesParamsStageKind = "document"
+	ListEntriesParamsStageKindGroup       ListEntriesParamsStageKind = "group"
+	ListEntriesParamsStageKindInterview   ListEntriesParamsStageKind = "interview"
+	ListEntriesParamsStageKindOffer       ListEntriesParamsStageKind = "offer"
+	ListEntriesParamsStageKindOther       ListEntriesParamsStageKind = "other"
+	ListEntriesParamsStageKindTest        ListEntriesParamsStageKind = "test"
+)
+
+// Valid indicates whether the value is a known member of the ListEntriesParamsStageKind enum.
+func (e ListEntriesParamsStageKind) Valid() bool {
+	switch e {
+	case ListEntriesParamsStageKindApplication:
+		return true
+	case ListEntriesParamsStageKindDocument:
+		return true
+	case ListEntriesParamsStageKindGroup:
+		return true
+	case ListEntriesParamsStageKindInterview:
+		return true
+	case ListEntriesParamsStageKindOffer:
+		return true
+	case ListEntriesParamsStageKindOther:
+		return true
+	case ListEntriesParamsStageKindTest:
+		return true
+	default:
+		return false
+	}
+}
+
 // CompanyResponse defines model for CompanyResponse.
 type CompanyResponse struct {
 	CreatedAt time.Time          `json:"createdAt"`
@@ -28,6 +148,28 @@ type CreateCompanyRequest struct {
 	Name string  `json:"name"`
 }
 
+// CreateEntryRequest defines model for CreateEntryRequest.
+type CreateEntryRequest struct {
+	CompanyId openapi_types.UUID `json:"companyId"`
+	Memo      *string            `json:"memo,omitempty"`
+	Route     string             `json:"route"`
+	Source    string             `json:"source"`
+}
+
+// EntryResponse defines model for EntryResponse.
+type EntryResponse struct {
+	CompanyId  openapi_types.UUID `json:"companyId"`
+	CreatedAt  time.Time          `json:"createdAt"`
+	Id         openapi_types.UUID `json:"id"`
+	Memo       string             `json:"memo"`
+	Route      string             `json:"route"`
+	Source     string             `json:"source"`
+	StageKind  string             `json:"stageKind"`
+	StageLabel string             `json:"stageLabel"`
+	Status     string             `json:"status"`
+	UpdatedAt  time.Time          `json:"updatedAt"`
+}
+
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
 	Message string `json:"message"`
@@ -39,14 +181,51 @@ type UpdateCompanyRequest struct {
 	Name *string `json:"name,omitempty"`
 }
 
+// UpdateEntryRequest defines model for UpdateEntryRequest.
+type UpdateEntryRequest struct {
+	Memo       *string                      `json:"memo,omitempty"`
+	Source     *string                      `json:"source,omitempty"`
+	StageKind  *UpdateEntryRequestStageKind `json:"stageKind,omitempty"`
+	StageLabel *string                      `json:"stageLabel,omitempty"`
+	Status     *UpdateEntryRequestStatus    `json:"status,omitempty"`
+}
+
+// UpdateEntryRequestStageKind defines model for UpdateEntryRequest.StageKind.
+type UpdateEntryRequestStageKind string
+
+// UpdateEntryRequestStatus defines model for UpdateEntryRequest.Status.
+type UpdateEntryRequestStatus string
+
 // CompanyId defines model for CompanyId.
 type CompanyId = openapi_types.UUID
+
+// EntryId defines model for EntryId.
+type EntryId = openapi_types.UUID
+
+// ListEntriesParams defines parameters for ListEntries.
+type ListEntriesParams struct {
+	Status    *ListEntriesParamsStatus    `form:"status,omitempty" json:"status,omitempty"`
+	StageKind *ListEntriesParamsStageKind `form:"stageKind,omitempty" json:"stageKind,omitempty"`
+	Source    *string                     `form:"source,omitempty" json:"source,omitempty"`
+}
+
+// ListEntriesParamsStatus defines parameters for ListEntries.
+type ListEntriesParamsStatus string
+
+// ListEntriesParamsStageKind defines parameters for ListEntries.
+type ListEntriesParamsStageKind string
 
 // CreateCompanyJSONRequestBody defines body for CreateCompany for application/json ContentType.
 type CreateCompanyJSONRequestBody = CreateCompanyRequest
 
 // UpdateCompanyJSONRequestBody defines body for UpdateCompany for application/json ContentType.
 type UpdateCompanyJSONRequestBody = UpdateCompanyRequest
+
+// CreateEntryJSONRequestBody defines body for CreateEntry for application/json ContentType.
+type CreateEntryJSONRequestBody = CreateEntryRequest
+
+// UpdateEntryJSONRequestBody defines body for UpdateEntry for application/json ContentType.
+type UpdateEntryJSONRequestBody = UpdateEntryRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -65,6 +244,21 @@ type ServerInterface interface {
 	// 企業を部分更新する
 	// (PATCH /api/v1/companies/{companyId})
 	UpdateCompany(w http.ResponseWriter, r *http.Request, companyId CompanyId)
+	// エントリー一覧を取得する
+	// (GET /api/v1/entries)
+	ListEntries(w http.ResponseWriter, r *http.Request, params ListEntriesParams)
+	// エントリーを新規登録する
+	// (POST /api/v1/entries)
+	CreateEntry(w http.ResponseWriter, r *http.Request)
+	// エントリーを削除する
+	// (DELETE /api/v1/entries/{entryId})
+	DeleteEntry(w http.ResponseWriter, r *http.Request, entryId EntryId)
+	// エントリーを取得する
+	// (GET /api/v1/entries/{entryId})
+	GetEntry(w http.ResponseWriter, r *http.Request, entryId EntryId)
+	// エントリーを部分更新する
+	// (PATCH /api/v1/entries/{entryId})
+	UpdateEntry(w http.ResponseWriter, r *http.Request, entryId EntryId)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -98,6 +292,36 @@ func (_ Unimplemented) GetCompany(w http.ResponseWriter, r *http.Request, compan
 // 企業を部分更新する
 // (PATCH /api/v1/companies/{companyId})
 func (_ Unimplemented) UpdateCompany(w http.ResponseWriter, r *http.Request, companyId CompanyId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// エントリー一覧を取得する
+// (GET /api/v1/entries)
+func (_ Unimplemented) ListEntries(w http.ResponseWriter, r *http.Request, params ListEntriesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// エントリーを新規登録する
+// (POST /api/v1/entries)
+func (_ Unimplemented) CreateEntry(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// エントリーを削除する
+// (DELETE /api/v1/entries/{entryId})
+func (_ Unimplemented) DeleteEntry(w http.ResponseWriter, r *http.Request, entryId EntryId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// エントリーを取得する
+// (GET /api/v1/entries/{entryId})
+func (_ Unimplemented) GetEntry(w http.ResponseWriter, r *http.Request, entryId EntryId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// エントリーを部分更新する
+// (PATCH /api/v1/entries/{entryId})
+func (_ Unimplemented) UpdateEntry(w http.ResponseWriter, r *http.Request, entryId EntryId) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -204,6 +428,138 @@ func (siw *ServerInterfaceWrapper) UpdateCompany(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateCompany(w, r, companyId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListEntries operation middleware
+func (siw *ServerInterfaceWrapper) ListEntries(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListEntriesParams
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "stageKind" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "stageKind", r.URL.Query(), &params.StageKind, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "stageKind", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "source" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "source", r.URL.Query(), &params.Source, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "source", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListEntries(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateEntry operation middleware
+func (siw *ServerInterfaceWrapper) CreateEntry(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateEntry(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteEntry operation middleware
+func (siw *ServerInterfaceWrapper) DeleteEntry(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "entryId" -------------
+	var entryId EntryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "entryId", chi.URLParam(r, "entryId"), &entryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "entryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteEntry(w, r, entryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetEntry operation middleware
+func (siw *ServerInterfaceWrapper) GetEntry(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "entryId" -------------
+	var entryId EntryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "entryId", chi.URLParam(r, "entryId"), &entryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "entryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetEntry(w, r, entryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateEntry operation middleware
+func (siw *ServerInterfaceWrapper) UpdateEntry(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "entryId" -------------
+	var entryId EntryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "entryId", chi.URLParam(r, "entryId"), &entryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "entryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateEntry(w, r, entryId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -340,6 +696,21 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/v1/companies/{companyId}", wrapper.UpdateCompany)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/entries", wrapper.ListEntries)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/entries", wrapper.CreateEntry)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v1/entries/{entryId}", wrapper.DeleteEntry)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/entries/{entryId}", wrapper.GetEntry)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v1/entries/{entryId}", wrapper.UpdateEntry)
 	})
 
 	return r
