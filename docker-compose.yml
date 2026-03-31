@@ -9,6 +9,8 @@ services:
       - .:/app
     env_file:
       - .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-job_hunting_dev}?sslmode=disable
     depends_on:
       db:
         condition: service_healthy
@@ -23,6 +25,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-job_hunting_dev}
     volumes:
       - db-data:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d
+      - ./sql:/sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s

@@ -1,15 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 	"github.com/karimiku/job-hunting-saas/internal/gen/openapi"
 	"github.com/karimiku/job-hunting-saas/internal/handler"
 	"github.com/karimiku/job-hunting-saas/internal/infra/inmemory"
+	"github.com/karimiku/job-hunting-saas/internal/infra/postgres"
 	"github.com/karimiku/job-hunting-saas/internal/middleware"
 	companyuc "github.com/karimiku/job-hunting-saas/internal/usecase/company"
 	entryuc "github.com/karimiku/job-hunting-saas/internal/usecase/entry"
@@ -23,11 +26,35 @@ func main() {
 		port = "8080"
 	}
 
-	// InMemory実装はプロセス再起動でデータが消える。本番ではPostgreSQL実装に差し替える。
-	companyRepo := inmemory.NewCompanyRepository()
-	entryRepo := inmemory.NewEntryRepository()
-	taskRepo := inmemory.NewTaskRepository(entryRepo)
-	stageHistoryRepo := inmemory.NewStageHistoryRepository()
+	var (
+		companyRepo      repository.CompanyRepository
+		entryRepo        repository.EntryRepository
+		taskRepo         repository.TaskRepository
+		stageHistoryRepo repository.StageHistoryRepository
+	)
+
+	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
+		pool, err := postgres.NewPool(context.Background(), dbURL)
+		if err != nil {
+			log.Fatalf("failed to connect to database: %v", err)
+		}
+		defer pool.Close()
+
+		companyRepo = postgres.NewCompanyRepository(pool)
+		entryRepo = postgres.NewEntryRepository(pool)
+		taskRepo = postgres.NewTaskRepository(pool)
+		stageHistoryRepo = postgres.NewStageHistoryRepository(pool)
+		log.Println("using PostgreSQL repositories")
+	} else {
+		inMemoryCompanyRepo := inmemory.NewCompanyRepository()
+		inMemoryEntryRepo := inmemory.NewEntryRepository()
+
+		companyRepo = inMemoryCompanyRepo
+		entryRepo = inMemoryEntryRepo
+		taskRepo = inmemory.NewTaskRepository(inMemoryEntryRepo)
+		stageHistoryRepo = inmemory.NewStageHistoryRepository()
+		log.Println("using in-memory repositories (DATABASE_URL not set)")
+	}
 
 	companyHandler := handler.NewCompanyHandler(
 		companyuc.NewCreate(companyRepo),
