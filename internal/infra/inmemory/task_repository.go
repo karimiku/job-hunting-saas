@@ -72,6 +72,9 @@ func (r *TaskRepository) ListByUserIDWithDueBefore(ctx context.Context, userID e
 
 	var result []*entity.Task
 	for _, task := range r.tasksByID {
+		if task.Status().IsDone() {
+			continue
+		}
 		if task.DueDate() == nil || !task.DueDate().Before(deadline) {
 			continue
 		}
