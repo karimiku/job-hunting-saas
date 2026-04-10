@@ -15,9 +15,14 @@ type Querier interface {
 	DeleteCompany(ctx context.Context, arg DeleteCompanyParams) (int64, error)
 	DeleteEntry(ctx context.Context, arg DeleteEntryParams) (int64, error)
 	DeleteTask(ctx context.Context, arg DeleteTaskParams) (int64, error)
+	DeleteUser(ctx context.Context, id uuid.UUID) (int64, error)
 	FindCompanyByID(ctx context.Context, arg FindCompanyByIDParams) (Company, error)
 	FindEntryByID(ctx context.Context, arg FindEntryByIDParams) (Entry, error)
+	FindExternalIdentityByProviderAndSubject(ctx context.Context, arg FindExternalIdentityByProviderAndSubjectParams) (ExternalIdentity, error)
 	FindTaskByID(ctx context.Context, arg FindTaskByIDParams) (Task, error)
+	FindUserByEmail(ctx context.Context, email string) (User, error)
+	FindUserByID(ctx context.Context, id uuid.UUID) (User, error)
+	InsertExternalIdentity(ctx context.Context, arg InsertExternalIdentityParams) error
 	ListCompaniesByUserID(ctx context.Context, userID uuid.UUID) ([]Company, error)
 	ListEntriesByUserID(ctx context.Context, arg ListEntriesByUserIDParams) ([]Entry, error)
 	ListStageHistoriesByEntryID(ctx context.Context, entryID uuid.UUID) ([]StageHistory, error)
@@ -26,6 +31,7 @@ type Querier interface {
 	UpsertCompany(ctx context.Context, arg UpsertCompanyParams) error
 	UpsertEntry(ctx context.Context, arg UpsertEntryParams) error
 	UpsertTask(ctx context.Context, arg UpsertTaskParams) error
+	UpsertUser(ctx context.Context, arg UpsertUserParams) error
 }
 
 var _ Querier = (*Queries)(nil)
