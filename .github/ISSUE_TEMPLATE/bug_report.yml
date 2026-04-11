@@ -1,0 +1,109 @@
+name: Bug Report
+description: バグの報告
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## バグ報告
+        できるだけ詳しく記入してください。技術詳細セクションは Claude / 開発者が実装時に参照します。
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: 概要
+      description: 何が起きているか（1〜2文で簡潔に）
+      placeholder: "例: ListByUserIDWithDueBefore が done のタスクも返してしまう"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      description: バグを再現する手順をステップバイステップで記載
+      placeholder: |
+        1. `POST /entries` で Entry を作成
+        2. `POST /entries/{id}/tasks` で task_type=deadline / status=done のタスクを作成
+        3. `GET /tasks?due_before=...` を呼び出す
+        4. done のタスクが結果に含まれてしまう
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待する動作
+      description: 本来どうなるべきか
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の動作
+      description: 今どうなっているか（エラーログ / レスポンスボディ等）
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical
+    attributes:
+      label: 技術詳細（開発者 / Claude 向け）
+      description: |
+        該当ファイル・行番号・原因分析・修正方針など。
+        Claude が読んで実装できるレベルの情報を記載してください。
+      placeholder: |
+        **該当ファイル**: `internal/infra/postgres/task_repository.go` L120 付近
+        **該当クエリ**: `sql/queries/task.sql` の `ListByUserIDWithDueBefore`
+        **原因**: WHERE 句に `status = 'todo'` のフィルタが抜けている
+        **修正方針**: クエリに status フィルタを追加し、sqlc 再生成 + 統合テスト追加
+
+  - type: textarea
+    id: layer
+    attributes:
+      label: 影響レイヤー
+      description: どのレイヤーに影響するか（複数可）
+      placeholder: |
+        - [ ] domain (entity / value / repository interface)
+        - [ ] usecase
+        - [ ] handler
+        - [ ] infra (postgres / inmemory)
+        - [ ] sql (queries / schema)
+        - [ ] openapi
+        - [ ] middleware
+
+  - type: textarea
+    id: diagram
+    attributes:
+      label: フロー図 / 図解（任意）
+      description: |
+        必要に応じて Mermaid やシーケンス図でデータフロー・呼び出し関係を示してください。
+        「文章で説明しにくい挙動」「複数レイヤーをまたぐバグ」「並行処理・状態遷移」などで特に有効です。
+      value: |
+        <!-- 任意。必要なときだけ。例:
+
+        ```mermaid
+        sequenceDiagram
+          participant C as Client
+          participant H as Handler
+          participant U as UseCase
+          participant R as Repository
+          C->>H: GET /tasks
+          H->>U: List(userID, dueBefore)
+          U->>R: ListByUserIDWithDueBefore
+          R-->>U: tasks (done を含む ← バグ)
+        ```
+        -->
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 環境
+      description: 発生した環境の情報
+      placeholder: |
+        - 環境: local / preview / production
+        - Go バージョン:
+        - DB: PostgreSQL (docker-compose) / 本番
+        - DATABASE_URL の有無:

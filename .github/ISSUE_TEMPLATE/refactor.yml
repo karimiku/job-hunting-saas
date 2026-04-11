@@ -1,0 +1,97 @@
+name: Refactor / Tech Debt
+description: リファクタリング・技術負債の解消
+title: "refactor: "
+labels: ["refactor"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## リファクタリング / 技術負債
+        コードの品質改善や技術負債の解消に関する Issue です。
+        **動作を変えない** 変更であることを前提に、明確に分離してください。
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: 概要
+      description: 何をリファクタするか（1〜2文で簡潔に）
+      placeholder: "例: handler パッケージのレスポンス整形ヘルパーを response.go に集約する"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 現状の問題
+      description: 具体的なコードの問題点（ファイルパス・行数・重複箇所など）
+      placeholder: |
+        - `internal/handler/entry_handler.go` と `task_handler.go` で同じエラー変換ロジックが重複
+        - usecase 層に handler 由来のエラーマッピングが漏れ込んでいる
+        - inmemory リポジトリに user / external_identity 実装がなく、テスト用の dummy が散在
+    validations:
+      required: true
+
+  - type: textarea
+    id: plan
+    attributes:
+      label: 改善方針
+      description: ファイル構成・実装方針・変更後のイメージ
+      placeholder: |
+        **変更後の構成**:
+        ```
+        internal/handler/
+          response.go      ← writeJSON / writeError を集約
+          errors.go        ← domain error → HTTP status マッピング
+        ```
+
+        **方針**:
+        - usecase は domain error をそのまま返す
+        - handler 層でのみ HTTP status に変換
+    validations:
+      required: true
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: タスク
+      description: 実施する作業をチェックリストで記載
+      placeholder: |
+        - [ ] `internal/handler/errors.go` を新設
+        - [ ] 各 handler から writeJSON / writeError 重複を削除
+        - [ ] テストの期待値を更新
+        - [ ] `go build ./... && go vet ./... && go test ./...` 通過
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagram
+    attributes:
+      label: 構成図 / 依存関係図（任意）
+      description: |
+        Before / After の依存関係や配置を図にすると差分が伝わりやすいです。
+        必須ではありません。
+      value: |
+        <!-- 任意。必要なときだけ。例:
+
+        ```mermaid
+        flowchart LR
+          subgraph Before
+            H1[handler]-->|err 変換|H1
+            U1[usecase]-->H1
+          end
+          subgraph After
+            H2[handler] --> E[errors.go]
+            U2[usecase] --> H2
+          end
+        ```
+        -->
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 注意事項
+      description: 破壊的変更の有無、動作確認のポイントなど
+      placeholder: |
+        - 機能追加と同時にやらない（リファクタ単体ブランチ / 単体 PR）
+        - API レスポンスの形を変えない（後方互換）
+        - sqlc の再生成は不要

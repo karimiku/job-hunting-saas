@@ -1,0 +1,117 @@
+name: Feature Request
+description: 新機能・改善の提案
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 新機能・改善の提案
+        要件と技術詳細の両方を記載してください。技術詳細セクションは Claude / 開発者が実装時に参照します。
+        既存の `docs/requirements.md` の FR-XX に対応する場合は ID を明記してください。
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: 概要
+      description: 何を実現したいか（1〜2文で簡潔に）
+      placeholder: "例: Google OAuth ログイン / ログアウトの認証フローを実装する（FR-01）"
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: 背景・動機
+      description: なぜこの機能が必要か（ユーザー視点 + プロダクト視点で）
+      placeholder: |
+        - 現状: 認証ミドルウェアが TODO のままで、handler が誰のリクエストか判別できない
+        - 課題: ユーザー単位のデータ取得・所有権検証ができないため API を保護できない
+        - 期待: Cookie ベースのセッションで全 API を保護し、退会・エクスポートにも繋げる
+    validations:
+      required: true
+
+  - type: textarea
+    id: requirements
+    attributes:
+      label: 要件（受け入れ条件）
+      description: この機能が「完了」と言える条件をチェックリストで記載
+      placeholder: |
+        - [ ] `POST /auth/google/callback` で OAuth コードを検証し、User を upsert する
+        - [ ] httpOnly Cookie でセッショントークンを発行する
+        - [ ] `middleware.Auth` がトークンを検証し、context に UserID を埋め込む
+        - [ ] 既存 handler が `middleware.GetUserID` 経由で userID を取得できる
+        - [ ] 統合テスト（postgres）を追加する
+    validations:
+      required: true
+
+  - type: textarea
+    id: requirements_doc
+    attributes:
+      label: 関連する要件 ID
+      description: docs/requirements.md の FR-XX / NFR-XX があれば
+      placeholder: "FR-01, FR-03, NFR-04"
+
+  - type: textarea
+    id: technical
+    attributes:
+      label: 技術詳細（開発者 / Claude 向け）
+      description: |
+        対象ファイル・実装方針・影響レイヤーなど。
+        Claude が読んで実装できるレベルの情報を記載してください。
+      placeholder: |
+        **対象ファイル**:
+        - `internal/middleware/auth.go`
+        - `internal/usecase/user/`（新規 ファイル: `oauth_login.go`）
+        - `internal/handler/auth_handler.go`（新規）
+        - `api/openapi.yaml` に `/auth/google/callback` を追加
+        - `cmd/server/main.go` で wiring
+
+        **実装方針**:
+        - セッションは Postgres に保持（`sql/queries/session.sql` を新規追加）
+        - sqlc で型生成 → infra/postgres 実装
+
+        **影響レイヤー**:
+        - [x] domain
+        - [x] usecase
+        - [x] handler
+        - [x] infra
+        - [x] sql
+        - [x] openapi
+        - [x] middleware
+
+  - type: textarea
+    id: diagram
+    attributes:
+      label: フロー図 / シーケンス図（任意）
+      description: |
+        複数レイヤーをまたぐ機能、状態遷移、外部 API 連携などは Mermaid 図があると圧倒的に伝わりやすいです。
+        必須ではありません。
+      value: |
+        <!-- 任意。必要なときだけ。例:
+
+        ```mermaid
+        sequenceDiagram
+          participant U as User
+          participant FE as Frontend
+          participant API as Backend
+          participant G as Google
+          U->>FE: ログインボタン
+          FE->>G: OAuth 認可リクエスト
+          G-->>FE: code
+          FE->>API: POST /auth/google/callback (code)
+          API->>G: code → token 交換
+          G-->>API: id_token
+          API->>API: User upsert + Session 発行
+          API-->>FE: Set-Cookie: session=...
+        ```
+        -->
+
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: スコープ外
+      description: この Issue で「やらない」ことを明示
+      placeholder: |
+        - パスワード認証（FR-01 では Google OAuth のみ）
+        - 退会フロー（別 Issue）
