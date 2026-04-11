@@ -25,5 +25,9 @@ func writeError(w http.ResponseWriter, err error) {
 		writeJSON(w, http.StatusNotFound, openapi.ErrorResponse{Message: "not found"})
 		return
 	}
+	if errors.Is(err, repository.ErrAlreadyExists) {
+		writeJSON(w, http.StatusConflict, openapi.ErrorResponse{Message: "already exists"})
+		return
+	}
 	writeJSON(w, http.StatusBadRequest, openapi.ErrorResponse{Message: err.Error()})
 }
