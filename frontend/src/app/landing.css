@@ -1,0 +1,386 @@
+/* ================================================================
+   Entré LP — scoped tokens + utility classes
+   Ported from design bundle: job-hunting-saas/project/lib/tokens.css
+   All styles are namespaced under `.lp-scope` to avoid bleeding
+   into the existing app shell (which has its own tokens in globals.css).
+   ================================================================ */
+
+.lp-scope {
+  /* Soft sky base */
+  --lp-bg: #f4f7fb;
+  --lp-bg-alt: #ebf1f8;
+  --lp-surface: #ffffff;
+  --lp-surface-2: #f7f9fc;
+  --lp-glass: rgba(255, 255, 255, 0.18);
+  --lp-glass-strong: rgba(255, 255, 255, 0.32);
+  --lp-glass-border: rgba(255, 255, 255, 0.5);
+
+  --lp-ink: #1a1f2e;
+  --lp-ink-2: #3b4358;
+  --lp-ink-3: #6b7389;
+  --lp-ink-4: #9aa2b5;
+  --lp-line: rgba(26, 31, 46, 0.1);
+  --lp-line-2: rgba(26, 31, 46, 0.05);
+
+  --lp-blue: #4a6cf7;
+  --lp-blue-2: #7b95ff;
+  --lp-blue-soft: #dce5ff;
+  --lp-mint: #62d8b6;
+  --lp-mint-soft: #c8f1e2;
+  --lp-lavender: #9a7be8;
+  --lp-lavender-soft: #e4d5fa;
+  --lp-peach: #ffb398;
+  --lp-peach-soft: #ffe4d4;
+  --lp-sun: #ffd94a;
+  --lp-sun-soft: #fff0b5;
+  --lp-sky: #a8d8f5;
+
+  --lp-s-app: #7eb8f0;
+  --lp-s-doc: #f0c76b;
+  --lp-s-test: #c89be0;
+  --lp-s-interview: #ffb398;
+  --lp-s-group: #f09ab8;
+  --lp-s-offer: #62d8b6;
+
+  --lp-font-jp: var(--font-noto-sans-jp), "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --lp-font-serif: var(--font-noto-serif-jp), "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --lp-font-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --lp-font-hand: var(--font-caveat), cursive;
+
+  font-family: var(--lp-font-jp);
+  color: var(--lp-ink);
+  font-feature-settings: "palt" 1;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+.lp-scope .lp-serif { font-family: var(--lp-font-serif); }
+.lp-scope .lp-mono { font-family: var(--lp-font-mono); }
+.lp-scope .lp-hand { font-family: var(--lp-font-hand); }
+
+.lp-scope ::selection { background: var(--lp-sun); color: var(--lp-ink); }
+
+/* ── Buttons ───────────────────────────────────────────────── */
+
+.lp-scope .lp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 14px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 200ms ease, background 120ms ease;
+}
+.lp-scope .lp-btn:hover { transform: translateY(-2px); }
+.lp-scope .lp-btn:active { transform: translateY(0); }
+
+.lp-scope .lp-btn-blue {
+  background: var(--lp-blue);
+  color: #fff;
+  box-shadow: 0 8px 24px -8px rgba(74, 108, 247, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+.lp-scope .lp-btn-blue:hover {
+  box-shadow: 0 14px 32px -8px rgba(74, 108, 247, 0.7);
+}
+
+.lp-scope .lp-btn-sun {
+  background: var(--lp-sun);
+  color: var(--lp-ink);
+  box-shadow: 0 8px 20px -8px rgba(255, 217, 74, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(26, 31, 46, 0.08);
+}
+.lp-scope .lp-btn-sun:hover {
+  box-shadow: 0 14px 28px -8px rgba(255, 217, 74, 1);
+}
+
+.lp-scope .lp-btn-glass {
+  background: var(--lp-glass);
+  color: var(--lp-ink);
+  border: 1px solid var(--lp-glass-border);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.lp-scope .lp-btn-glass:hover { background: var(--lp-glass-strong); }
+
+/* ── Chips & dots ───────────────────────────────────────────── */
+
+.lp-scope .lp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--lp-glass-strong);
+  border: 1px solid var(--lp-line);
+  color: var(--lp-ink-2);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.lp-scope .lp-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* ── Glass cards ────────────────────────────────────────────── */
+
+.lp-scope .lp-glass {
+  background: var(--lp-glass);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+}
+
+.lp-scope .lp-glass-strong {
+  background: var(--lp-glass-strong);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
+}
+
+.lp-scope .lp-bold-card {
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
+  box-shadow: 0 12px 32px -16px rgba(26, 31, 46, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
+}
+
+/* ── Highlights ─────────────────────────────────────────────── */
+
+.lp-scope .lp-hl {
+  background-image: linear-gradient(
+    180deg,
+    transparent 62%,
+    var(--lp-sun) 62%,
+    var(--lp-sun) 92%,
+    transparent 92%
+  );
+  padding: 0 4px;
+}
+.lp-scope .lp-hl-blue {
+  background-image: linear-gradient(
+    180deg,
+    transparent 62%,
+    var(--lp-blue-soft) 62%,
+    var(--lp-blue-soft) 92%,
+    transparent 92%
+  );
+  padding: 0 4px;
+}
+.lp-scope .lp-hl-mint {
+  background-image: linear-gradient(
+    180deg,
+    transparent 62%,
+    var(--lp-mint-soft) 62%,
+    var(--lp-mint-soft) 92%,
+    transparent 92%
+  );
+  padding: 0 4px;
+}
+
+.lp-scope .lp-sticker {
+  display: inline-block;
+  background: var(--lp-sun);
+  color: var(--lp-ink);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+  box-shadow: 0 4px 12px -4px rgba(255, 217, 74, 0.6);
+}
+
+.lp-scope .lp-grad-text {
+  background: linear-gradient(
+    135deg,
+    var(--lp-ink) 0%,
+    var(--lp-blue) 60%,
+    var(--lp-lavender) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Reveal ─────────────────────────────────────────────────── */
+
+.lp-scope .lp-reveal {
+  opacity: 0;
+  filter: blur(6px);
+  transition: opacity 900ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 900ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 700ms ease-out;
+  will-change: transform, opacity, filter;
+}
+.lp-scope .lp-reveal.in { opacity: 1; filter: blur(0); transform: none; }
+.lp-scope .lp-reveal-up { transform: translateY(48px) scale(0.94); }
+.lp-scope .lp-reveal-left { transform: translateX(-80px) scale(0.96); }
+.lp-scope .lp-reveal-right { transform: translateX(80px) scale(0.96); }
+.lp-scope .lp-reveal-pop {
+  transform: scale(0.7) rotate(-3deg);
+  transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition-duration: 700ms;
+}
+
+/* ── Mascot animations ──────────────────────────────────────── */
+
+@keyframes lpMascotBow {
+  0%, 20% { transform: rotate(0deg) translateY(0); }
+  40%, 60% { transform: rotate(24deg) translateY(2px); }
+  80%, 100% { transform: rotate(0deg) translateY(0); }
+}
+.lp-scope .lp-mascot-bow {
+  animation: lpMascotBow 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transform-origin: 50% 100%;
+}
+
+@keyframes lpMascotHop {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  25% { transform: translateY(-10px) rotate(2deg); }
+  50% { transform: translateY(0) rotate(-2deg); }
+  75% { transform: translateY(-6px) rotate(2deg); }
+}
+.lp-scope .lp-mascot-hop {
+  animation: lpMascotHop 1.8s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+
+@keyframes lpMascotWobble {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+}
+.lp-scope .lp-mascot-wobble {
+  animation: lpMascotWobble 2.4s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+
+@keyframes lpMascotIdle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.lp-scope .lp-mascot-idle {
+  animation: lpMascotIdle 3.2s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+
+/* ── General floats ─────────────────────────────────────────── */
+
+@keyframes lpFloatY {
+  0%, 100% { transform: translateY(0) rotate(var(--lp-r, 0deg)); }
+  50% { transform: translateY(-10px) rotate(var(--lp-r, 0deg)); }
+}
+.lp-scope .lp-float-y { animation: lpFloatY 6s ease-in-out infinite; }
+
+@keyframes lpWiggle {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+.lp-scope .lp-wiggle {
+  animation: lpWiggle 4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes lpSpinSlow { to { transform: rotate(360deg); } }
+.lp-scope .lp-spin-slow { animation: lpSpinSlow 22s linear infinite; }
+
+@keyframes lpBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.lp-scope .lp-bob { animation: lpBob 2.2s ease-in-out infinite; }
+
+@keyframes lpRise {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(-110vh) translateX(30px); opacity: 0; }
+}
+
+@keyframes lpShimmer {
+  0%, 100% { opacity: 0.3; transform: translateX(-100%) skewX(-20deg); }
+  50% { opacity: 0.6; transform: translateX(100%) skewX(-20deg); }
+}
+
+@keyframes lpSlideIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Underline draw-in — works with pathLength="1" */
+@keyframes lpDrawStroke {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+.lp-scope .lp-draw-stroke {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: lpDrawStroke 900ms cubic-bezier(0.22, 1, 0.36, 1) 1300ms forwards;
+}
+
+/* Highlighter sweep — left-to-right reveal of .lp-hl-* backgrounds */
+@keyframes lpHlSweep {
+  from { background-size: 0% 100%; }
+  to   { background-size: 100% 100%; }
+}
+.lp-scope .lp-hl-sweep {
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: 0% 100%;
+  animation: lpHlSweep 650ms cubic-bezier(0.22, 1, 0.36, 1) 900ms forwards;
+}
+
+/* ── Marquee ───────────────────────────────────────────────── */
+
+.lp-scope .lp-marquee {
+  overflow: hidden;
+  display: flex;
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 6%,
+    #000 94%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 6%,
+    #000 94%,
+    transparent 100%
+  );
+}
+.lp-scope .lp-marquee-track {
+  display: flex;
+  flex-wrap: nowrap;
+  width: max-content;
+  gap: 16px;
+  animation: lpMarquee 55s linear infinite;
+  padding-right: 16px;
+  align-items: center;
+  will-change: transform;
+}
+@keyframes lpMarquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.lp-scope .lp-marquee-rev .lp-marquee-track {
+  animation-direction: reverse;
+  animation-duration: 48s;
+}
