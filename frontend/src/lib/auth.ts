@@ -6,7 +6,7 @@
 // ID Token は「Session Cookie に交換する」以外の用途では使わない（XSS 面が小さくなる）。
 
 import { signInWithPopup, signOut as firebaseSignOut } from "firebase/auth";
-import { firebaseAuth, googleProvider } from "./firebase";
+import { getFirebaseAuth, googleProvider } from "./firebase";
 import { apiFetch } from "./api";
 
 export type AuthUser = {
@@ -20,7 +20,7 @@ export type AuthUser = {
  * 成功時は AuthUser を返す。
  */
 export async function signInWithGoogle(): Promise<AuthUser> {
-  const result = await signInWithPopup(firebaseAuth, googleProvider);
+  const result = await signInWithPopup(getFirebaseAuth(), googleProvider);
   const idToken = await result.user.getIdToken();
 
   const res = await apiFetch("/auth/session", {
@@ -30,7 +30,7 @@ export async function signInWithGoogle(): Promise<AuthUser> {
 
   if (!res.ok) {
     // バックエンド側に残った Firebase session cookie はないのでクライアント状態だけクリア
-    await firebaseSignOut(firebaseAuth).catch(() => {});
+    await firebaseSignOut(getFirebaseAuth()).catch(() => {});
     throw new Error(`session creation failed: ${res.status}`);
   }
 
@@ -43,7 +43,7 @@ export async function signInWithGoogle(): Promise<AuthUser> {
 export async function signOut(): Promise<void> {
   await Promise.all([
     apiFetch("/auth/session", { method: "DELETE" }).catch(() => {}),
-    firebaseSignOut(firebaseAuth).catch(() => {}),
+    firebaseSignOut(getFirebaseAuth()).catch(() => {}),
   ]);
 }
 

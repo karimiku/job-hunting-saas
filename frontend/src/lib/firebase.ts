@@ -1,5 +1,8 @@
 // Firebase クライアント SDK の初期化。
-// Next.js の HMR や SSR で複数回評価されても単一の App インスタンスに収束させる。
+//
+// 重要: initializeApp を import 時（モジュール読み込み時）に呼ぶと
+// Next.js のプリレンダリング時に env vars が無くて auth/invalid-api-key で落ちる。
+// そのため lazy init にし、実際に getFirebaseAuth() が呼ばれたタイミングまで遅延する。
 import { getApps, getApp, initializeApp, type FirebaseApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, type Auth } from "firebase/auth";
 
@@ -12,8 +15,15 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-export const firebaseApp: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+let cachedApp: FirebaseApp | null = null;
+let cachedAuth: Auth | null = null;
 
-export const firebaseAuth: Auth = getAuth(firebaseApp);
+export function getFirebaseAuth(): Auth {
+  if (cachedAuth) return cachedAuth;
+  cachedApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  cachedAuth = getAuth(cachedApp);
+  return cachedAuth;
+}
 
+// GoogleAuthProvider は initializeApp 不要なモジュールトップでの生成でも安全
 export const googleProvider = new GoogleAuthProvider();
