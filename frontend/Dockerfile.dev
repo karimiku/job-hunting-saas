@@ -1,0 +1,17 @@
+FROM node:20-slim
+
+# Corepack で pnpm バージョンを package.json の packageManager に従わせる
+RUN corepack enable
+
+WORKDIR /app
+
+# lockfile と .npmrc 先コピーで layer cache を効かせる
+COPY package.json pnpm-lock.yaml .npmrc ./
+RUN pnpm install --frozen-lockfile
+
+# ソース本体は compose の volume で bind される。node_modules は anonymous volume で保護
+COPY . .
+
+EXPOSE 3000
+
+CMD ["pnpm", "dev"]
