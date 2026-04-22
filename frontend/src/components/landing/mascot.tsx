@@ -1,290 +1,338 @@
 "use client";
 
-import { useId } from "react";
+const INK = "#3A3229";
+const BODY = "#FCFAF6";
+const STROKE = "#3A3229";
+const ANTLER = "#8A6A4A";
+const ANTLER_SOFT = "#A88A6A";
+const BLUSH = "#EDB8A8";
+const LEAF = "#8DA889";
 
-const INK = "#1F1A16";
-const BG = "#FBF6EE";
-const SURFACE = "#FFFFFF";
-const BLUSH = "#E8C5BC";
+export type DeerMood = "happy" | "sleep" | "relax" | "wave" | "worried" | "sparkle";
 
-export type Mood =
-  | "happy"
-  | "cheer"
-  | "wink"
-  | "sleep"
-  | "wow"
-  | "bow"
-  | "shy";
-
-const MOOD_COLORS: Record<Mood, string> = {
-  happy: "#FFC83D",
-  cheer: "#FF9A6C",
-  wink: "#7ECDF5",
-  sleep: "#C8B8EC",
-  wow: "#8FD9A8",
-  bow: "#F5B6C7",
-  shy: "#FFD6A8",
-};
-
-export function Mascot({
-  size = 120,
-  mood = "happy" as Mood,
+/**
+ * Hand-drawn envelope-deer mascot matching the mockup aesthetic.
+ * Soft, rounded, warm — inked with slightly wavy strokes.
+ */
+export function DeerMascot({
+  size = 140,
+  mood = "happy",
   tilt = 0,
-  accent,
-  animate = true,
+  className,
 }: {
+  size?: number;
+  mood?: DeerMood;
+  tilt?: number;
+  className?: string;
+}) {
+  // Eyes: slightly oval, closer together, with soft highlight
+  const eye = (cx: number) => {
+    if (mood === "sleep") {
+      return (
+        <path
+          key={cx}
+          d={`M${cx - 6} 66 Q${cx} 70 ${cx + 6} 66`}
+          stroke={INK}
+          strokeWidth="2.6"
+          fill="none"
+          strokeLinecap="round"
+        />
+      );
+    }
+    if (mood === "wave" && cx < 70) {
+      return (
+        <path
+          key={cx}
+          d={`M${cx - 6} 62 Q${cx} 56 ${cx + 6} 62`}
+          stroke={INK}
+          strokeWidth="2.6"
+          fill="none"
+          strokeLinecap="round"
+        />
+      );
+    }
+    if (mood === "worried") {
+      return (
+        <g key={cx}>
+          <ellipse cx={cx} cy="64" rx="3.2" ry="3.6" fill={INK} />
+          <circle cx={cx - 0.8} cy="63" r="0.9" fill="#fff" />
+        </g>
+      );
+    }
+    return (
+      <g key={cx}>
+        <ellipse cx={cx} cy="64" rx="3.2" ry="3.8" fill={INK} />
+        <circle cx={cx - 0.8} cy="63" r="0.9" fill="#fff" />
+      </g>
+    );
+  };
+
+  const mouth = (() => {
+    if (mood === "sleep") {
+      return (
+        <path
+          d="M64 80 Q70 84 76 80"
+          stroke={INK}
+          strokeWidth="2.2"
+          fill="none"
+          strokeLinecap="round"
+        />
+      );
+    }
+    if (mood === "worried") {
+      return (
+        <path
+          d="M62 82 Q70 78 78 82"
+          stroke={INK}
+          strokeWidth="2.2"
+          fill="none"
+          strokeLinecap="round"
+        />
+      );
+    }
+    if (mood === "sparkle" || mood === "happy" || mood === "wave") {
+      return (
+        <path
+          d="M62 78 Q70 86 78 78"
+          stroke={INK}
+          strokeWidth="2.4"
+          fill="none"
+          strokeLinecap="round"
+        />
+      );
+    }
+    return (
+      <path
+        d="M64 80 Q70 82 76 80"
+        stroke={INK}
+        strokeWidth="2.2"
+        fill="none"
+        strokeLinecap="round"
+      />
+    );
+  })();
+
+  return (
+    <svg
+      width={size}
+      height={size * 1.2}
+      viewBox="0 0 150 178"
+      className={className}
+      style={{ transform: `rotate(${tilt}deg)`, overflow: "visible" }}
+    >
+      {/* Shadow underneath */}
+      <ellipse cx="75" cy="170" rx="44" ry="5" fill="rgba(58, 50, 41, 0.1)" />
+
+      {/* Antlers — wavy, branching, hand-drawn feel */}
+      <g
+        stroke={ANTLER}
+        strokeWidth="3.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      >
+        {/* Left antler */}
+        <path d="M48 40 C 46 28, 42 18, 38 10" />
+        <path d="M44 24 C 40 22, 34 22, 28 24" />
+        <path d="M42 16 C 46 10, 46 4, 44 0" />
+        {/* Right antler */}
+        <path d="M102 40 C 104 28, 108 18, 112 10" />
+        <path d="M106 24 C 110 22, 116 22, 122 24" />
+        <path d="M108 16 C 104 10, 104 4, 106 0" />
+      </g>
+      {/* Antler tip highlights */}
+      <g stroke={ANTLER_SOFT} strokeWidth="1.8" strokeLinecap="round" fill="none" opacity="0.65">
+        <path d="M40 14 C 42 10, 42 6, 41 2" />
+        <path d="M110 14 C 108 10, 108 6, 109 2" />
+      </g>
+
+      {/* Soft ear puffs */}
+      <ellipse cx="42" cy="58" rx="9" ry="6" fill="#F5E6D6" stroke={STROKE} strokeWidth="2.2" />
+      <ellipse cx="108" cy="58" rx="9" ry="6" fill="#F5E6D6" stroke={STROKE} strokeWidth="2.2" />
+      <ellipse cx="42" cy="58" rx="5" ry="3.2" fill={BLUSH} opacity="0.6" />
+      <ellipse cx="108" cy="58" rx="5" ry="3.2" fill={BLUSH} opacity="0.6" />
+
+      {/* Envelope body — slightly irregular rounded rectangle */}
+      <path
+        d="M18 52
+           C 18 46, 22 42, 28 42
+           L 122 42
+           C 128 42, 132 46, 132 52
+           L 132 148
+           C 132 154, 128 158, 122 158
+           L 28 158
+           C 22 158, 18 154, 18 148
+           Z"
+        fill={BODY}
+        stroke={STROKE}
+        strokeWidth="2.8"
+        strokeLinejoin="round"
+      />
+
+      {/* Envelope V fold — subtle */}
+      <path
+        d="M18 58 L 75 104 L 132 58"
+        fill="none"
+        stroke={STROKE}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+        opacity="0.25"
+      />
+
+      {/* Cheeks */}
+      <ellipse cx="40" cy="88" rx="7.5" ry="5" fill={BLUSH} opacity="0.85" />
+      <ellipse cx="110" cy="88" rx="7.5" ry="5" fill={BLUSH} opacity="0.85" />
+
+      {/* Eyes */}
+      {eye(58)}
+      {eye(92)}
+
+      {/* Mouth */}
+      {mouth}
+
+      {/* Tiny leaves near one antler — mockup detail */}
+      {(mood === "happy" || mood === "wave" || mood === "sparkle") && (
+        <g>
+          <ellipse cx="30" cy="28" rx="4" ry="2.6" fill={LEAF} transform="rotate(-30 30 28)" />
+          <ellipse cx="120" cy="28" rx="4" ry="2.6" fill={LEAF} transform="rotate(30 120 28)" />
+        </g>
+      )}
+
+      {/* Worried marks */}
+      {mood === "worried" && (
+        <g>
+          <circle cx="132" cy="34" r="3" fill="#E89B8D" />
+          <rect x="131" y="18" width="2.2" height="12" rx="1.1" fill="#E89B8D" />
+          <circle cx="22" cy="30" r="2.4" fill="#E89B8D" />
+          <rect x="21" y="16" width="2" height="10" rx="1" fill="#E89B8D" />
+        </g>
+      )}
+
+      {/* Sparkles floating around */}
+      {mood === "sparkle" && (
+        <g fill="#6B9079">
+          <path d="M140 52 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 z" opacity="0.75" />
+          <path d="M8 70 l1.4 3.6 3.6 1.4 -3.6 1.4 -1.4 3.6 -1.4 -3.6 -3.6 -1.4 3.6 -1.4 z" opacity="0.6" />
+          <circle cx="138" cy="108" r="2" opacity="0.5" />
+          <circle cx="12" cy="120" r="1.5" opacity="0.5" />
+        </g>
+      )}
+
+      {/* Sleep Z's */}
+      {mood === "sleep" && (
+        <g style={{ transformOrigin: "130px 36px" }} className="lp-zzz">
+          <text
+            x="126"
+            y="38"
+            fontSize="14"
+            fontWeight="700"
+            fill={INK}
+            fontFamily="var(--lp-font-serif)"
+          >
+            z
+          </text>
+          <text
+            x="136"
+            y="24"
+            fontSize="18"
+            fontWeight="700"
+            fill={INK}
+            fontFamily="var(--lp-font-serif)"
+          >
+            z
+          </text>
+        </g>
+      )}
+
+      {/* Wave arm */}
+      {mood === "wave" && (
+        <g transform="translate(120 96) rotate(-20)">
+          <path
+            d="M0 -12 C -2 -18, 6 -22, 10 -18 L 10 4 C 10 8, 6 10, 2 8 Z"
+            fill={BODY}
+            stroke={STROKE}
+            strokeWidth="2.4"
+            strokeLinejoin="round"
+          />
+        </g>
+      )}
+    </svg>
+  );
+}
+
+/** Small mascot used in nav + footer. */
+export function MiniMascot({ size = 32 }: { size?: number }) {
+  return (
+    <svg width={size} height={size * 1.15} viewBox="0 0 150 172">
+      <g stroke={ANTLER} strokeWidth="4.4" strokeLinecap="round" fill="none">
+        <path d="M48 40 C 46 28, 42 18, 38 10" />
+        <path d="M42 16 C 46 10, 46 4, 44 0" />
+        <path d="M102 40 C 104 28, 108 18, 112 10" />
+        <path d="M108 16 C 104 10, 104 4, 106 0" />
+      </g>
+      <path
+        d="M18 52
+           C 18 46, 22 42, 28 42
+           L 122 42
+           C 128 42, 132 46, 132 52
+           L 132 148
+           C 132 154, 128 158, 122 158
+           L 28 158
+           C 22 158, 18 154, 18 148
+           Z"
+        fill={BODY}
+        stroke={STROKE}
+        strokeWidth="3.4"
+        strokeLinejoin="round"
+      />
+      <ellipse cx="58" cy="84" rx="5" ry="5.8" fill={INK} />
+      <ellipse cx="92" cy="84" rx="5" ry="5.8" fill={INK} />
+      <path d="M62 100 Q75 110 88 100" stroke={INK} strokeWidth="3.2" fill="none" strokeLinecap="round" />
+      <ellipse cx="42" cy="108" rx="6" ry="4" fill={BLUSH} opacity="0.8" />
+      <ellipse cx="108" cy="108" rx="6" ry="4" fill={BLUSH} opacity="0.8" />
+    </svg>
+  );
+}
+
+/* ── Legacy compatibility ───────────────────────────────────── */
+
+export type Mood = DeerMood;
+
+export function Mascot(props: {
   size?: number;
   mood?: Mood;
   tilt?: number;
   accent?: string;
   animate?: boolean;
 }) {
-  const shellColor = accent || MOOD_COLORS[mood];
-  const eyeY = mood === "sleep" || mood === "bow" ? 56 : 52;
-
-  const mouth = (() => {
-    switch (mood) {
-      case "wow":
-        return <ellipse cx="60" cy="74" rx="5" ry="7" fill={INK} />;
-      case "wink":
-        return (
-          <path
-            d="M44 72 Q60 82 76 72"
-            stroke={INK}
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            fill="none"
-          />
-        );
-      case "sleep":
-        return (
-          <path
-            d="M48 74 Q60 74 72 74"
-            stroke={INK}
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            fill="none"
-          />
-        );
-      case "cheer":
-        return (
-          <path
-            d="M44 70 Q60 90 76 70 Q60 82 44 70"
-            stroke={INK}
-            strokeWidth="3"
-            fill={INK}
-          />
-        );
-      case "bow":
-        return (
-          <path
-            d="M48 74 Q60 82 72 74"
-            stroke={INK}
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            fill="none"
-          />
-        );
-      case "shy":
-        return (
-          <path
-            d="M50 74 Q60 80 70 74"
-            stroke={INK}
-            strokeWidth="3"
-            strokeLinecap="round"
-            fill="none"
-          />
-        );
-      default:
-        return (
-          <path
-            d="M44 72 Q60 84 76 72"
-            stroke={INK}
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            fill="none"
-          />
-        );
-    }
-  })();
-
-  const eyeL =
-    mood === "wink" ? (
-      <path
-        d="M38 52 Q45 56 50 52"
-        stroke={INK}
-        strokeWidth="3.5"
-        fill="none"
-        strokeLinecap="round"
-      />
-    ) : mood === "sleep" || mood === "bow" ? (
-      <path
-        d="M36 56 L50 56"
-        stroke={INK}
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-    ) : (
-      <circle cx="44" cy={eyeY} r="4.5" fill={INK} />
-    );
-
-  const eyeR =
-    mood === "sleep" || mood === "bow" ? (
-      <path
-        d="M70 56 L84 56"
-        stroke={INK}
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-    ) : (
-      <circle cx="76" cy={eyeY} r="4.5" fill={INK} />
-    );
-
-  const animClass = !animate
-    ? ""
-    : mood === "bow"
-      ? "lp-mascot-bow"
-      : mood === "cheer"
-        ? "lp-mascot-hop"
-        : mood === "shy"
-          ? "lp-mascot-wobble"
-          : mood === "happy"
-            ? "lp-mascot-idle"
-            : "";
-
-  return (
-    <svg
-      width={size}
-      height={size * 1.1}
-      viewBox="0 0 120 132"
-      className={animClass}
-      style={{
-        transform: `rotate(${tilt}deg)`,
-        overflow: "visible",
-        transformOrigin: "50% 100%",
-      }}
-    >
-      <rect x="36" y="110" width="10" height="14" rx="3" fill={INK} />
-      <rect x="74" y="110" width="10" height="14" rx="3" fill={INK} />
-      <rect
-        x="8"
-        y="18"
-        width="104"
-        height="96"
-        rx="18"
-        fill={shellColor}
-        stroke={INK}
-        strokeWidth="3"
-      />
-      <path
-        d="M8 30 L60 68 L112 30"
-        fill="none"
-        stroke={INK}
-        strokeWidth="3"
-        strokeLinejoin="round"
-      />
-      <rect
-        x="50"
-        y="8"
-        width="20"
-        height="14"
-        rx="3"
-        fill={SURFACE}
-        stroke={INK}
-        strokeWidth="2.5"
-      />
-      <rect x="54" y="12" width="12" height="6" rx="2" fill={INK} />
-      <circle cx="32" cy="66" r="5" fill={BLUSH} opacity="0.9" />
-      <circle cx="88" cy="66" r="5" fill={BLUSH} opacity="0.9" />
-      {eyeL}
-      {eyeR}
-      {mouth}
-    </svg>
-  );
-}
-
-export function MiniMascot({ size = 32 }: { size?: number }) {
-  const SUN = "#FFC83D";
-  return (
-    <svg width={size} height={size} viewBox="0 0 120 120">
-      <rect
-        x="8"
-        y="18"
-        width="104"
-        height="96"
-        rx="18"
-        fill={SUN}
-        stroke={INK}
-        strokeWidth="5"
-      />
-      <path
-        d="M8 30 L60 68 L112 30"
-        fill="none"
-        stroke={INK}
-        strokeWidth="5"
-        strokeLinejoin="round"
-      />
-      <circle cx="44" cy="54" r="6" fill={INK} />
-      <circle cx="76" cy="54" r="6" fill={INK} />
-      <path
-        d="M44 74 Q60 86 76 74"
-        stroke={INK}
-        strokeWidth="4.5"
-        strokeLinecap="round"
-        fill="none"
-      />
-    </svg>
-  );
+  return <DeerMascot size={props.size} mood={props.mood} tilt={props.tilt} />;
 }
 
 export function Stamp({
   text = "FREE",
-  color = "#4A6CF7",
+  color = "#6B9079",
   size = 80,
 }: {
   text?: string;
   color?: string;
   size?: number;
 }) {
-  const id = useId();
   return (
     <svg width={size} height={size} viewBox="0 0 100 100">
-      <defs>
-        <path
-          id={id}
-          d="M 50,50 m -36,0 a 36,36 0 1,1 72,0 a 36,36 0 1,1 -72,0"
-        />
-      </defs>
-      <circle cx="50" cy="50" r="44" fill={color} stroke={INK} strokeWidth="2" />
-      <circle
-        cx="50"
-        cy="50"
-        r="30"
-        fill="none"
-        stroke={BG}
-        strokeWidth="1"
-        strokeDasharray="2 3"
-      />
+      <circle cx="50" cy="50" r="42" fill={color} stroke={INK} strokeWidth="2" />
       <text
+        x="50"
+        y="46"
+        textAnchor="middle"
         fontFamily="var(--lp-font-serif)"
         fontSize="11"
         fontWeight="700"
-        fill={BG}
+        fill="#fff"
         letterSpacing="2"
       >
-        <textPath href={`#${id}`} startOffset="0">
-          {text} · {text} · {text} · {text} ·{" "}
-        </textPath>
+        {text}
       </text>
-      <text
-        x="50"
-        y="56"
-        textAnchor="middle"
-        fontFamily="var(--lp-font-serif)"
-        fontSize="22"
-        fontWeight="700"
-        fill={BG}
-      >
+      <text x="50" y="66" textAnchor="middle" fontSize="18" fill="#fff">
         ✓
       </text>
     </svg>
