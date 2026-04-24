@@ -21,6 +21,12 @@ export default function LoginPage() {
   }, [state.status, router]);
 
   async function handleGoogleSignIn() {
+    // Firebase の公開 env がまだ設定されていない環境（本番投入前のプレビュー等）では
+    // ログインを試みず LP に戻す。invalid-api-key のエラー画面を見せないため。
+    if (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
+      router.push("/");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -31,6 +37,11 @@ export default function LoginPage() {
       // ユーザーがポップアップを閉じた / ブラウザが多重ポップアップを抑制した = キャンセル扱い
       if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
         setLoading(false);
+        return;
+      }
+      // API キー不正（env 差異など）は LP に逃がす
+      if (code === "auth/invalid-api-key" || code === "auth/api-key-not-valid") {
+        router.push("/");
         return;
       }
       if (code === "auth/popup-blocked") {
