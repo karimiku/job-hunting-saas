@@ -168,8 +168,8 @@
 .lp-device-stack { position: relative; height: 680px; }
 
 .lp-phone {
-  position: absolute; left: -8%; top: -40px;
-  width: 300px; z-index: 3;
+  position: absolute; left: -30%; bottom: 30px;
+  width: 280px; z-index: 3;
   transform-style: preserve-3d;
   transform: perspective(1200px) rotateY(-20deg) rotateX(4deg) rotateZ(-4deg);
   transform-origin: center center;

@@ -155,8 +155,8 @@ function Hero() {
           <span
             className="lp-deco lp-deco-star"
             style={{
-              left: -30,
-              top: 300,
+              left: -80,
+              top: 80,
               width: 10,
               height: 10,
               background: "#2B2A26",
