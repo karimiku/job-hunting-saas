@@ -1,5 +1,17 @@
 .env
+.env.local
 tmp/
 /server
 /backend/server
 .claude/settings.local.json
+
+# Firebase Admin SDK 秘密鍵
+backend/secrets/
+*-firebase-adminsdk-*.json
+
+# OS / エディタ
+.DS_Store
+
+# LP デザイン検証用のローカル成果物
+frontend/screenshots/
+frontend/.playwright-mcp/
