@@ -8,7 +8,7 @@ import "github.com/google/uuid"
 // 例: func GetEntry(userID UserID, entryID EntryID) に対して
 //
 //	GetEntry(entryID, userID) はコンパイルエラーになる。
-//
+
 // UserID はユーザを一意に識別するための ID 型。
 type UserID uuid.UUID
 

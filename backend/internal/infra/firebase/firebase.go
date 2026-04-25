@@ -34,6 +34,11 @@ func NewClient(ctx context.Context, credentialsPath, projectID string) (*Client,
 		if err != nil {
 			return nil, fmt.Errorf("firebase: read credentials %q: %w", credentialsPath, err)
 		}
+		// WithCredentialsJSON も google.golang.org/api/option では deprecated 扱いだが、
+		// 代替の golang.org/x/oauth2/google.CredentialsFromJSON 経由は scope 指定が必要で
+		// firebase.NewApp の挙動と完全互換にするには一手間かかる。
+		// 現状のままでも実行時の挙動は変わらないので staticcheck SA1019 を抑止する。
+		//nolint:staticcheck // SA1019: alternative path needs explicit scope wiring; revisit when Firebase SDK guidance updates.
 		opts = append(opts, option.WithCredentialsJSON(data))
 	}
 
