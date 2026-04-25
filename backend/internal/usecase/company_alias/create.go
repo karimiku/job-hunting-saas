@@ -1,3 +1,4 @@
+// Package company_alias は企業別名のユースケース群を提供する。
 package companyalias
 
 import (

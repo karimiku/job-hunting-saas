@@ -1,3 +1,5 @@
+// Package inmemory は Repository インターフェースの sync.Map ベース実装を提供する。
+// 開発環境とユニットテストで DB を立ち上げずに動作確認するために使う。
 package inmemory
 
 import (

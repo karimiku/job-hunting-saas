@@ -1,3 +1,4 @@
+// Package stage_history は選考ステージ履歴のユースケース群を提供する。
 package stagehistory
 
 import (

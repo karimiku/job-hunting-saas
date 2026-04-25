@@ -1,3 +1,4 @@
+// Package task はタスクに対するユースケース群を提供する。
 package task
 
 import (

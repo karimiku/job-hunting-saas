@@ -1,3 +1,4 @@
+// Package company は企業エンティティに対するユースケース群を提供する。
 package company
 
 import (

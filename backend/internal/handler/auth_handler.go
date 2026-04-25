@@ -1,3 +1,5 @@
+// Package handler は HTTP リクエストとユースケース層の橋渡しを行う。
+// oapi-codegen が生成する ServerInterface を実装し、HTTP ↔ UseCase 入出力の変換のみを責務とする。
 package handler
 
 import (

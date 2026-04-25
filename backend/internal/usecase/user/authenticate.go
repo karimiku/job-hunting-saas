@@ -1,3 +1,4 @@
+// Package user はユーザの認証・登録ユースケースを提供する。
 package user
 
 import (

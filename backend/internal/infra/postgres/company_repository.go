@@ -1,3 +1,5 @@
+// Package postgres は Repository インターフェースの PostgreSQL 実装を提供する。
+// sqlc で生成された型安全クエリと pgx/v5 を使う。
 package postgres
 
 import (

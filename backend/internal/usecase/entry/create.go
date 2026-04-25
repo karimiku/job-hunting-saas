@@ -1,3 +1,4 @@
+// Package entry は応募エントリに対するユースケース群を提供する。
 package entry
 
 import (
