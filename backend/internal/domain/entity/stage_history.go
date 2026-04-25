@@ -16,6 +16,7 @@ type StageHistory struct {
 	createdAt time.Time
 }
 
+// NewStageHistory は StageHistory を新規作成する。各値オブジェクトのバリデーションは呼び出し側で済んでいる前提。
 func NewStageHistory(entryID EntryID, stage value.Stage, note string) *StageHistory {
 	return &StageHistory{
 		id:        NewStageHistoryID(),
@@ -38,8 +39,17 @@ func ReconstructStageHistory(id StageHistoryID, entryID EntryID, stage value.Sta
 	}
 }
 
-func (h *StageHistory) ID() StageHistoryID   { return h.id }
-func (h *StageHistory) EntryID() EntryID     { return h.entryID }
-func (h *StageHistory) Stage() value.Stage   { return h.stage }
-func (h *StageHistory) Note() string         { return h.note }
+// ID は StageHistory の ID を返す。
+func (h *StageHistory) ID() StageHistoryID { return h.id }
+
+// EntryID は履歴が紐づく Entry の ID を返す。
+func (h *StageHistory) EntryID() EntryID { return h.entryID }
+
+// Stage は遷移先の選考フェーズを返す。
+func (h *StageHistory) Stage() value.Stage { return h.stage }
+
+// Note は履歴に紐づくメモを返す。
+func (h *StageHistory) Note() string { return h.note }
+
+// CreatedAt は StageHistory の作成日時を返す。
 func (h *StageHistory) CreatedAt() time.Time { return h.createdAt }

@@ -17,6 +17,7 @@ type ExternalIdentity struct {
 	createdAt time.Time
 }
 
+// NewExternalIdentity は ExternalIdentity を新規作成する。各値オブジェクトのバリデーションは呼び出し側で済んでいる前提。
 func NewExternalIdentity(userID UserID, provider value.AuthProvider, subject string) *ExternalIdentity {
 	return &ExternalIdentity{
 		id:        NewExternalIdentityID(),
@@ -39,8 +40,17 @@ func ReconstructExternalIdentity(id ExternalIdentityID, userID UserID, provider 
 	}
 }
 
-func (e *ExternalIdentity) ID() ExternalIdentityID       { return e.id }
-func (e *ExternalIdentity) UserID() UserID               { return e.userID }
+// ID は ExternalIdentity の ID を返す。
+func (e *ExternalIdentity) ID() ExternalIdentityID { return e.id }
+
+// UserID は ExternalIdentity に紐づくユーザの ID を返す。
+func (e *ExternalIdentity) UserID() UserID { return e.userID }
+
+// Provider は外部認証プロバイダーを返す。
 func (e *ExternalIdentity) Provider() value.AuthProvider { return e.provider }
-func (e *ExternalIdentity) Subject() string              { return e.subject }
-func (e *ExternalIdentity) CreatedAt() time.Time         { return e.createdAt }
+
+// Subject はプロバイダー側のユーザ識別子を返す。
+func (e *ExternalIdentity) Subject() string { return e.subject }
+
+// CreatedAt は ExternalIdentity の作成日時を返す。
+func (e *ExternalIdentity) CreatedAt() time.Time { return e.createdAt }

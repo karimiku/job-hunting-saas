@@ -1,3 +1,5 @@
+// Package entity はドメインモデルのエンティティを定義する。
+// 各エンティティは ID で同一性を持ち、内部状態はメソッド経由でのみ変更される。
 package entity
 
 import (
@@ -16,6 +18,7 @@ type CompanyAlias struct {
 	createdAt time.Time
 }
 
+// NewCompanyAlias は CompanyAlias を新規作成する。各値オブジェクトのバリデーションは呼び出し側で済んでいる前提。
 func NewCompanyAlias(userID UserID, companyID CompanyID, alias value.Alias) *CompanyAlias {
 	return &CompanyAlias{
 		id:        NewCompanyAliasID(),
@@ -38,8 +41,17 @@ func ReconstructCompanyAlias(id CompanyAliasID, userID UserID, companyID Company
 	}
 }
 
-func (a *CompanyAlias) ID() CompanyAliasID   { return a.id }
-func (a *CompanyAlias) UserID() UserID       { return a.userID }
+// ID は CompanyAlias の ID を返す。
+func (a *CompanyAlias) ID() CompanyAliasID { return a.id }
+
+// UserID は CompanyAlias を所有するユーザの ID を返す。
+func (a *CompanyAlias) UserID() UserID { return a.userID }
+
+// CompanyID は別名の対象となる Company の ID を返す。
 func (a *CompanyAlias) CompanyID() CompanyID { return a.companyID }
-func (a *CompanyAlias) Alias() value.Alias   { return a.alias }
+
+// Alias は別名を返す。
+func (a *CompanyAlias) Alias() value.Alias { return a.alias }
+
+// CreatedAt は CompanyAlias の作成日時を返す。
 func (a *CompanyAlias) CreatedAt() time.Time { return a.createdAt }
