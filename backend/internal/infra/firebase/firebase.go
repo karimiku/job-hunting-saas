@@ -28,7 +28,9 @@ func NewClient(ctx context.Context, credentialsPath, projectID string) (*Client,
 	if credentialsPath != "" {
 		// option.WithCredentialsFile は遅延読み込みかつ TOCTOU 系の懸念から deprecated 扱い。
 		// 起動時に明示的に読んで JSON バイト列で渡す。
-		data, err := os.ReadFile(credentialsPath)
+		// credentialsPath はオペレータ管理の env var (FIREBASE_CREDENTIALS_FILE) 経由でのみ
+		// 入る値であり、外部入力ではないため G304 は false positive として抑止する。
+		data, err := os.ReadFile(credentialsPath) // #nosec G304
 		if err != nil {
 			return nil, fmt.Errorf("firebase: read credentials %q: %w", credentialsPath, err)
 		}
