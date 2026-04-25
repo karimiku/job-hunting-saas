@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+// ErrURLEmpty は url が空文字のときに返されるエラー。
+// ErrURLInvalid は url の形式が不正なときに返されるエラー。
 var (
 	ErrURLEmpty   = errors.New("url must not be empty")
 	ErrURLInvalid = errors.New("url format is invalid")
@@ -17,6 +19,7 @@ type URL struct {
 	value string
 }
 
+// NewURL は raw から URL を生成する。空文字や https 以外のスキーム、不正値は対応するエラーを返す。
 func NewURL(raw string) (URL, error) {
 	if raw == "" || strings.TrimSpace(raw) == "" {
 		return URL{}, ErrURLEmpty
@@ -40,10 +43,12 @@ func NewURL(raw string) (URL, error) {
 	return URL{value: raw}, nil
 }
 
+// String は url を文字列で返す。
 func (u URL) String() string {
 	return u.value
 }
 
+// Equals は 2 つの URL が等しいかを判定する。
 func (u URL) Equals(other URL) bool {
 	return u.value == other.value
 }

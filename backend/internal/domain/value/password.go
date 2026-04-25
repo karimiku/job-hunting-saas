@@ -7,6 +7,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// ErrPasswordEmpty は password が空文字のときに返されるエラー。
+// ErrPasswordTooShort は password が最小長 (8 文字) 未満のときに返されるエラー。
+// ErrPasswordTooLong は password が最大バイト数 (72 バイト) を超えたときに返されるエラー。
 var (
 	ErrPasswordEmpty    = errors.New("password must not be empty")
 	ErrPasswordTooShort = errors.New("password must be at least 8 characters")
