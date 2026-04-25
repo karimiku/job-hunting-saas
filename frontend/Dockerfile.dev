@@ -1,4 +1,4 @@
-FROM node:20-slim
+FROM node:25-slim
 
 # Corepack で pnpm バージョンを package.json の packageManager に従わせる
 RUN corepack enable
