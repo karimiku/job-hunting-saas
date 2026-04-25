@@ -1,0 +1,29 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - revive
+    - gosec
+    - gocritic
+    - misspell
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters: [gosec, errcheck]
+      - path: internal/gen/
+        linters: [revive, staticcheck, gosec, gocritic, misspell]
+      - path: internal/infra/postgres/sqlc/
+        linters: [revive, staticcheck, gosec, gocritic, misspell]
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
