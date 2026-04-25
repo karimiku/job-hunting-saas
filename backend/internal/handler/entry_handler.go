@@ -20,6 +20,7 @@ type EntryHandler struct {
 	deleteUseCase *entryuc.Delete
 }
 
+// NewEntryHandler は EntryHandler に必要なユースケース群を DI して新しい EntryHandler を返す。
 func NewEntryHandler(
 	createUseCase *entryuc.Create,
 	getUseCase *entryuc.Get,
@@ -36,6 +37,7 @@ func NewEntryHandler(
 	}
 }
 
+// CreateEntry は POST /entries の handler。リクエストボディからエントリーを新規作成する。
 func (h *EntryHandler) CreateEntry(w http.ResponseWriter, r *http.Request) {
 	var req openapi.CreateEntryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -63,6 +65,7 @@ func (h *EntryHandler) CreateEntry(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, toEntryResponse(created.Entry))
 }
 
+// GetEntry は GET /entries/{entryId} の handler。
 func (h *EntryHandler) GetEntry(w http.ResponseWriter, r *http.Request, entryId openapi.EntryId) {
 	found, err := h.getUseCase.Execute(r.Context(), entryuc.GetInput{
 		UserID:  middleware.GetUserID(r.Context()),
@@ -76,6 +79,7 @@ func (h *EntryHandler) GetEntry(w http.ResponseWriter, r *http.Request, entryId 
 	writeJSON(w, http.StatusOK, toEntryResponse(found.Entry))
 }
 
+// ListEntries は GET /entries の handler。
 func (h *EntryHandler) ListEntries(w http.ResponseWriter, r *http.Request, params openapi.ListEntriesParams) {
 	input := entryuc.ListInput{
 		UserID: middleware.GetUserID(r.Context()),
@@ -174,6 +178,7 @@ func (h *EntryHandler) UpdateEntry(w http.ResponseWriter, r *http.Request, entry
 	writeJSON(w, http.StatusOK, toEntryResponse(updated.Entry))
 }
 
+// DeleteEntry は DELETE /entries/{entryId} の handler。
 func (h *EntryHandler) DeleteEntry(w http.ResponseWriter, r *http.Request, entryId openapi.EntryId) {
 	err := h.deleteUseCase.Execute(r.Context(), entryuc.DeleteInput{
 		UserID:  middleware.GetUserID(r.Context()),

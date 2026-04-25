@@ -35,6 +35,7 @@ type AuthConfig struct {
 	CookieSecure bool   // 本番 HTTPS では true
 }
 
+// AuthHandler は認証関連の HTTP リクエストを受ける handler。
 type AuthHandler struct {
 	firebaseAuth *fbauth.Client
 	authenticate *useruc.Authenticate
@@ -42,6 +43,7 @@ type AuthHandler struct {
 	cfg          AuthConfig
 }
 
+// NewAuthHandler は AuthHandler に必要な依存を DI して新しい AuthHandler を返す。
 func NewAuthHandler(fb *fbauth.Client, uc *useruc.Authenticate, userRepo repository.UserRepository, cfg AuthConfig) *AuthHandler {
 	return &AuthHandler{
 		firebaseAuth: fb,

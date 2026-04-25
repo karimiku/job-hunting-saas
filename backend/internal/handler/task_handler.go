@@ -37,6 +37,7 @@ func NewTaskHandler(
 	}
 }
 
+// CreateTask は POST /entries/{entryId}/tasks の handler。リクエストボディからタスクを新規作成する。
 func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request, entryId openapi.EntryId) {
 	var req openapi.CreateTaskRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -65,6 +66,7 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request, entryId
 	writeJSON(w, http.StatusCreated, toTaskResponse(created.Task))
 }
 
+// GetTask は GET /tasks/{taskId} の handler。
 func (h *TaskHandler) GetTask(w http.ResponseWriter, r *http.Request, taskId openapi.TaskId) {
 	found, err := h.getUseCase.Execute(r.Context(), taskuc.GetInput{
 		UserID: middleware.GetUserID(r.Context()),
@@ -78,6 +80,7 @@ func (h *TaskHandler) GetTask(w http.ResponseWriter, r *http.Request, taskId ope
 	writeJSON(w, http.StatusOK, toTaskResponse(found.Task))
 }
 
+// ListTasks は GET /entries/{entryId}/tasks の handler。
 func (h *TaskHandler) ListTasks(w http.ResponseWriter, r *http.Request, entryId openapi.EntryId) {
 	result, err := h.listUseCase.Execute(r.Context(), taskuc.ListInput{
 		UserID:  middleware.GetUserID(r.Context()),
@@ -172,6 +175,7 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request, taskId 
 	writeJSON(w, http.StatusOK, toTaskResponse(updated.Task))
 }
 
+// DeleteTask は DELETE /tasks/{taskId} の handler。
 func (h *TaskHandler) DeleteTask(w http.ResponseWriter, r *http.Request, taskId openapi.TaskId) {
 	err := h.deleteUseCase.Execute(r.Context(), taskuc.DeleteInput{
 		UserID: middleware.GetUserID(r.Context()),

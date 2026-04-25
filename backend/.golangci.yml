@@ -22,6 +22,12 @@ linters:
         linters: [revive, staticcheck, gosec, gocritic, misspell]
       - path: internal/infra/postgres/sqlc/
         linters: [revive, staticcheck, gosec, gocritic, misspell]
+      # handler のメソッドは oapi-codegen が生成する ServerInterface に
+      # シグネチャを合わせる必要があり、companyId/entryId/taskId 等の
+      # ID 命名を勝手に companyID には変えられない。var-naming のみ除外。
+      - path: internal/handler/
+        text: "var-naming"
+        linters: [revive]
 
 formatters:
   enable:
