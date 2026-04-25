@@ -8,6 +8,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
 
+// ListInput は EntryList ユースケースへの入力。
 type ListInput struct {
 	UserID    entity.UserID
 	Status    *string
@@ -15,6 +16,7 @@ type ListInput struct {
 	Source    *string
 }
 
+// ListOutput は EntryList ユースケースの出力。
 type ListOutput struct {
 	Entries []*entity.Entry
 }
@@ -24,6 +26,7 @@ type List struct {
 	entryRepo repository.EntryRepository
 }
 
+// NewList は EntryList ユースケースを生成する。
 func NewList(entryRepo repository.EntryRepository) *List {
 	return &List{entryRepo: entryRepo}
 }

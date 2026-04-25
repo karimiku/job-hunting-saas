@@ -17,6 +17,7 @@ type Company struct {
 	updatedAt time.Time
 }
 
+// NewCompany は Company を新規作成する。各値オブジェクトのバリデーションは呼び出し側で済んでいる前提。
 func NewCompany(userID UserID, name value.CompanyName) *Company {
 	now := time.Now()
 	return &Company{
@@ -43,18 +44,31 @@ func ReconstructCompany(id CompanyID, userID UserID, name value.CompanyName, mem
 	}
 }
 
-func (c *Company) ID() CompanyID            { return c.id }
-func (c *Company) UserID() UserID           { return c.userID }
-func (c *Company) Name() value.CompanyName  { return c.name }
-func (c *Company) Memo() string             { return c.memo }
-func (c *Company) CreatedAt() time.Time     { return c.createdAt }
-func (c *Company) UpdatedAt() time.Time     { return c.updatedAt }
+// ID は Company の ID を返す。
+func (c *Company) ID() CompanyID { return c.id }
 
+// UserID は Company を所有するユーザの ID を返す。
+func (c *Company) UserID() UserID { return c.userID }
+
+// Name は Company の企業名を返す。
+func (c *Company) Name() value.CompanyName { return c.name }
+
+// Memo は Company のメモを返す。
+func (c *Company) Memo() string { return c.memo }
+
+// CreatedAt は Company の作成日時を返す。
+func (c *Company) CreatedAt() time.Time { return c.createdAt }
+
+// UpdatedAt は Company の更新日時を返す。
+func (c *Company) UpdatedAt() time.Time { return c.updatedAt }
+
+// Rename は企業名を更新し、UpdatedAt を現在時刻にする。
 func (c *Company) Rename(name value.CompanyName) {
 	c.name = name
 	c.updatedAt = time.Now()
 }
 
+// UpdateMemo は memo を更新し、UpdatedAt を現在時刻にする。
 func (c *Company) UpdateMemo(memo string) {
 	c.memo = memo
 	c.updatedAt = time.Now()

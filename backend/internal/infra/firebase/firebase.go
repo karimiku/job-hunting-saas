@@ -5,6 +5,7 @@ package firebase
 import (
 	"context"
 	"fmt"
+	"os"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
@@ -25,7 +26,20 @@ func NewClient(ctx context.Context, credentialsPath, projectID string) (*Client,
 
 	var opts []option.ClientOption
 	if credentialsPath != "" {
-		opts = append(opts, option.WithCredentialsFile(credentialsPath))
+		// option.WithCredentialsFile は遅延読み込みかつ TOCTOU 系の懸念から deprecated 扱い。
+		// 起動時に明示的に読んで JSON バイト列で渡す。
+		// credentialsPath はオペレータ管理の env var (FIREBASE_CREDENTIALS_FILE) 経由でのみ
+		// 入る値であり、外部入力ではないため G304 は false positive として抑止する。
+		data, err := os.ReadFile(credentialsPath) // #nosec G304
+		if err != nil {
+			return nil, fmt.Errorf("firebase: read credentials %q: %w", credentialsPath, err)
+		}
+		// WithCredentialsJSON も google.golang.org/api/option では deprecated 扱いだが、
+		// 代替の golang.org/x/oauth2/google.CredentialsFromJSON 経由は scope 指定が必要で
+		// firebase.NewApp の挙動と完全互換にするには一手間かかる。
+		// 現状のままでも実行時の挙動は変わらないので staticcheck SA1019 を抑止する。
+		//nolint:staticcheck // SA1019: alternative path needs explicit scope wiring; revisit when Firebase SDK guidance updates.
+		opts = append(opts, option.WithCredentialsJSON(data))
 	}
 
 	app, err := firebase.NewApp(ctx, cfg, opts...)

@@ -1,3 +1,4 @@
+// Package company は企業エンティティに対するユースケース群を提供する。
 package company
 
 import (
@@ -8,12 +9,14 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
 
+// CreateInput は CompanyCreate ユースケースへの入力。
 type CreateInput struct {
 	UserID entity.UserID
 	Name   string
 	Memo   string
 }
 
+// CreateOutput は CompanyCreate ユースケースの出力。
 type CreateOutput struct {
 	Company *entity.Company
 }
@@ -23,6 +26,7 @@ type Create struct {
 	companyRepo repository.CompanyRepository
 }
 
+// NewCreate は CompanyCreate ユースケースを生成する。
 func NewCreate(companyRepo repository.CompanyRepository) *Create {
 	return &Create{companyRepo: companyRepo}
 }

@@ -14,14 +14,17 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/infra/postgres/sqlc"
 )
 
+// EntryRepository は EntryRepository インターフェースの PostgreSQL 実装。
 type EntryRepository struct {
 	q *sqlc.Queries
 }
 
+// NewEntryRepository は EntryRepository を新規生成する。db には pgxpool.Pool もしくは tx を渡す。
 func NewEntryRepository(db sqlc.DBTX) *EntryRepository {
 	return &EntryRepository{q: sqlc.New(db)}
 }
 
+// Save は Entry を upsert する。同じ ID があれば更新、なければ作成。
 func (r *EntryRepository) Save(ctx context.Context, entry *entity.Entry) error {
 	if err := r.q.UpsertEntry(ctx, sqlc.UpsertEntryParams{
 		ID:         uuid.UUID(entry.ID()),
@@ -41,6 +44,7 @@ func (r *EntryRepository) Save(ctx context.Context, entry *entity.Entry) error {
 	return nil
 }
 
+// FindByID は userID 所有の Entry を ID から取得する。存在しないか他ユーザー所有の場合は repository.ErrNotFound を返す。
 func (r *EntryRepository) FindByID(ctx context.Context, userID entity.UserID, id entity.EntryID) (*entity.Entry, error) {
 	row, err := r.q.FindEntryByID(ctx, sqlc.FindEntryByIDParams{
 		UserID: uuid.UUID(userID),
@@ -56,6 +60,7 @@ func (r *EntryRepository) FindByID(ctx context.Context, userID entity.UserID, id
 	return reconstructEntry(row)
 }
 
+// ListByUserID は userID に紐づく Entry を filter で絞り込んで返す。filter の各項目は nil なら絞り込まない。
 func (r *EntryRepository) ListByUserID(ctx context.Context, userID entity.UserID, filter repository.EntryFilter) ([]*entity.Entry, error) {
 	params := sqlc.ListEntriesByUserIDParams{
 		UserID: uuid.UUID(userID),
@@ -97,6 +102,7 @@ func (r *EntryRepository) ListByUserID(ctx context.Context, userID entity.UserID
 	return entries, nil
 }
 
+// Delete は userID 所有の Entry を ID から削除する。存在しないか他ユーザー所有の場合は repository.ErrNotFound を返す。
 func (r *EntryRepository) Delete(ctx context.Context, userID entity.UserID, id entity.EntryID) error {
 	n, err := r.q.DeleteEntry(ctx, sqlc.DeleteEntryParams{
 		UserID: uuid.UUID(userID),

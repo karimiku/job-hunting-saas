@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+// ErrEmailEmpty は email が空文字のときに返されるエラー。
+// ErrEmailInvalid は email の形式が不正なときに返されるエラー。
 var (
 	ErrEmailEmpty   = errors.New("email must not be empty")
 	ErrEmailInvalid = errors.New("email format is invalid")
@@ -19,6 +21,7 @@ type Email struct {
 	value string
 }
 
+// NewEmail は raw から Email を生成する。空文字や不正値は対応するエラーを返す。
 func NewEmail(raw string) (Email, error) {
 	if raw == "" {
 		return Email{}, ErrEmailEmpty
@@ -32,10 +35,12 @@ func NewEmail(raw string) (Email, error) {
 	return Email{value: strings.ToLower(raw)}, nil
 }
 
+// String は email を文字列で返す。
 func (e Email) String() string {
 	return e.value
 }
 
+// Equals は 2 つの Email が等しいかを判定する。
 func (e Email) Equals(other Email) bool {
 	return e.value == other.value
 }

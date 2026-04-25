@@ -1,3 +1,4 @@
+// Package middleware は HTTP リクエストの前処理 (認証等) を担う。
 package middleware
 
 import (

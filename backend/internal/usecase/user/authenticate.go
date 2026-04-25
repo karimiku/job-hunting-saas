@@ -1,3 +1,4 @@
+// Package user はユーザの認証・登録ユースケースを提供する。
 package user
 
 import (
@@ -9,6 +10,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
 
+// AuthenticateInput は Authenticate ユースケースへの入力。
 type AuthenticateInput struct {
 	Provider string // "google"
 	Subject  string // Firebase UID
@@ -16,6 +18,7 @@ type AuthenticateInput struct {
 	Name     string
 }
 
+// AuthenticateOutput は Authenticate ユースケースの出力。
 type AuthenticateOutput struct {
 	User    *entity.User
 	Created bool // 新規 User を作ったか
@@ -29,6 +32,7 @@ type Authenticate struct {
 	externalIdentityRepo repository.ExternalIdentityRepository
 }
 
+// NewAuthenticate は Authenticate ユースケースを生成する。
 func NewAuthenticate(userRepo repository.UserRepository, externalIdentityRepo repository.ExternalIdentityRepository) *Authenticate {
 	return &Authenticate{
 		userRepo:             userRepo,

@@ -5,6 +5,10 @@ import (
 	"strings"
 )
 
+// ErrStageKindEmpty は stage kind が空文字のときに返されるエラー。
+// ErrStageKindInvalid は stage kind が未定義の値のときに返されるエラー。
+// ErrStageLabelEmpty は stage label が空文字のときに返されるエラー。
+// ErrStageLabelInvalid は stage label の形式が不正なときに返されるエラー。
 var (
 	ErrStageKindEmpty    = errors.New("stage kind must not be empty")
 	ErrStageKindInvalid  = errors.New("stage kind is invalid")
@@ -50,10 +54,12 @@ func NewStageKind(raw string) (StageKind, error) {
 	return StageKind{value: raw}, nil
 }
 
+// String は stage kind を文字列で返す。
 func (k StageKind) String() string {
 	return k.value
 }
 
+// Equals は 2 つの StageKind が等しいかを判定する。
 func (k StageKind) Equals(other StageKind) bool {
 	return k.value == other.value
 }
@@ -61,13 +67,26 @@ func (k StageKind) Equals(other StageKind) bool {
 // --- 定数コンストラクタ ---
 // ハードコードされた既知の値に対して、エラーなしでインスタンスを返す。
 
+// StageKindApplication は application 種別の StageKind を返す。
 func StageKindApplication() StageKind { return StageKind{value: stageKindApplication} }
-func StageKindDocument() StageKind    { return StageKind{value: stageKindDocument} }
-func StageKindTest() StageKind        { return StageKind{value: stageKindTest} }
-func StageKindInterview() StageKind   { return StageKind{value: stageKindInterview} }
-func StageKindGroup() StageKind       { return StageKind{value: stageKindGroup} }
-func StageKindOffer() StageKind       { return StageKind{value: stageKindOffer} }
-func StageKindOther() StageKind       { return StageKind{value: stageKindOther} }
+
+// StageKindDocument は document 種別の StageKind を返す。
+func StageKindDocument() StageKind { return StageKind{value: stageKindDocument} }
+
+// StageKindTest は test 種別の StageKind を返す。
+func StageKindTest() StageKind { return StageKind{value: stageKindTest} }
+
+// StageKindInterview は interview 種別の StageKind を返す。
+func StageKindInterview() StageKind { return StageKind{value: stageKindInterview} }
+
+// StageKindGroup は group 種別の StageKind を返す。
+func StageKindGroup() StageKind { return StageKind{value: stageKindGroup} }
+
+// StageKindOffer は offer 種別の StageKind を返す。
+func StageKindOffer() StageKind { return StageKind{value: stageKindOffer} }
+
+// StageKindOther は other 種別の StageKind を返す。
+func StageKindOther() StageKind { return StageKind{value: stageKindOther} }
 
 // Stage は選考フェーズを表す値オブジェクト。
 // kind（応募・ES・テスト・面接等のカテゴリ）と label（表示名）の組で構成される。
@@ -76,6 +95,7 @@ type Stage struct {
 	label string
 }
 
+// NewStage は kind と label から Stage を生成する。空文字や不正な label は対応するエラーを返す。
 func NewStage(kind StageKind, label string) (Stage, error) {
 	if label == "" {
 		return Stage{}, ErrStageLabelEmpty
@@ -86,14 +106,17 @@ func NewStage(kind StageKind, label string) (Stage, error) {
 	return Stage{kind: kind, label: label}, nil
 }
 
+// Kind は Stage の種別 (StageKind) を返す。
 func (s Stage) Kind() StageKind {
 	return s.kind
 }
 
+// Label は Stage の表示名を返す。
 func (s Stage) Label() string {
 	return s.label
 }
 
+// Equals は 2 つの Stage が等しいかを判定する。
 func (s Stage) Equals(other Stage) bool {
 	return s.kind.Equals(other.kind) && s.label == other.label
 }

@@ -1,3 +1,4 @@
+// Package companyalias は企業別名のユースケース群を提供する。
 package companyalias
 
 import (
@@ -8,12 +9,14 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
 
+// CreateInput は CompanyAliasCreate ユースケースへの入力。
 type CreateInput struct {
 	UserID    entity.UserID
 	CompanyID entity.CompanyID
 	Alias     string
 }
 
+// CreateOutput は CompanyAliasCreate ユースケースの出力。
 type CreateOutput struct {
 	CompanyAlias *entity.CompanyAlias
 }
@@ -24,6 +27,7 @@ type Create struct {
 	companyRepo repository.CompanyRepository
 }
 
+// NewCreate は CompanyAliasCreate ユースケースを生成する。
 func NewCreate(aliasRepo repository.CompanyAliasRepository, companyRepo repository.CompanyRepository) *Create {
 	return &Create{aliasRepo: aliasRepo, companyRepo: companyRepo}
 }

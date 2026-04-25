@@ -1,3 +1,5 @@
+// Package handler は HTTP リクエストとユースケース層の橋渡しを行う。
+// oapi-codegen が生成する ServerInterface を実装し、HTTP ↔ UseCase 入出力の変換のみを責務とする。
 package handler
 
 import (
@@ -33,6 +35,7 @@ type AuthConfig struct {
 	CookieSecure bool   // 本番 HTTPS では true
 }
 
+// AuthHandler は認証関連の HTTP リクエストを受ける handler。
 type AuthHandler struct {
 	firebaseAuth *fbauth.Client
 	authenticate *useruc.Authenticate
@@ -40,6 +43,7 @@ type AuthHandler struct {
 	cfg          AuthConfig
 }
 
+// NewAuthHandler は AuthHandler に必要な依存を DI して新しい AuthHandler を返す。
 func NewAuthHandler(fb *fbauth.Client, uc *useruc.Authenticate, userRepo repository.UserRepository, cfg AuthConfig) *AuthHandler {
 	return &AuthHandler{
 		firebaseAuth: fb,

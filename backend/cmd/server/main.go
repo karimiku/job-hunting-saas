@@ -1,20 +1,24 @@
+// Package main は HTTP サーバのエントリポイント。
+// 依存解決 (DI) と HTTP ルーティングの最終配線をここで行う。
 package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
+	"github.com/karimiku/job-hunting-saas/internal/gen/openapi"
+	"github.com/karimiku/job-hunting-saas/internal/handler"
 	fbinfra "github.com/karimiku/job-hunting-saas/internal/infra/firebase"
 	"github.com/karimiku/job-hunting-saas/internal/infra/inmemory"
 	"github.com/karimiku/job-hunting-saas/internal/infra/postgres"
-	"github.com/karimiku/job-hunting-saas/internal/gen/openapi"
-	"github.com/karimiku/job-hunting-saas/internal/handler"
 	"github.com/karimiku/job-hunting-saas/internal/middleware"
 	companyuc "github.com/karimiku/job-hunting-saas/internal/usecase/company"
 	entryuc "github.com/karimiku/job-hunting-saas/internal/usecase/entry"
@@ -24,6 +28,15 @@ import (
 )
 
 func main() {
+	// run() が return すれば defer (pool.Close 等) が実行されてから os.Exit に到達する。
+	// log.Fatal を直接呼ぶと defer がスキップされて DB 接続が閉じられないため避ける。
+	if err := run(); err != nil {
+		log.Printf("fatal: %v", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -43,7 +56,7 @@ func main() {
 	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
 		pool, err := postgres.NewPool(ctx, dbURL)
 		if err != nil {
-			log.Fatalf("failed to connect to database: %v", err)
+			return fmt.Errorf("connect to database: %w", err)
 		}
 		defer pool.Close()
 
@@ -73,14 +86,14 @@ func main() {
 	if userRepo != nil && extIDRepo != nil {
 		projectID := os.Getenv("FIREBASE_PROJECT_ID")
 		if projectID == "" {
-			log.Fatal("FIREBASE_PROJECT_ID must be set when DATABASE_URL is configured")
+			return errors.New("FIREBASE_PROJECT_ID must be set when DATABASE_URL is configured")
 		}
 		// GOOGLE_APPLICATION_CREDENTIALS を使うなら credentialsPath を空にして ADC に任せる
 		credentialsPath := os.Getenv("FIREBASE_CREDENTIALS_FILE")
 
 		fb, err := fbinfra.NewClient(ctx, credentialsPath, projectID)
 		if err != nil {
-			log.Fatalf("failed to init firebase: %v", err)
+			return fmt.Errorf("init firebase: %w", err)
 		}
 
 		authenticateUC := useruc.NewAuthenticate(userRepo, extIDRepo)
@@ -132,7 +145,9 @@ func main() {
 
 	router.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, "ok")
+		if _, err := fmt.Fprint(w, "ok"); err != nil {
+			log.Printf("health: write response failed: %v", err)
+		}
 	})
 
 	// 認証不要ルート（ログイン / ログアウト）
@@ -151,10 +166,22 @@ func main() {
 		openapi.HandlerFromMux(h, r)
 	})
 
-	log.Printf("server listening on :%s", port)
-	if err := http.ListenAndServe(":"+port, router); err != nil {
-		log.Fatal(err)
+	// http.ListenAndServe には timeout が無く Slowloris 等の DoS に弱いため、
+	// http.Server を明示してヘッダ・ボディ・アイドル各種 timeout を設定する。
+	server := &http.Server{
+		Addr:              ":" + port,
+		Handler:           router,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
+
+	log.Printf("server listening on :%s", port)
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return fmt.Errorf("listen: %w", err)
+	}
+	return nil
 }
 
 // corsMiddleware はフロントエンドとの Cookie 付き通信を許可する最小 CORS 実装。

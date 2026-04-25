@@ -1,0 +1,60 @@
+name: Docker
+
+on:
+  pull_request:
+    paths:
+      - "**/Dockerfile*"
+      - .github/workflows/docker.yml
+  push:
+    branches: [main]
+    paths:
+      - "**/Dockerfile*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hadolint:
+    name: Hadolint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install hadolint
+        run: |
+          curl -sSL -o /usr/local/bin/hadolint \
+            https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64
+          chmod +x /usr/local/bin/hadolint
+          hadolint --version
+      - name: Lint all Dockerfiles
+        run: |
+          set -euo pipefail
+          # repo 内の Dockerfile* を全部検出 (node_modules, .git, .next, build cache 除外)
+          mapfile -t files < <(find . \
+            -type d \( -name node_modules -o -name .git -o -name .next -o -name tmp \) -prune -o \
+            -type f \( -name 'Dockerfile' -o -name 'Dockerfile.*' \) -print | sort)
+
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No Dockerfiles found"
+            exit 0
+          fi
+
+          echo "Found ${#files[@]} Dockerfile(s):"
+          printf '  - %s\n' "${files[@]}"
+
+          fail=0
+          for f in "${files[@]}"; do
+            echo "::group::Hadolint: $f"
+            if ! hadolint --failure-threshold error "$f"; then
+              fail=$((fail+1))
+            fi
+            echo "::endgroup::"
+          done
+
+          if [ "$fail" -gt 0 ]; then
+            echo "::error::$fail Dockerfile(s) failed hadolint (see groups above)"
+            exit 1
+          fi

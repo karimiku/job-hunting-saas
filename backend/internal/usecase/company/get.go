@@ -7,11 +7,13 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 )
 
+// GetInput は CompanyGet ユースケースへの入力。
 type GetInput struct {
 	UserID    entity.UserID
 	CompanyID entity.CompanyID
 }
 
+// GetOutput は CompanyGet ユースケースの出力。
 type GetOutput struct {
 	Company *entity.Company
 }
@@ -21,6 +23,7 @@ type Get struct {
 	companyRepo repository.CompanyRepository
 }
 
+// NewGet は CompanyGet ユースケースを生成する。
 func NewGet(companyRepo repository.CompanyRepository) *Get {
 	return &Get{companyRepo: companyRepo}
 }

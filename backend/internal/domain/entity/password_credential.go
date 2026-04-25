@@ -16,6 +16,7 @@ type PasswordCredential struct {
 	updatedAt time.Time
 }
 
+// NewPasswordCredential は PasswordCredential を新規作成する。
 func NewPasswordCredential(userID UserID, password value.Password) *PasswordCredential {
 	now := time.Now()
 	return &PasswordCredential{
@@ -39,11 +40,20 @@ func ReconstructPasswordCredential(id PasswordCredentialID, userID UserID, passw
 	}
 }
 
+// ID は PasswordCredential の識別子を返す。
 func (c *PasswordCredential) ID() PasswordCredentialID { return c.id }
-func (c *PasswordCredential) UserID() UserID           { return c.userID }
+
+// UserID は紐づく User の識別子を返す。
+func (c *PasswordCredential) UserID() UserID { return c.userID }
+
+// Password はパスワード値オブジェクトを返す。
 func (c *PasswordCredential) Password() value.Password { return c.password }
-func (c *PasswordCredential) CreatedAt() time.Time     { return c.createdAt }
-func (c *PasswordCredential) UpdatedAt() time.Time     { return c.updatedAt }
+
+// CreatedAt は作成日時を返す。
+func (c *PasswordCredential) CreatedAt() time.Time { return c.createdAt }
+
+// UpdatedAt は最終更新日時を返す。
+func (c *PasswordCredential) UpdatedAt() time.Time { return c.updatedAt }
 
 // ChangePassword はパスワードを変更する。
 func (c *PasswordCredential) ChangePassword(password value.Password) {

@@ -14,12 +14,14 @@ type StageHistoryRepository struct {
 	historiesByID map[entity.StageHistoryID]*entity.StageHistory
 }
 
+// NewStageHistoryRepository は StageHistoryRepository を新規生成する。
 func NewStageHistoryRepository() *StageHistoryRepository {
 	return &StageHistoryRepository{
 		historiesByID: make(map[entity.StageHistoryID]*entity.StageHistory),
 	}
 }
 
+// Create は StageHistory を作成する (immutable なので Save なし)。
 func (r *StageHistoryRepository) Create(_ context.Context, history *entity.StageHistory) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -27,6 +29,7 @@ func (r *StageHistoryRepository) Create(_ context.Context, history *entity.Stage
 	return nil
 }
 
+// ListByEntryID は entry に紐づく StageHistory を全件返す。
 func (r *StageHistoryRepository) ListByEntryID(_ context.Context, entryID entity.EntryID) ([]*entity.StageHistory, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()

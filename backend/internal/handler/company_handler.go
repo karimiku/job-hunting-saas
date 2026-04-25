@@ -21,6 +21,7 @@ type CompanyHandler struct {
 	deleteUseCase *companyuc.Delete
 }
 
+// NewCompanyHandler は CompanyHandler に必要なユースケース群を DI して新しい CompanyHandler を返す。
 func NewCompanyHandler(
 	createUseCase *companyuc.Create,
 	getUseCase *companyuc.Get,
@@ -37,6 +38,7 @@ func NewCompanyHandler(
 	}
 }
 
+// CreateCompany は POST /companies の handler。リクエストボディから企業を新規作成する。
 func (h *CompanyHandler) CreateCompany(w http.ResponseWriter, r *http.Request) {
 	var createReq openapi.CreateCompanyRequest
 	if err := json.NewDecoder(r.Body).Decode(&createReq); err != nil {
@@ -63,6 +65,7 @@ func (h *CompanyHandler) CreateCompany(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, toCompanyResponse(createdCompany.Company))
 }
 
+// GetCompany は GET /companies/{companyId} の handler。
 func (h *CompanyHandler) GetCompany(w http.ResponseWriter, r *http.Request, companyId openapi.CompanyId) {
 	foundCompany, err := h.getUseCase.Execute(r.Context(), companyuc.GetInput{
 		UserID:    middleware.GetUserID(r.Context()),
@@ -76,6 +79,7 @@ func (h *CompanyHandler) GetCompany(w http.ResponseWriter, r *http.Request, comp
 	writeJSON(w, http.StatusOK, toCompanyResponse(foundCompany.Company))
 }
 
+// ListCompanies は GET /companies の handler。
 func (h *CompanyHandler) ListCompanies(w http.ResponseWriter, r *http.Request) {
 	companyList, err := h.listUseCase.Execute(r.Context(), companyuc.ListInput{
 		UserID: middleware.GetUserID(r.Context()),
@@ -142,6 +146,7 @@ func (h *CompanyHandler) UpdateCompany(w http.ResponseWriter, r *http.Request, c
 	writeJSON(w, http.StatusOK, toCompanyResponse(updatedCompany.Company))
 }
 
+// DeleteCompany は DELETE /companies/{companyId} の handler。
 func (h *CompanyHandler) DeleteCompany(w http.ResponseWriter, r *http.Request, companyId openapi.CompanyId) {
 	err := h.deleteUseCase.Execute(r.Context(), companyuc.DeleteInput{
 		UserID:    middleware.GetUserID(r.Context()),

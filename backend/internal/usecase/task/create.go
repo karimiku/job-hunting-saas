@@ -1,3 +1,4 @@
+// Package task はタスクに対するユースケース群を提供する。
 package task
 
 import (
@@ -9,6 +10,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
 
+// CreateInput は TaskCreate ユースケースへの入力。
 type CreateInput struct {
 	UserID  entity.UserID
 	EntryID entity.EntryID
@@ -18,6 +20,7 @@ type CreateInput struct {
 	Memo    string
 }
 
+// CreateOutput は TaskCreate ユースケースの出力。
 type CreateOutput struct {
 	Task *entity.Task
 }
@@ -28,6 +31,7 @@ type Create struct {
 	entryRepo repository.EntryRepository
 }
 
+// NewCreate は TaskCreate ユースケースを生成する。
 func NewCreate(taskRepo repository.TaskRepository, entryRepo repository.EntryRepository) *Create {
 	return &Create{taskRepo: taskRepo, entryRepo: entryRepo}
 }

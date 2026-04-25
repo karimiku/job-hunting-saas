@@ -14,14 +14,17 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/infra/postgres/sqlc"
 )
 
+// UserRepository は UserRepository インターフェースの PostgreSQL 実装。
 type UserRepository struct {
 	q *sqlc.Queries
 }
 
+// NewUserRepository は UserRepository を新規生成する。db には pgxpool.Pool もしくは tx を渡す。
 func NewUserRepository(db sqlc.DBTX) *UserRepository {
 	return &UserRepository{q: sqlc.New(db)}
 }
 
+// Save は User を upsert する。email の一意制約に違反する場合は repository.ErrAlreadyExists を返す。
 func (r *UserRepository) Save(ctx context.Context, user *entity.User) error {
 	if err := r.q.UpsertUser(ctx, sqlc.UpsertUserParams{
 		ID:        uuid.UUID(user.ID()),
@@ -38,6 +41,7 @@ func (r *UserRepository) Save(ctx context.Context, user *entity.User) error {
 	return nil
 }
 
+// FindByID は ID から User を取得する。存在しない場合は repository.ErrNotFound を返す。
 func (r *UserRepository) FindByID(ctx context.Context, id entity.UserID) (*entity.User, error) {
 	row, err := r.q.FindUserByID(ctx, uuid.UUID(id))
 	if err != nil {
@@ -49,6 +53,7 @@ func (r *UserRepository) FindByID(ctx context.Context, id entity.UserID) (*entit
 	return reconstructUser(row)
 }
 
+// FindByEmail は email から User を取得する。存在しない場合は repository.ErrNotFound を返す。
 func (r *UserRepository) FindByEmail(ctx context.Context, email value.Email) (*entity.User, error) {
 	row, err := r.q.FindUserByEmail(ctx, email.String())
 	if err != nil {
@@ -60,6 +65,7 @@ func (r *UserRepository) FindByEmail(ctx context.Context, email value.Email) (*e
 	return reconstructUser(row)
 }
 
+// Delete は ID から User を削除する。存在しない場合は repository.ErrNotFound を返す。
 func (r *UserRepository) Delete(ctx context.Context, id entity.UserID) error {
 	n, err := r.q.DeleteUser(ctx, uuid.UUID(id))
 	if err != nil {

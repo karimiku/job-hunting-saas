@@ -1,3 +1,5 @@
+// Package inmemory は Repository インターフェースの sync.Map ベース実装を提供する。
+// 開発環境とユニットテストで DB を立ち上げずに動作確認するために使う。
 package inmemory
 
 import (
@@ -16,12 +18,14 @@ type CompanyRepository struct {
 	companiesByID map[entity.CompanyID]*entity.Company
 }
 
+// NewCompanyRepository は CompanyRepository を新規生成する。
 func NewCompanyRepository() *CompanyRepository {
 	return &CompanyRepository{
 		companiesByID: make(map[entity.CompanyID]*entity.Company),
 	}
 }
 
+// Save は Company を upsert する。同じ ID があれば更新、なければ作成。
 func (r *CompanyRepository) Save(_ context.Context, company *entity.Company) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -29,6 +33,7 @@ func (r *CompanyRepository) Save(_ context.Context, company *entity.Company) err
 	return nil
 }
 
+// FindByID は userID 所有の Company を ID から取得する。存在しないか他ユーザー所有の場合は repository.ErrNotFound を返す。
 func (r *CompanyRepository) FindByID(_ context.Context, userID entity.UserID, companyID entity.CompanyID) (*entity.Company, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -40,6 +45,7 @@ func (r *CompanyRepository) FindByID(_ context.Context, userID entity.UserID, co
 	return storedCompany, nil
 }
 
+// ListByUserID は userID に紐づく Company を全件返す。
 func (r *CompanyRepository) ListByUserID(_ context.Context, userID entity.UserID) ([]*entity.Company, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -53,6 +59,7 @@ func (r *CompanyRepository) ListByUserID(_ context.Context, userID entity.UserID
 	return ownedCompanies, nil
 }
 
+// Delete は userID 所有の Company を ID から削除する。存在しないか他ユーザー所有の場合は repository.ErrNotFound を返す。
 func (r *CompanyRepository) Delete(_ context.Context, userID entity.UserID, companyID entity.CompanyID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

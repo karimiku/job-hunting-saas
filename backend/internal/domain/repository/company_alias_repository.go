@@ -1,3 +1,5 @@
+// Package repository はドメイン層の永続化インターフェースを定義する。
+// 実装は infra 層 (inmemory / postgres) で提供される。
 package repository
 
 import (
