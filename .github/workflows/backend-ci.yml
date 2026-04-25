@@ -81,7 +81,7 @@ jobs:
       - name: Install codegen tools
         run: |
           go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1
-          go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.27.0
+          go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.29.0
       - name: Regenerate (oapi-codegen)
         working-directory: backend/api
         run: oapi-codegen -config oapi-codegen.yaml openapi.yaml
