@@ -15,9 +15,45 @@ jobs:
         id: metadata
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Auto-merge patch updates
+
+      - name: Wait for CI then merge (patch only)
         if: steps.metadata.outputs.update-type == 'version-update:semver-patch'
         env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge --auto --squash "$PR_URL"
+          SELF_WORKFLOW: ${{ github.workflow }}
+          MAX_WAIT_MINUTES: "30"
+        run: |
+          set -euo pipefail
+
+          # Branch protection があってもなくても CI 完走を保証するため、
+          # native auto-merge ではなく明示的に他 workflow の完了を待ってから merge する。
+          # 自分自身は除外しないとデッドロックする。
+
+          sleep 60  # 他 workflow が check を register する猶予
+
+          deadline=$(( $(date +%s) + MAX_WAIT_MINUTES * 60 ))
+          while [ "$(date +%s)" -lt "$deadline" ]; do
+            data=$(gh pr checks "$PR_NUMBER" --json name,bucket 2>/dev/null || echo '[]')
+            pending=$(echo "$data" | jq --arg self "$SELF_WORKFLOW" \
+              '[.[] | select(.name != $self) | select(.bucket == "pending")] | length')
+
+            if [ "$pending" = "0" ]; then
+              fail=$(echo "$data" | jq --arg self "$SELF_WORKFLOW" \
+                '[.[] | select(.name != $self) | select(.bucket == "fail" or .bucket == "cancel")] | length')
+              if [ "$fail" -gt 0 ]; then
+                echo "::error::$fail other check(s) failed — refusing to merge"
+                exit 1
+              fi
+              echo "All other checks passed, merging"
+              gh pr merge --squash --delete-branch "$PR_URL"
+              exit 0
+            fi
+
+            echo "$pending check(s) still pending, sleeping 30s"
+            sleep 30
+          done
+
+          echo "::error::Timeout waiting for checks after ${MAX_WAIT_MINUTES} minutes"
+          exit 1
