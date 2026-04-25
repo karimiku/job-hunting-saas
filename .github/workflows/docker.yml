@@ -18,16 +18,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  discover:
+    name: Discover Dockerfiles
+    runs-on: ubuntu-latest
+    outputs:
+      dockerfiles: ${{ steps.find.outputs.dockerfiles }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - id: find
+        run: |
+          set -euo pipefail
+          # repo 内の全 Dockerfile* を JSON 配列で出力。
+          # node_modules, .git は除外。
+          files=$(find . \
+            -type d \( -name node_modules -o -name .git \) -prune -o \
+            -type f \( -name 'Dockerfile' -o -name 'Dockerfile.*' \) -print \
+            | sed 's|^\./||' \
+            | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "dockerfiles=$files" >> "$GITHUB_OUTPUT"
+          echo "Found Dockerfiles: $files"
+
   hadolint:
     name: Hadolint (${{ matrix.dockerfile }})
+    needs: discover
+    if: needs.discover.outputs.dockerfiles != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        dockerfile:
-          - backend/Dockerfile
-          - backend/Dockerfile.dev
-          - frontend/Dockerfile.dev
+        dockerfile: ${{ fromJSON(needs.discover.outputs.dockerfiles) }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
