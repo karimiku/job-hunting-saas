@@ -8,6 +8,10 @@ on:
       - frontend/src/**
       - frontend/package.json
       - frontend/pnpm-lock.yaml
+      - frontend/next.config.ts
+      - frontend/tsconfig.json
+      - frontend/eslint.config.mjs
+      - frontend/postcss.config.mjs
       - .github/workflows/codeql.yml
   push:
     branches: [main]
