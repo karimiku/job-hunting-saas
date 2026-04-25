@@ -20,6 +20,7 @@ type TaskHandler struct {
 	deleteUseCase *taskuc.Delete
 }
 
+// NewTaskHandler は TaskHandler に必要なユースケース群を DI して新しい TaskHandler を返す。
 func NewTaskHandler(
 	createUseCase *taskuc.Create,
 	getUseCase *taskuc.Get,

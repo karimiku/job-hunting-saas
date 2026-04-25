@@ -1,3 +1,5 @@
+// Package main は HTTP サーバのエントリポイント。
+// 依存解決 (DI) と HTTP ルーティングの最終配線をここで行う。
 package main
 
 import (
