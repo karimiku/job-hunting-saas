@@ -9,6 +9,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
 
+// CreateInput は StageHistoryCreate ユースケースへの入力。
 type CreateInput struct {
 	UserID    entity.UserID
 	EntryID   entity.EntryID
@@ -17,6 +18,7 @@ type CreateInput struct {
 	Note      string
 }
 
+// CreateOutput は StageHistoryCreate ユースケースの出力。
 type CreateOutput struct {
 	StageHistory *entity.StageHistory
 }
@@ -27,6 +29,7 @@ type Create struct {
 	entryRepo   repository.EntryRepository
 }
 
+// NewCreate は StageHistoryCreate ユースケースを生成する。
 func NewCreate(historyRepo repository.StageHistoryRepository, entryRepo repository.EntryRepository) *Create {
 	return &Create{historyRepo: historyRepo, entryRepo: entryRepo}
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
 
+// UpdateInput は CompanyUpdate ユースケースへの入力。
 type UpdateInput struct {
 	UserID    entity.UserID
 	CompanyID entity.CompanyID
@@ -15,6 +16,7 @@ type UpdateInput struct {
 	Memo      string
 }
 
+// UpdateOutput は CompanyUpdate ユースケースの出力。
 type UpdateOutput struct {
 	Company *entity.Company
 }
@@ -24,6 +26,7 @@ type Update struct {
 	companyRepo repository.CompanyRepository
 }
 
+// NewUpdate は CompanyUpdate ユースケースを生成する。
 func NewUpdate(companyRepo repository.CompanyRepository) *Update {
 	return &Update{companyRepo: companyRepo}
 }

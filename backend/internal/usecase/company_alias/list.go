@@ -7,11 +7,13 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 )
 
+// ListInput は CompanyAliasList ユースケースへの入力。
 type ListInput struct {
 	UserID    entity.UserID
 	CompanyID entity.CompanyID
 }
 
+// ListOutput は CompanyAliasList ユースケースの出力。
 type ListOutput struct {
 	CompanyAliases []*entity.CompanyAlias
 }
@@ -21,6 +23,7 @@ type List struct {
 	aliasRepo repository.CompanyAliasRepository
 }
 
+// NewList は CompanyAliasList ユースケースを生成する。
 func NewList(aliasRepo repository.CompanyAliasRepository) *List {
 	return &List{aliasRepo: aliasRepo}
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/infra/postgres/sqlc"
 )
 
+// StageHistoryRepository は StageHistoryRepository インターフェースの PostgreSQL 実装。
 type StageHistoryRepository struct {
 	q *sqlc.Queries
 }

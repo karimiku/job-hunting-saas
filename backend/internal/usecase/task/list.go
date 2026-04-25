@@ -7,11 +7,13 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 )
 
+// ListInput は TaskList ユースケースへの入力。
 type ListInput struct {
 	UserID  entity.UserID
 	EntryID entity.EntryID
 }
 
+// ListOutput は TaskList ユースケースの出力。
 type ListOutput struct {
 	Tasks []*entity.Task
 }
@@ -21,6 +23,7 @@ type List struct {
 	taskRepo repository.TaskRepository
 }
 
+// NewList は TaskList ユースケースを生成する。
 func NewList(taskRepo repository.TaskRepository) *List {
 	return &List{taskRepo: taskRepo}
 }

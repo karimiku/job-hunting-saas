@@ -14,6 +14,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/infra/postgres/sqlc"
 )
 
+// ExternalIdentityRepository は ExternalIdentityRepository インターフェースの PostgreSQL 実装。
 type ExternalIdentityRepository struct {
 	q *sqlc.Queries
 }

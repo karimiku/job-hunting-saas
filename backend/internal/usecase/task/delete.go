@@ -7,6 +7,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 )
 
+// DeleteInput は TaskDelete ユースケースへの入力。
 type DeleteInput struct {
 	UserID entity.UserID
 	TaskID entity.TaskID
@@ -17,6 +18,7 @@ type Delete struct {
 	taskRepo repository.TaskRepository
 }
 
+// NewDelete は TaskDelete ユースケースを生成する。
 func NewDelete(taskRepo repository.TaskRepository) *Delete {
 	return &Delete{taskRepo: taskRepo}
 }

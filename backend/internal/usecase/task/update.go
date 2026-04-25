@@ -9,6 +9,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
 
+// UpdateInput は TaskUpdate ユースケースへの入力。
 type UpdateInput struct {
 	UserID  entity.UserID
 	TaskID  entity.TaskID
@@ -20,6 +21,7 @@ type UpdateInput struct {
 	Memo    string
 }
 
+// UpdateOutput は TaskUpdate ユースケースの出力。
 type UpdateOutput struct {
 	Task *entity.Task
 }
@@ -29,6 +31,7 @@ type Update struct {
 	taskRepo repository.TaskRepository
 }
 
+// NewUpdate は TaskUpdate ユースケースを生成する。
 func NewUpdate(taskRepo repository.TaskRepository) *Update {
 	return &Update{taskRepo: taskRepo}
 }

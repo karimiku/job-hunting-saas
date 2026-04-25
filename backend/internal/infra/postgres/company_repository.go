@@ -16,6 +16,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/infra/postgres/sqlc"
 )
 
+// CompanyRepository は CompanyRepository インターフェースの PostgreSQL 実装。
 type CompanyRepository struct {
 	q *sqlc.Queries
 }

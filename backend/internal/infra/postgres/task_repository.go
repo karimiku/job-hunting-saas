@@ -15,6 +15,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/infra/postgres/sqlc"
 )
 
+// TaskRepository は TaskRepository インターフェースの PostgreSQL 実装。
 type TaskRepository struct {
 	q *sqlc.Queries
 }

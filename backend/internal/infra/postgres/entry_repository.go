@@ -14,6 +14,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/infra/postgres/sqlc"
 )
 
+// EntryRepository は EntryRepository インターフェースの PostgreSQL 実装。
 type EntryRepository struct {
 	q *sqlc.Queries
 }

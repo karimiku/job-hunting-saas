@@ -14,6 +14,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/infra/postgres/sqlc"
 )
 
+// UserRepository は UserRepository インターフェースの PostgreSQL 実装。
 type UserRepository struct {
 	q *sqlc.Queries
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 )
 
+// DeleteInput は CompanyAliasDelete ユースケースへの入力。
 type DeleteInput struct {
 	UserID         entity.UserID
 	CompanyAliasID entity.CompanyAliasID
@@ -17,6 +18,7 @@ type Delete struct {
 	aliasRepo repository.CompanyAliasRepository
 }
 
+// NewDelete は CompanyAliasDelete ユースケースを生成する。
 func NewDelete(aliasRepo repository.CompanyAliasRepository) *Delete {
 	return &Delete{aliasRepo: aliasRepo}
 }

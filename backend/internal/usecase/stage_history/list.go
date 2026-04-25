@@ -7,11 +7,13 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 )
 
+// ListInput は StageHistoryList ユースケースへの入力。
 type ListInput struct {
 	UserID  entity.UserID
 	EntryID entity.EntryID
 }
 
+// ListOutput は StageHistoryList ユースケースの出力。
 type ListOutput struct {
 	StageHistories []*entity.StageHistory
 }
@@ -22,6 +24,7 @@ type List struct {
 	entryRepo   repository.EntryRepository
 }
 
+// NewList は StageHistoryList ユースケースを生成する。
 func NewList(historyRepo repository.StageHistoryRepository, entryRepo repository.EntryRepository) *List {
 	return &List{historyRepo: historyRepo, entryRepo: entryRepo}
 }
