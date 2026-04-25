@@ -44,9 +44,13 @@ jobs:
       - name: Warn on unpinned actions
         run: |
           set +e
-          unpinned=$(grep -rEn 'uses:[[:space:]]+[^@#]+@v[0-9]+[[:space:]]*$' .github/workflows/)
+          # Find every `uses: owner/action@ref` line, then drop those whose ref is a 40-char SHA.
+          # This catches @v1, @main, @master, @feature-branch — anything not immutable.
+          unpinned=$(grep -rEn '^[[:space:]]*-?[[:space:]]*uses:[[:space:]]+[^@#[:space:]]+@[^[:space:]]+' .github/workflows/ \
+            | grep -vE '@[a-f0-9]{40}([[:space:]]|$|#)' \
+            | grep -vE 'uses:[[:space:]]+\./')
           if [ -n "$unpinned" ]; then
-            echo "::warning::Actions not pinned to commit SHA:"
+            echo "::warning::Actions not pinned to a 40-char commit SHA:"
             echo "$unpinned"
           fi
 
