@@ -5,6 +5,7 @@ package firebase
 import (
 	"context"
 	"fmt"
+	"os"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
@@ -25,7 +26,13 @@ func NewClient(ctx context.Context, credentialsPath, projectID string) (*Client,
 
 	var opts []option.ClientOption
 	if credentialsPath != "" {
-		opts = append(opts, option.WithCredentialsFile(credentialsPath))
+		// option.WithCredentialsFile は遅延読み込みかつ TOCTOU 系の懸念から deprecated 扱い。
+		// 起動時に明示的に読んで JSON バイト列で渡す。
+		data, err := os.ReadFile(credentialsPath)
+		if err != nil {
+			return nil, fmt.Errorf("firebase: read credentials %q: %w", credentialsPath, err)
+		}
+		opts = append(opts, option.WithCredentialsJSON(data))
 	}
 
 	app, err := firebase.NewApp(ctx, cfg, opts...)
