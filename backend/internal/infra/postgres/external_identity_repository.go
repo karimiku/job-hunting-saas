@@ -19,10 +19,12 @@ type ExternalIdentityRepository struct {
 	q *sqlc.Queries
 }
 
+// NewExternalIdentityRepository は ExternalIdentityRepository を新規生成する。db には pgxpool.Pool もしくは tx を渡す。
 func NewExternalIdentityRepository(db sqlc.DBTX) *ExternalIdentityRepository {
 	return &ExternalIdentityRepository{q: sqlc.New(db)}
 }
 
+// Save は ExternalIdentity を新規作成する。 (provider, subject) の一意制約に違反する場合は repository.ErrAlreadyExists を返す。
 func (r *ExternalIdentityRepository) Save(ctx context.Context, identity *entity.ExternalIdentity) error {
 	if err := r.q.InsertExternalIdentity(ctx, sqlc.InsertExternalIdentityParams{
 		ID:        uuid.UUID(identity.ID()),
@@ -39,6 +41,7 @@ func (r *ExternalIdentityRepository) Save(ctx context.Context, identity *entity.
 	return nil
 }
 
+// FindByProviderAndSubject は (provider, subject) のペアから ExternalIdentity を取得する。存在しない場合は repository.ErrNotFound を返す。
 func (r *ExternalIdentityRepository) FindByProviderAndSubject(ctx context.Context, provider value.AuthProvider, subject string) (*entity.ExternalIdentity, error) {
 	row, err := r.q.FindExternalIdentityByProviderAndSubject(ctx, sqlc.FindExternalIdentityByProviderAndSubjectParams{
 		Provider: sqlc.AuthProvider(provider.String()),

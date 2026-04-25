@@ -16,10 +16,12 @@ type StageHistoryRepository struct {
 	q *sqlc.Queries
 }
 
+// NewStageHistoryRepository は StageHistoryRepository を新規生成する。db には pgxpool.Pool もしくは tx を渡す。
 func NewStageHistoryRepository(db sqlc.DBTX) *StageHistoryRepository {
 	return &StageHistoryRepository{q: sqlc.New(db)}
 }
 
+// Create は StageHistory を作成する (immutable なので Save なし)。
 func (r *StageHistoryRepository) Create(ctx context.Context, history *entity.StageHistory) error {
 	if err := r.q.CreateStageHistory(ctx, sqlc.CreateStageHistoryParams{
 		ID:         uuid.UUID(history.ID()),
@@ -34,6 +36,7 @@ func (r *StageHistoryRepository) Create(ctx context.Context, history *entity.Sta
 	return nil
 }
 
+// ListByEntryID は entry に紐づく StageHistory を時系列で返す。
 func (r *StageHistoryRepository) ListByEntryID(ctx context.Context, entryID entity.EntryID) ([]*entity.StageHistory, error) {
 	rows, err := r.q.ListStageHistoriesByEntryID(ctx, uuid.UUID(entryID))
 	if err != nil {

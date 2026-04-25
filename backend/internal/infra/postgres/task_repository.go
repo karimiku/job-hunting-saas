@@ -20,10 +20,12 @@ type TaskRepository struct {
 	q *sqlc.Queries
 }
 
+// NewTaskRepository は TaskRepository を新規生成する。db には pgxpool.Pool もしくは tx を渡す。
 func NewTaskRepository(db sqlc.DBTX) *TaskRepository {
 	return &TaskRepository{q: sqlc.New(db)}
 }
 
+// Save は Task を upsert する。同じ ID があれば更新、なければ作成。
 func (r *TaskRepository) Save(ctx context.Context, task *entity.Task) error {
 	var dueDate pgtype.Timestamptz
 	if task.DueDate() != nil {
@@ -47,6 +49,7 @@ func (r *TaskRepository) Save(ctx context.Context, task *entity.Task) error {
 	return nil
 }
 
+// FindByID は userID 所有の Task を ID から取得する。SQL で Entry の userID を JOIN 検証し、未所有なら repository.ErrNotFound を返す。
 func (r *TaskRepository) FindByID(ctx context.Context, userID entity.UserID, id entity.TaskID) (*entity.Task, error) {
 	row, err := r.q.FindTaskByID(ctx, sqlc.FindTaskByIDParams{
 		UserID: uuid.UUID(userID),
@@ -62,6 +65,7 @@ func (r *TaskRepository) FindByID(ctx context.Context, userID entity.UserID, id 
 	return reconstructTask(row)
 }
 
+// ListByEntryID は entry に紐づく Task を全件返す。SQL で Entry の userID を JOIN 検証する。
 func (r *TaskRepository) ListByEntryID(ctx context.Context, userID entity.UserID, entryID entity.EntryID) ([]*entity.Task, error) {
 	rows, err := r.q.ListTasksByEntryID(ctx, sqlc.ListTasksByEntryIDParams{
 		UserID:  uuid.UUID(userID),
@@ -74,6 +78,7 @@ func (r *TaskRepository) ListByEntryID(ctx context.Context, userID entity.UserID
 	return reconstructTasks(rows)
 }
 
+// ListByUserIDWithDueBefore は userID 所有かつ deadline より前が期限の未完了 Task を返す。リマインダ通知用。
 func (r *TaskRepository) ListByUserIDWithDueBefore(ctx context.Context, userID entity.UserID, deadline time.Time) ([]*entity.Task, error) {
 	rows, err := r.q.ListTasksByUserIDWithDueBefore(ctx, sqlc.ListTasksByUserIDWithDueBeforeParams{
 		UserID:  uuid.UUID(userID),
@@ -86,6 +91,7 @@ func (r *TaskRepository) ListByUserIDWithDueBefore(ctx context.Context, userID e
 	return reconstructTasks(rows)
 }
 
+// Delete は userID 所有の Task を ID から削除する。SQL で Entry の userID を JOIN 検証し、未所有なら repository.ErrNotFound を返す。
 func (r *TaskRepository) Delete(ctx context.Context, userID entity.UserID, id entity.TaskID) error {
 	n, err := r.q.DeleteTask(ctx, sqlc.DeleteTaskParams{
 		UserID: uuid.UUID(userID),

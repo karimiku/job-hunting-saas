@@ -18,6 +18,7 @@ type TaskRepository struct {
 	entryRepo repository.EntryRepository
 }
 
+// NewTaskRepository は TaskRepository を新規生成する。所有権検証のため EntryRepository を DI で受け取る。
 func NewTaskRepository(entryRepo repository.EntryRepository) *TaskRepository {
 	return &TaskRepository{
 		tasksByID: make(map[entity.TaskID]*entity.Task),
@@ -25,6 +26,7 @@ func NewTaskRepository(entryRepo repository.EntryRepository) *TaskRepository {
 	}
 }
 
+// Save は Task を upsert する。同じ ID があれば更新、なければ作成。
 func (r *TaskRepository) Save(_ context.Context, task *entity.Task) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -32,6 +34,7 @@ func (r *TaskRepository) Save(_ context.Context, task *entity.Task) error {
 	return nil
 }
 
+// FindByID は userID 所有の Task を ID から取得する。Entry 経由で所有権を検証し、未所有なら repository.ErrNotFound を返す。
 func (r *TaskRepository) FindByID(ctx context.Context, userID entity.UserID, id entity.TaskID) (*entity.Task, error) {
 	r.mu.RLock()
 	task, exists := r.tasksByID[id]
@@ -48,6 +51,7 @@ func (r *TaskRepository) FindByID(ctx context.Context, userID entity.UserID, id 
 	return task, nil
 }
 
+// ListByEntryID は entry に紐づく Task を全件返す。Entry 経由で userID の所有権を検証する。
 func (r *TaskRepository) ListByEntryID(ctx context.Context, userID entity.UserID, entryID entity.EntryID) ([]*entity.Task, error) {
 	// Entry経由でuserIDの所有権を検証
 	if _, err := r.entryRepo.FindByID(ctx, userID, entryID); err != nil {
@@ -66,6 +70,7 @@ func (r *TaskRepository) ListByEntryID(ctx context.Context, userID entity.UserID
 	return result, nil
 }
 
+// ListByUserIDWithDueBefore は userID 所有かつ deadline より前が期限の未完了 Task を返す。リマインダ通知用。
 func (r *TaskRepository) ListByUserIDWithDueBefore(ctx context.Context, userID entity.UserID, deadline time.Time) ([]*entity.Task, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -87,6 +92,7 @@ func (r *TaskRepository) ListByUserIDWithDueBefore(ctx context.Context, userID e
 	return result, nil
 }
 
+// Delete は userID 所有の Task を ID から削除する。Entry 経由で所有権を検証し、未所有なら repository.ErrNotFound を返す。
 func (r *TaskRepository) Delete(ctx context.Context, userID entity.UserID, id entity.TaskID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

@@ -15,12 +15,14 @@ type EntryRepository struct {
 	entriesByID map[entity.EntryID]*entity.Entry
 }
 
+// NewEntryRepository は EntryRepository を新規生成する。
 func NewEntryRepository() *EntryRepository {
 	return &EntryRepository{
 		entriesByID: make(map[entity.EntryID]*entity.Entry),
 	}
 }
 
+// Save は Entry を upsert する。同じ ID があれば更新、なければ作成。
 func (r *EntryRepository) Save(_ context.Context, entry *entity.Entry) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -28,6 +30,7 @@ func (r *EntryRepository) Save(_ context.Context, entry *entity.Entry) error {
 	return nil
 }
 
+// FindByID は userID 所有の Entry を ID から取得する。存在しないか他ユーザー所有の場合は repository.ErrNotFound を返す。
 func (r *EntryRepository) FindByID(_ context.Context, userID entity.UserID, id entity.EntryID) (*entity.Entry, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -39,6 +42,7 @@ func (r *EntryRepository) FindByID(_ context.Context, userID entity.UserID, id e
 	return stored, nil
 }
 
+// ListByUserID は userID に紐づく Entry を filter で絞り込んで返す。filter の各項目は nil なら絞り込まない。
 func (r *EntryRepository) ListByUserID(_ context.Context, userID entity.UserID, filter repository.EntryFilter) ([]*entity.Entry, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -62,6 +66,7 @@ func (r *EntryRepository) ListByUserID(_ context.Context, userID entity.UserID, 
 	return result, nil
 }
 
+// Delete は userID 所有の Entry を ID から削除する。存在しないか他ユーザー所有の場合は repository.ErrNotFound を返す。
 func (r *EntryRepository) Delete(_ context.Context, userID entity.UserID, id entity.EntryID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

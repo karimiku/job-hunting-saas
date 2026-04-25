@@ -21,10 +21,12 @@ type CompanyRepository struct {
 	q *sqlc.Queries
 }
 
+// NewCompanyRepository は CompanyRepository を新規生成する。db には pgxpool.Pool もしくは tx を渡す。
 func NewCompanyRepository(db sqlc.DBTX) *CompanyRepository {
 	return &CompanyRepository{q: sqlc.New(db)}
 }
 
+// Save は Company を upsert する。同じ ID があれば更新、なければ作成。
 func (r *CompanyRepository) Save(ctx context.Context, company *entity.Company) error {
 	if err := r.q.UpsertCompany(ctx, sqlc.UpsertCompanyParams{
 		ID:        uuid.UUID(company.ID()),
@@ -39,6 +41,7 @@ func (r *CompanyRepository) Save(ctx context.Context, company *entity.Company) e
 	return nil
 }
 
+// FindByID は userID 所有の Company を ID から取得する。存在しないか他ユーザー所有の場合は repository.ErrNotFound を返す。
 func (r *CompanyRepository) FindByID(ctx context.Context, userID entity.UserID, id entity.CompanyID) (*entity.Company, error) {
 	row, err := r.q.FindCompanyByID(ctx, sqlc.FindCompanyByIDParams{
 		UserID: uuid.UUID(userID),
@@ -54,6 +57,7 @@ func (r *CompanyRepository) FindByID(ctx context.Context, userID entity.UserID, 
 	return reconstructCompany(row)
 }
 
+// ListByUserID は userID に紐づく Company を全件返す。
 func (r *CompanyRepository) ListByUserID(ctx context.Context, userID entity.UserID) ([]*entity.Company, error) {
 	rows, err := r.q.ListCompaniesByUserID(ctx, uuid.UUID(userID))
 	if err != nil {
@@ -72,6 +76,7 @@ func (r *CompanyRepository) ListByUserID(ctx context.Context, userID entity.User
 	return companies, nil
 }
 
+// Delete は userID 所有の Company を ID から削除する。存在しないか他ユーザー所有の場合は repository.ErrNotFound を返す。
 func (r *CompanyRepository) Delete(ctx context.Context, userID entity.UserID, id entity.CompanyID) error {
 	n, err := r.q.DeleteCompany(ctx, sqlc.DeleteCompanyParams{
 		UserID: uuid.UUID(userID),
