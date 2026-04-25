@@ -1,0 +1,39 @@
+name: OpenAPI Breaking Changes
+
+on:
+  pull_request:
+    paths:
+      - backend/api/openapi.yaml
+      - .github/workflows/openapi-diff.yml
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: openapi-diff-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  breaking:
+    name: Detect Breaking Changes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Extract base spec
+        run: |
+          if git show origin/${{ github.base_ref }}:backend/api/openapi.yaml > /tmp/base-openapi.yaml 2>/dev/null; then
+            echo "Base spec extracted"
+          else
+            echo "openapi: 3.0.3" > /tmp/base-openapi.yaml
+            echo "info: { title: empty, version: 0.0.0 }" >> /tmp/base-openapi.yaml
+            echo "paths: {}" >> /tmp/base-openapi.yaml
+          fi
+      - name: Run oasdiff
+        uses: oasdiff/oasdiff-action/breaking@main
+        with:
+          base: /tmp/base-openapi.yaml
+          revision: backend/api/openapi.yaml
+          fail-on-diff: true
