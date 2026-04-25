@@ -38,8 +38,8 @@ func ReconstructStageHistory(id StageHistoryID, entryID EntryID, stage value.Sta
 	}
 }
 
-func (h *StageHistory) ID() StageHistoryID  { return h.id }
-func (h *StageHistory) EntryID() EntryID    { return h.entryID }
-func (h *StageHistory) Stage() value.Stage  { return h.stage }
-func (h *StageHistory) Note() string        { return h.note }
+func (h *StageHistory) ID() StageHistoryID   { return h.id }
+func (h *StageHistory) EntryID() EntryID     { return h.entryID }
+func (h *StageHistory) Stage() value.Stage   { return h.stage }
+func (h *StageHistory) Note() string         { return h.note }
 func (h *StageHistory) CreatedAt() time.Time { return h.createdAt }

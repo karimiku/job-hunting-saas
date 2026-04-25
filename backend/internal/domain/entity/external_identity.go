@@ -39,8 +39,8 @@ func ReconstructExternalIdentity(id ExternalIdentityID, userID UserID, provider 
 	}
 }
 
-func (e *ExternalIdentity) ID() ExternalIdentityID   { return e.id }
-func (e *ExternalIdentity) UserID() UserID            { return e.userID }
+func (e *ExternalIdentity) ID() ExternalIdentityID       { return e.id }
+func (e *ExternalIdentity) UserID() UserID               { return e.userID }
 func (e *ExternalIdentity) Provider() value.AuthProvider { return e.provider }
-func (e *ExternalIdentity) Subject() string           { return e.subject }
-func (e *ExternalIdentity) CreatedAt() time.Time      { return e.createdAt }
+func (e *ExternalIdentity) Subject() string              { return e.subject }
+func (e *ExternalIdentity) CreatedAt() time.Time         { return e.createdAt }

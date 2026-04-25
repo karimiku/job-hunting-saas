@@ -62,11 +62,11 @@ func ReconstructEntry(
 	}
 }
 
-func (e *Entry) ID() EntryID              { return e.id }
+func (e *Entry) ID() EntryID               { return e.id }
 func (e *Entry) UserID() UserID            { return e.userID }
 func (e *Entry) CompanyID() CompanyID      { return e.companyID }
 func (e *Entry) Route() value.Route        { return e.route }
-func (e *Entry) Source() value.Source       { return e.source }
+func (e *Entry) Source() value.Source      { return e.source }
 func (e *Entry) Status() value.EntryStatus { return e.status }
 func (e *Entry) Stage() value.Stage        { return e.stage }
 func (e *Entry) Memo() string              { return e.memo }

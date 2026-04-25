@@ -58,16 +58,16 @@ func ReconstructTask(
 	}
 }
 
-func (t *Task) ID() TaskID                { return t.id }
-func (t *Task) EntryID() EntryID           { return t.entryID }
-func (t *Task) Title() value.TaskTitle     { return t.title }
-func (t *Task) TaskType() value.TaskType   { return t.taskType }
-func (t *Task) DueDate() *time.Time        { return t.dueDate }
-func (t *Task) Status() value.TaskStatus   { return t.status }
-func (t *Task) Notify() bool               { return t.notify }
-func (t *Task) Memo() string               { return t.memo }
-func (t *Task) CreatedAt() time.Time       { return t.createdAt }
-func (t *Task) UpdatedAt() time.Time       { return t.updatedAt }
+func (t *Task) ID() TaskID               { return t.id }
+func (t *Task) EntryID() EntryID         { return t.entryID }
+func (t *Task) Title() value.TaskTitle   { return t.title }
+func (t *Task) TaskType() value.TaskType { return t.taskType }
+func (t *Task) DueDate() *time.Time      { return t.dueDate }
+func (t *Task) Status() value.TaskStatus { return t.status }
+func (t *Task) Notify() bool             { return t.notify }
+func (t *Task) Memo() string             { return t.memo }
+func (t *Task) CreatedAt() time.Time     { return t.createdAt }
+func (t *Task) UpdatedAt() time.Time     { return t.updatedAt }
 
 func (t *Task) UpdateTitle(title value.TaskTitle) {
 	t.title = title

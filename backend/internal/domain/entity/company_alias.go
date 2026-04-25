@@ -38,8 +38,8 @@ func ReconstructCompanyAlias(id CompanyAliasID, userID UserID, companyID Company
 	}
 }
 
-func (a *CompanyAlias) ID() CompanyAliasID  { return a.id }
-func (a *CompanyAlias) UserID() UserID      { return a.userID }
+func (a *CompanyAlias) ID() CompanyAliasID   { return a.id }
+func (a *CompanyAlias) UserID() UserID       { return a.userID }
 func (a *CompanyAlias) CompanyID() CompanyID { return a.companyID }
-func (a *CompanyAlias) Alias() value.Alias  { return a.alias }
+func (a *CompanyAlias) Alias() value.Alias   { return a.alias }
 func (a *CompanyAlias) CreatedAt() time.Time { return a.createdAt }

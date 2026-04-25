@@ -19,33 +19,33 @@ type ExternalIdentityID uuid.UUID
 
 // --- Constructors ---
 
-func NewUserID() UserID               { return UserID(uuid.New()) }
-func NewCompanyID() CompanyID          { return CompanyID(uuid.New()) }
-func NewEntryID() EntryID              { return EntryID(uuid.New()) }
-func NewTaskID() TaskID                { return TaskID(uuid.New()) }
-func NewStageHistoryID() StageHistoryID { return StageHistoryID(uuid.New()) }
+func NewUserID() UserID                             { return UserID(uuid.New()) }
+func NewCompanyID() CompanyID                       { return CompanyID(uuid.New()) }
+func NewEntryID() EntryID                           { return EntryID(uuid.New()) }
+func NewTaskID() TaskID                             { return TaskID(uuid.New()) }
+func NewStageHistoryID() StageHistoryID             { return StageHistoryID(uuid.New()) }
 func NewCompanyAliasID() CompanyAliasID             { return CompanyAliasID(uuid.New()) }
 func NewPasswordCredentialID() PasswordCredentialID { return PasswordCredentialID(uuid.New()) }
 func NewExternalIdentityID() ExternalIdentityID     { return ExternalIdentityID(uuid.New()) }
 
 // --- String ---
 
-func (id UserID) String() string         { return uuid.UUID(id).String() }
-func (id CompanyID) String() string      { return uuid.UUID(id).String() }
-func (id EntryID) String() string        { return uuid.UUID(id).String() }
-func (id TaskID) String() string         { return uuid.UUID(id).String() }
-func (id StageHistoryID) String() string { return uuid.UUID(id).String() }
-func (id CompanyAliasID) String() string         { return uuid.UUID(id).String() }
+func (id UserID) String() string               { return uuid.UUID(id).String() }
+func (id CompanyID) String() string            { return uuid.UUID(id).String() }
+func (id EntryID) String() string              { return uuid.UUID(id).String() }
+func (id TaskID) String() string               { return uuid.UUID(id).String() }
+func (id StageHistoryID) String() string       { return uuid.UUID(id).String() }
+func (id CompanyAliasID) String() string       { return uuid.UUID(id).String() }
 func (id PasswordCredentialID) String() string { return uuid.UUID(id).String() }
 func (id ExternalIdentityID) String() string   { return uuid.UUID(id).String() }
 
 // --- IsZero: IDが未設定（ゼロ値）かどうかを判定する ---
 
-func (id UserID) IsZero() bool         { return uuid.UUID(id) == uuid.Nil }
-func (id CompanyID) IsZero() bool      { return uuid.UUID(id) == uuid.Nil }
-func (id EntryID) IsZero() bool        { return uuid.UUID(id) == uuid.Nil }
-func (id TaskID) IsZero() bool         { return uuid.UUID(id) == uuid.Nil }
-func (id StageHistoryID) IsZero() bool { return uuid.UUID(id) == uuid.Nil }
-func (id CompanyAliasID) IsZero() bool         { return uuid.UUID(id) == uuid.Nil }
+func (id UserID) IsZero() bool               { return uuid.UUID(id) == uuid.Nil }
+func (id CompanyID) IsZero() bool            { return uuid.UUID(id) == uuid.Nil }
+func (id EntryID) IsZero() bool              { return uuid.UUID(id) == uuid.Nil }
+func (id TaskID) IsZero() bool               { return uuid.UUID(id) == uuid.Nil }
+func (id StageHistoryID) IsZero() bool       { return uuid.UUID(id) == uuid.Nil }
+func (id CompanyAliasID) IsZero() bool       { return uuid.UUID(id) == uuid.Nil }
 func (id PasswordCredentialID) IsZero() bool { return uuid.UUID(id) == uuid.Nil }
 func (id ExternalIdentityID) IsZero() bool   { return uuid.UUID(id) == uuid.Nil }
