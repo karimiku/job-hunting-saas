@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 	"github.com/karimiku/job-hunting-saas/internal/gen/openapi"
@@ -160,6 +161,225 @@ func TestUpdateEntry_NotFound(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	h.UpdateEntry(w, req, openapi.EntryId(entity.NewEntryID()))
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", w.Code)
+	}
+}
+
+// --- CreateEntry ---
+
+func TestCreateEntry_Success(t *testing.T) {
+	h, _, companyRepo := setupEntryHandler()
+	userID := entity.NewUserID()
+
+	companyName, _ := value.NewCompanyName("テスト企業")
+	company := entity.NewCompany(userID, companyName)
+	if err := companyRepo.Save(context.Background(), company); err != nil {
+		t.Fatalf("save company: %v", err)
+	}
+
+	memo := "やる気"
+	body, _ := json.Marshal(openapi.CreateEntryRequest{
+		CompanyId: uuid.UUID(company.ID()),
+		Route:     "本選考",
+		Source:    "リクナビ",
+		Memo:      &memo,
+	})
+
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
+	req = req.WithContext(middleware.SetUserID(req.Context(), userID))
+	w := httptest.NewRecorder()
+
+	h.CreateEntry(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201, body = %s", w.Code, w.Body.String())
+	}
+	var resp openapi.EntryResponse
+	_ = json.NewDecoder(w.Body).Decode(&resp)
+	if resp.Source != "リクナビ" {
+		t.Errorf("Source = %q, want %q", resp.Source, "リクナビ")
+	}
+	if resp.Route != "本選考" {
+		t.Errorf("Route = %q, want %q", resp.Route, "本選考")
+	}
+}
+
+func TestCreateEntry_InvalidJSON(t *testing.T) {
+	h, _, _ := setupEntryHandler()
+
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte("nope")))
+	req = req.WithContext(middleware.SetUserID(req.Context(), entity.NewUserID()))
+	w := httptest.NewRecorder()
+
+	h.CreateEntry(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400", w.Code)
+	}
+}
+
+func TestCreateEntry_CompanyNotFound(t *testing.T) {
+	h, _, _ := setupEntryHandler()
+
+	body, _ := json.Marshal(openapi.CreateEntryRequest{
+		CompanyId: uuid.UUID(entity.NewCompanyID()),
+		Route:     "本選考",
+		Source:    "リクナビ",
+	})
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
+	req = req.WithContext(middleware.SetUserID(req.Context(), entity.NewUserID()))
+	w := httptest.NewRecorder()
+
+	h.CreateEntry(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", w.Code)
+	}
+}
+
+// --- GetEntry ---
+
+func TestGetEntry_Success(t *testing.T) {
+	h, entryRepo, companyRepo := setupEntryHandler()
+	userID := entity.NewUserID()
+	entry := seedEntry(t, entryRepo, companyRepo, userID)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req = req.WithContext(middleware.SetUserID(req.Context(), userID))
+	w := httptest.NewRecorder()
+
+	h.GetEntry(w, req, openapi.EntryId(entry.ID()))
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	var resp openapi.EntryResponse
+	_ = json.NewDecoder(w.Body).Decode(&resp)
+	if resp.Source != "リクナビ" {
+		t.Errorf("Source = %q, want %q", resp.Source, "リクナビ")
+	}
+}
+
+func TestGetEntry_NotFound(t *testing.T) {
+	h, _, _ := setupEntryHandler()
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req = req.WithContext(middleware.SetUserID(req.Context(), entity.NewUserID()))
+	w := httptest.NewRecorder()
+
+	h.GetEntry(w, req, openapi.EntryId(entity.NewEntryID()))
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", w.Code)
+	}
+}
+
+func TestGetEntry_OtherUser(t *testing.T) {
+	h, entryRepo, companyRepo := setupEntryHandler()
+	owner := entity.NewUserID()
+	other := entity.NewUserID()
+	entry := seedEntry(t, entryRepo, companyRepo, owner)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req = req.WithContext(middleware.SetUserID(req.Context(), other))
+	w := httptest.NewRecorder()
+
+	h.GetEntry(w, req, openapi.EntryId(entry.ID()))
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404 (cross-user blocked)", w.Code)
+	}
+}
+
+// --- ListEntries ---
+
+func TestListEntries_NoFilter(t *testing.T) {
+	h, entryRepo, companyRepo := setupEntryHandler()
+	userID := entity.NewUserID()
+	seedEntry(t, entryRepo, companyRepo, userID)
+	seedEntry(t, entryRepo, companyRepo, userID)
+	seedEntry(t, entryRepo, companyRepo, entity.NewUserID()) // 他人のエントリー
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req = req.WithContext(middleware.SetUserID(req.Context(), userID))
+	w := httptest.NewRecorder()
+
+	h.ListEntries(w, req, openapi.ListEntriesParams{})
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	var resp struct {
+		Entries []openapi.EntryResponse `json:"entries"`
+	}
+	_ = json.NewDecoder(w.Body).Decode(&resp)
+	if len(resp.Entries) != 2 {
+		t.Errorf("len = %d, want 2", len(resp.Entries))
+	}
+}
+
+func TestListEntries_WithFilters(t *testing.T) {
+	h, entryRepo, companyRepo := setupEntryHandler()
+	userID := entity.NewUserID()
+	seedEntry(t, entryRepo, companyRepo, userID)
+
+	status := openapi.ListEntriesParamsStatusInProgress
+	stageKind := openapi.ListEntriesParamsStageKind("application")
+	source := "リクナビ"
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req = req.WithContext(middleware.SetUserID(req.Context(), userID))
+	w := httptest.NewRecorder()
+
+	h.ListEntries(w, req, openapi.ListEntriesParams{
+		Status:    &status,
+		StageKind: &stageKind,
+		Source:    &source,
+	})
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	var resp struct {
+		Entries []openapi.EntryResponse `json:"entries"`
+	}
+	_ = json.NewDecoder(w.Body).Decode(&resp)
+	if len(resp.Entries) != 1 {
+		t.Errorf("len = %d, want 1 (matching filters)", len(resp.Entries))
+	}
+}
+
+// --- DeleteEntry ---
+
+func TestDeleteEntry_Success(t *testing.T) {
+	h, entryRepo, companyRepo := setupEntryHandler()
+	userID := entity.NewUserID()
+	entry := seedEntry(t, entryRepo, companyRepo, userID)
+
+	req := httptest.NewRequest(http.MethodDelete, "/", nil)
+	req = req.WithContext(middleware.SetUserID(req.Context(), userID))
+	w := httptest.NewRecorder()
+
+	h.DeleteEntry(w, req, openapi.EntryId(entry.ID()))
+
+	if w.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want 204", w.Code)
+	}
+	if _, err := entryRepo.FindByID(context.Background(), userID, entry.ID()); err == nil {
+		t.Error("entry should be deleted")
+	}
+}
+
+func TestDeleteEntry_NotFound(t *testing.T) {
+	h, _, _ := setupEntryHandler()
+
+	req := httptest.NewRequest(http.MethodDelete, "/", nil)
+	req = req.WithContext(middleware.SetUserID(req.Context(), entity.NewUserID()))
+	w := httptest.NewRecorder()
+
+	h.DeleteEntry(w, req, openapi.EntryId(entity.NewEntryID()))
 
 	if w.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want 404", w.Code)

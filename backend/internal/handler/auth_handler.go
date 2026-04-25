@@ -3,6 +3,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log"
@@ -35,16 +36,23 @@ type AuthConfig struct {
 	CookieSecure bool   // 本番 HTTPS では true
 }
 
+// FirebaseSessionCreator は ID Token 検証と Session Cookie 発行に必要な
+// Firebase Auth クライアントの最小インターフェース。テスト時のモック差し替え点。
+type FirebaseSessionCreator interface {
+	VerifyIDToken(ctx context.Context, idToken string) (*fbauth.Token, error)
+	SessionCookie(ctx context.Context, idToken string, expiresIn time.Duration) (string, error)
+}
+
 // AuthHandler は認証関連の HTTP リクエストを受ける handler。
 type AuthHandler struct {
-	firebaseAuth *fbauth.Client
+	firebaseAuth FirebaseSessionCreator
 	authenticate *useruc.Authenticate
 	userRepo     repository.UserRepository
 	cfg          AuthConfig
 }
 
 // NewAuthHandler は AuthHandler に必要な依存を DI して新しい AuthHandler を返す。
-func NewAuthHandler(fb *fbauth.Client, uc *useruc.Authenticate, userRepo repository.UserRepository, cfg AuthConfig) *AuthHandler {
+func NewAuthHandler(fb FirebaseSessionCreator, uc *useruc.Authenticate, userRepo repository.UserRepository, cfg AuthConfig) *AuthHandler {
 	return &AuthHandler{
 		firebaseAuth: fb,
 		authenticate: uc,

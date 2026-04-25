@@ -36,6 +36,12 @@ func GetUserID(ctx context.Context) entity.UserID {
 	return userID
 }
 
+// FirebaseSessionVerifier は Session Cookie 検証に必要な Firebase Auth クライアントの最小インターフェース。
+// テスト時のモック差し替え点。
+type FirebaseSessionVerifier interface {
+	VerifySessionCookie(ctx context.Context, sessionCookie string) (*fbauth.Token, error)
+}
+
 // NewAuth は Session Cookie を検証して userID を context に埋め込む chi ミドルウェアを返す。
 //
 // フロー:
@@ -43,7 +49,7 @@ func GetUserID(ctx context.Context) entity.UserID {
 //  2. Firebase Admin SDK で Session Cookie 検証 → 失敗は 401
 //  3. Firebase UID → external_identities → users の順で UserID を解決
 //  4. context に UserID をセットして次へ
-func NewAuth(fbAuth *fbauth.Client, extIDRepo repository.ExternalIdentityRepository) func(http.Handler) http.Handler {
+func NewAuth(fbAuth FirebaseSessionVerifier, extIDRepo repository.ExternalIdentityRepository) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
