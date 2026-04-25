@@ -78,7 +78,7 @@ fmt-be: ## gofmt -w
 gen: gen-api gen-sql ## OpenAPI + sqlc 両方
 
 gen-api: ## openapi.yaml → openapi_gen.go (config の output 設定先)
-	cd backend && oapi-codegen -config api/oapi-codegen.yaml api/openapi.yaml
+	cd backend/api && oapi-codegen -config oapi-codegen.yaml openapi.yaml
 
 gen-sql: ## sql/queries/*.sql → sqlc
 	cd backend && sqlc generate
