@@ -166,7 +166,10 @@ async function detectCurrentPage(): Promise<DetectedPage | null> {
   if (!tab?.url) return null;
 
   const url = new URL(tab.url);
-  const sourceKey = Object.keys(SOURCES).find((k) => url.hostname.includes(k));
+  // host の末尾一致 + ドット境界で厳密マッチ (incomplete-url-substring-sanitization 対策)
+  const sourceKey = Object.keys(SOURCES).find(
+    (k) => url.hostname === k || url.hostname.endsWith(`.${k}`),
+  );
   if (!sourceKey) return null;
 
   return {

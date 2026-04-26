@@ -44,14 +44,21 @@ function detectFromOfferBox(): Partial<ScrapedJob> | null {
   };
 }
 
+/** host が target ドメイン (またはそのサブドメイン) にマッチするか厳密にチェックする。
+ *  `String.includes` だと "evil.com/mynavi.jp/..." のような擬装にマッチしてしまうため、
+ *  hostname の末尾一致 + ドット境界で評価する。 */
+function hostMatches(host: string, target: string): boolean {
+  return host === target || host.endsWith(`.${target}`);
+}
+
 function detectCurrentPage(): ScrapedJob | null {
   const host = window.location.hostname;
   let partial: Partial<ScrapedJob> | null = null;
 
-  if (host.includes("mynavi.jp")) partial = detectFromMynavi();
-  else if (host.includes("rikunabi.com")) partial = detectFromRikunabi();
-  else if (host.includes("onecareer.jp")) partial = detectFromOneCareer();
-  else if (host.includes("offerbox.jp")) partial = detectFromOfferBox();
+  if (hostMatches(host, "mynavi.jp")) partial = detectFromMynavi();
+  else if (hostMatches(host, "rikunabi.com")) partial = detectFromRikunabi();
+  else if (hostMatches(host, "onecareer.jp")) partial = detectFromOneCareer();
+  else if (hostMatches(host, "offerbox.jp")) partial = detectFromOfferBox();
 
   if (!partial?.companyName) return null;
 
