@@ -11,6 +11,8 @@ import (
 )
 
 func TestCreate_Success(t *testing.T) {
+	userID := entity.NewUserID()
+	entryID := entity.NewEntryID()
 	createCalled := false
 	historyRepo := &mockHistoryRepo{
 		createFn: func(_ context.Context, _ *entity.StageHistory) error {
@@ -19,10 +21,10 @@ func TestCreate_Success(t *testing.T) {
 		},
 	}
 
-	uc := NewCreate(historyRepo, entryFound())
+	uc := NewCreate(historyRepo, expectFindByID(t, userID, entryID))
 	out, err := uc.Execute(context.Background(), CreateInput{
-		UserID:    entity.NewUserID(),
-		EntryID:   entity.NewEntryID(),
+		UserID:    userID,
+		EntryID:   entryID,
 		StageKind: "interview",
 		Label:     "一次面接",
 		Note:      "オンライン",
@@ -49,10 +51,12 @@ func TestCreate_Success(t *testing.T) {
 }
 
 func TestCreate_WithoutNote(t *testing.T) {
-	uc := NewCreate(&mockHistoryRepo{}, entryFound())
+	userID := entity.NewUserID()
+	entryID := entity.NewEntryID()
+	uc := NewCreate(&mockHistoryRepo{}, expectFindByID(t, userID, entryID))
 	out, err := uc.Execute(context.Background(), CreateInput{
-		UserID:    entity.NewUserID(),
-		EntryID:   entity.NewEntryID(),
+		UserID:    userID,
+		EntryID:   entryID,
 		StageKind: "document",
 		Label:     "ES提出",
 	})
@@ -66,7 +70,8 @@ func TestCreate_WithoutNote(t *testing.T) {
 }
 
 func TestCreate_EntryNotFound(t *testing.T) {
-	uc := NewCreate(&mockHistoryRepo{}, &mockEntryRepo{})
+	// Entry が見つからないとき、historyRepo が呼ばれないことも担保する
+	uc := NewCreate(failOnCallHistoryRepo(t), &mockEntryRepo{})
 
 	_, err := uc.Execute(context.Background(), CreateInput{
 		UserID:    entity.NewUserID(),
@@ -84,10 +89,12 @@ func TestCreate_EntryNotFound(t *testing.T) {
 }
 
 func TestCreate_EmptyStageKind(t *testing.T) {
-	uc := NewCreate(&mockHistoryRepo{}, entryFound())
+	userID := entity.NewUserID()
+	entryID := entity.NewEntryID()
+	uc := NewCreate(failOnCallHistoryRepo(t), expectFindByID(t, userID, entryID))
 	_, err := uc.Execute(context.Background(), CreateInput{
-		UserID:    entity.NewUserID(),
-		EntryID:   entity.NewEntryID(),
+		UserID:    userID,
+		EntryID:   entryID,
 		StageKind: "",
 		Label:     "一次面接",
 	})
@@ -101,10 +108,12 @@ func TestCreate_EmptyStageKind(t *testing.T) {
 }
 
 func TestCreate_InvalidStageKind(t *testing.T) {
-	uc := NewCreate(&mockHistoryRepo{}, entryFound())
+	userID := entity.NewUserID()
+	entryID := entity.NewEntryID()
+	uc := NewCreate(failOnCallHistoryRepo(t), expectFindByID(t, userID, entryID))
 	_, err := uc.Execute(context.Background(), CreateInput{
-		UserID:    entity.NewUserID(),
-		EntryID:   entity.NewEntryID(),
+		UserID:    userID,
+		EntryID:   entryID,
 		StageKind: "unknown_kind",
 		Label:     "一次面接",
 	})
@@ -118,10 +127,12 @@ func TestCreate_InvalidStageKind(t *testing.T) {
 }
 
 func TestCreate_EmptyLabel(t *testing.T) {
-	uc := NewCreate(&mockHistoryRepo{}, entryFound())
+	userID := entity.NewUserID()
+	entryID := entity.NewEntryID()
+	uc := NewCreate(failOnCallHistoryRepo(t), expectFindByID(t, userID, entryID))
 	_, err := uc.Execute(context.Background(), CreateInput{
-		UserID:    entity.NewUserID(),
-		EntryID:   entity.NewEntryID(),
+		UserID:    userID,
+		EntryID:   entryID,
 		StageKind: "interview",
 		Label:     "",
 	})
@@ -135,10 +146,12 @@ func TestCreate_EmptyLabel(t *testing.T) {
 }
 
 func TestCreate_LabelWithSurroundingSpace(t *testing.T) {
-	uc := NewCreate(&mockHistoryRepo{}, entryFound())
+	userID := entity.NewUserID()
+	entryID := entity.NewEntryID()
+	uc := NewCreate(failOnCallHistoryRepo(t), expectFindByID(t, userID, entryID))
 	_, err := uc.Execute(context.Background(), CreateInput{
-		UserID:    entity.NewUserID(),
-		EntryID:   entity.NewEntryID(),
+		UserID:    userID,
+		EntryID:   entryID,
 		StageKind: "interview",
 		Label:     " 一次面接 ",
 	})
@@ -152,6 +165,8 @@ func TestCreate_LabelWithSurroundingSpace(t *testing.T) {
 }
 
 func TestCreate_RepoError(t *testing.T) {
+	userID := entity.NewUserID()
+	entryID := entity.NewEntryID()
 	createErr := errors.New("db write failed")
 	historyRepo := &mockHistoryRepo{
 		createFn: func(_ context.Context, _ *entity.StageHistory) error {
@@ -159,10 +174,10 @@ func TestCreate_RepoError(t *testing.T) {
 		},
 	}
 
-	uc := NewCreate(historyRepo, entryFound())
+	uc := NewCreate(historyRepo, expectFindByID(t, userID, entryID))
 	_, err := uc.Execute(context.Background(), CreateInput{
-		UserID:    entity.NewUserID(),
-		EntryID:   entity.NewEntryID(),
+		UserID:    userID,
+		EntryID:   entryID,
 		StageKind: "interview",
 		Label:     "一次面接",
 	})

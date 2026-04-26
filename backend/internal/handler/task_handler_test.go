@@ -362,6 +362,9 @@ func TestDeleteTask_Success(t *testing.T) {
 	if w.Code != http.StatusNoContent {
 		t.Fatalf("status = %d, want 204", w.Code)
 	}
+	if _, err := taskRepo.FindByID(context.Background(), userID, task.ID()); err == nil {
+		t.Error("task should be deleted")
+	}
 }
 
 func TestDeleteTask_NotFound(t *testing.T) {

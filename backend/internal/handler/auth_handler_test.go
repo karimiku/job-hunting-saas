@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	fbauth "firebase.google.com/go/v4/auth"
 	"github.com/go-chi/chi/v5"
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
@@ -34,11 +33,11 @@ func (r *failingUserRepo) Delete(_ context.Context, _ entity.UserID) error { ret
 
 // mockFirebaseAuth は FirebaseSessionCreator の差し替え可能なテスト実装。
 type mockFirebaseAuth struct {
-	verifyIDTokenFn func(ctx context.Context, idToken string) (*fbauth.Token, error)
+	verifyIDTokenFn func(ctx context.Context, idToken string) (*IDTokenClaims, error)
 	sessionCookieFn func(ctx context.Context, idToken string, expiresIn time.Duration) (string, error)
 }
 
-func (m *mockFirebaseAuth) VerifyIDToken(ctx context.Context, idToken string) (*fbauth.Token, error) {
+func (m *mockFirebaseAuth) VerifyIDToken(ctx context.Context, idToken string) (*IDTokenClaims, error) {
 	return m.verifyIDTokenFn(ctx, idToken)
 }
 
@@ -81,15 +80,13 @@ func seedUser(t *testing.T, userRepo *inmemory.UserRepository, email, name strin
 	return user
 }
 
-// freshToken は鮮度チェックを通る Firebase Token を返す（AuthTime = 直前）。
-func freshToken(uid, email, name string) *fbauth.Token {
-	return &fbauth.Token{
+// freshClaims は鮮度チェックを通る IDTokenClaims を返す（AuthTime = 直前）。
+func freshClaims(uid, email, name string) *IDTokenClaims {
+	return &IDTokenClaims{
 		UID:      uid,
-		AuthTime: time.Now().Unix(),
-		Claims: map[string]interface{}{
-			"email": email,
-			"name":  name,
-		},
+		Email:    email,
+		Name:     name,
+		AuthTime: time.Now(),
 	}
 }
 
@@ -97,8 +94,8 @@ func freshToken(uid, email, name string) *fbauth.Token {
 
 func TestCreateSession_Success_NewUser(t *testing.T) {
 	fb := &mockFirebaseAuth{
-		verifyIDTokenFn: func(_ context.Context, _ string) (*fbauth.Token, error) {
-			return freshToken("firebase-uid-1", "new@example.com", "新規ユーザー"), nil
+		verifyIDTokenFn: func(_ context.Context, _ string) (*IDTokenClaims, error) {
+			return freshClaims("firebase-uid-1", "new@example.com", "新規ユーザー"), nil
 		},
 		sessionCookieFn: func(_ context.Context, _ string, _ time.Duration) (string, error) {
 			return "session-cookie-value", nil
@@ -137,8 +134,8 @@ func TestCreateSession_Success_NewUser(t *testing.T) {
 
 func TestCreateSession_Success_ExistingUserByEmail(t *testing.T) {
 	fb := &mockFirebaseAuth{
-		verifyIDTokenFn: func(_ context.Context, _ string) (*fbauth.Token, error) {
-			return freshToken("firebase-uid-2", "existing@example.com", "既存ユーザー"), nil
+		verifyIDTokenFn: func(_ context.Context, _ string) (*IDTokenClaims, error) {
+			return freshClaims("firebase-uid-2", "existing@example.com", "既存ユーザー"), nil
 		},
 		sessionCookieFn: func(_ context.Context, _ string, _ time.Duration) (string, error) {
 			return "cookie", nil
@@ -166,11 +163,11 @@ func TestCreateSession_Success_ExistingUserByEmail(t *testing.T) {
 func TestCreateSession_FallbackNameToEmail(t *testing.T) {
 	// Google アカウントで displayName が空のケース
 	fb := &mockFirebaseAuth{
-		verifyIDTokenFn: func(_ context.Context, _ string) (*fbauth.Token, error) {
-			return &fbauth.Token{
+		verifyIDTokenFn: func(_ context.Context, _ string) (*IDTokenClaims, error) {
+			return &IDTokenClaims{
 				UID:      "uid-3",
-				AuthTime: time.Now().Unix(),
-				Claims:   map[string]interface{}{"email": "noname@example.com"},
+				Email:    "noname@example.com",
+				AuthTime: time.Now(),
 			}, nil
 		},
 		sessionCookieFn: func(_ context.Context, _ string, _ time.Duration) (string, error) {
@@ -221,7 +218,7 @@ func TestCreateSession_EmptyIDToken(t *testing.T) {
 
 func TestCreateSession_InvalidIDToken(t *testing.T) {
 	fb := &mockFirebaseAuth{
-		verifyIDTokenFn: func(_ context.Context, _ string) (*fbauth.Token, error) {
+		verifyIDTokenFn: func(_ context.Context, _ string) (*IDTokenClaims, error) {
 			return nil, errors.New("invalid token")
 		},
 	}
@@ -240,11 +237,12 @@ func TestCreateSession_InvalidIDToken(t *testing.T) {
 func TestCreateSession_StaleIDToken(t *testing.T) {
 	// 5分以上前に発行されたトークンは拒否される（Session Fixation 防止）
 	fb := &mockFirebaseAuth{
-		verifyIDTokenFn: func(_ context.Context, _ string) (*fbauth.Token, error) {
-			return &fbauth.Token{
+		verifyIDTokenFn: func(_ context.Context, _ string) (*IDTokenClaims, error) {
+			return &IDTokenClaims{
 				UID:      "uid",
-				AuthTime: time.Now().Add(-10 * time.Minute).Unix(),
-				Claims:   map[string]interface{}{"email": "stale@example.com", "name": "name"},
+				Email:    "stale@example.com",
+				Name:     "name",
+				AuthTime: time.Now().Add(-10 * time.Minute),
 			}, nil
 		},
 	}
@@ -261,13 +259,12 @@ func TestCreateSession_StaleIDToken(t *testing.T) {
 }
 
 func TestCreateSession_AuthenticateFails(t *testing.T) {
-	// email が空の Claims で Authenticate UC が value.NewEmail で失敗するケース
+	// email が空のクレームで Authenticate UC が value.NewEmail で失敗するケース
 	fb := &mockFirebaseAuth{
-		verifyIDTokenFn: func(_ context.Context, _ string) (*fbauth.Token, error) {
-			return &fbauth.Token{
+		verifyIDTokenFn: func(_ context.Context, _ string) (*IDTokenClaims, error) {
+			return &IDTokenClaims{
 				UID:      "uid",
-				AuthTime: time.Now().Unix(),
-				Claims:   map[string]interface{}{"email": "", "name": ""},
+				AuthTime: time.Now(),
 			}, nil
 		},
 	}
@@ -285,8 +282,8 @@ func TestCreateSession_AuthenticateFails(t *testing.T) {
 
 func TestCreateSession_SessionCookieFails(t *testing.T) {
 	fb := &mockFirebaseAuth{
-		verifyIDTokenFn: func(_ context.Context, _ string) (*fbauth.Token, error) {
-			return freshToken("uid", "ok@example.com", "name"), nil
+		verifyIDTokenFn: func(_ context.Context, _ string) (*IDTokenClaims, error) {
+			return freshClaims("uid", "ok@example.com", "name"), nil
 		},
 		sessionCookieFn: func(_ context.Context, _ string, _ time.Duration) (string, error) {
 			return "", errors.New("firebase down")

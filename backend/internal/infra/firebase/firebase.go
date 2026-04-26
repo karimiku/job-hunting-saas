@@ -1,15 +1,20 @@
-// Package firebase は Firebase Admin SDK の初期化を行う。
-// 他パッケージからは *auth.Client を介して ID Token 検証や Session Cookie 発行を行う。
+// Package firebase は Firebase Admin SDK の初期化と、handler / middleware が
+// 期待する DTO 型へのアダプタを提供する。
+// SDK 固有型 (*auth.Token 等) はこの層に閉じ込め、上位層は IdP 非依存の DTO だけを扱う。
 package firebase
 
 import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
 	"google.golang.org/api/option"
+
+	"github.com/karimiku/job-hunting-saas/internal/handler"
+	"github.com/karimiku/job-hunting-saas/internal/middleware"
 )
 
 // Client は Firebase Admin SDK の Auth クライアントを保持する。
@@ -52,4 +57,55 @@ func NewClient(ctx context.Context, credentialsPath, projectID string) (*Client,
 		return nil, fmt.Errorf("firebase: init auth client: %w", err)
 	}
 	return &Client{Auth: authClient}, nil
+}
+
+// SessionCreator は handler.FirebaseSessionCreator を実装する Firebase アダプタ。
+// SDK の *auth.Token を handler.IDTokenClaims (DTO) に変換して返す。
+type SessionCreator struct {
+	client *auth.Client
+}
+
+// NewSessionCreator は SessionCreator を生成する。
+func NewSessionCreator(client *auth.Client) *SessionCreator {
+	return &SessionCreator{client: client}
+}
+
+// VerifyIDToken は ID Token を検証し、必要なクレームだけを DTO に詰めて返す。
+func (a *SessionCreator) VerifyIDToken(ctx context.Context, idToken string) (*handler.IDTokenClaims, error) {
+	token, err := a.client.VerifyIDToken(ctx, idToken)
+	if err != nil {
+		return nil, err
+	}
+	email, _ := token.Claims["email"].(string)
+	name, _ := token.Claims["name"].(string)
+	return &handler.IDTokenClaims{
+		UID:      token.UID,
+		Email:    email,
+		Name:     name,
+		AuthTime: time.Unix(token.AuthTime, 0),
+	}, nil
+}
+
+// SessionCookie は Firebase Admin SDK の SessionCookie 発行をそのまま委譲する。
+func (a *SessionCreator) SessionCookie(ctx context.Context, idToken string, expiresIn time.Duration) (string, error) {
+	return a.client.SessionCookie(ctx, idToken, expiresIn)
+}
+
+// SessionVerifier は middleware.FirebaseSessionVerifier を実装する Firebase アダプタ。
+type SessionVerifier struct {
+	client *auth.Client
+}
+
+// NewSessionVerifier は SessionVerifier を生成する。
+func NewSessionVerifier(client *auth.Client) *SessionVerifier {
+	return &SessionVerifier{client: client}
+}
+
+// VerifySessionCookie は Session Cookie を検証し、必要なクレームだけを DTO に詰めて返す。
+func (a *SessionVerifier) VerifySessionCookie(ctx context.Context, sessionCookie string) (*middleware.SessionClaims, error) {
+	token, err := a.client.VerifySessionCookie(ctx, sessionCookie)
+	if err != nil {
+		return nil, err
+	}
+	return &middleware.SessionClaims{UID: token.UID}, nil
 }

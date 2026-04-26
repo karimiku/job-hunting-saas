@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	fbauth "firebase.google.com/go/v4/auth"
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
@@ -59,10 +58,10 @@ func TestSetUserID_OverwritesPrevious(t *testing.T) {
 
 // mockSessionVerifier は FirebaseSessionVerifier のテスト実装。
 type mockSessionVerifier struct {
-	verifyFn func(ctx context.Context, cookie string) (*fbauth.Token, error)
+	verifyFn func(ctx context.Context, cookie string) (*SessionClaims, error)
 }
 
-func (m *mockSessionVerifier) VerifySessionCookie(ctx context.Context, cookie string) (*fbauth.Token, error) {
+func (m *mockSessionVerifier) VerifySessionCookie(ctx context.Context, cookie string) (*SessionClaims, error) {
 	return m.verifyFn(ctx, cookie)
 }
 
@@ -89,11 +88,11 @@ func TestNewAuth_Success(t *testing.T) {
 	}
 
 	fb := &mockSessionVerifier{
-		verifyFn: func(_ context.Context, cookie string) (*fbauth.Token, error) {
+		verifyFn: func(_ context.Context, cookie string) (*SessionClaims, error) {
 			if cookie != "valid-cookie" {
 				t.Errorf("cookie = %q, want valid-cookie", cookie)
 			}
-			return &fbauth.Token{UID: "firebase-uid"}, nil
+			return &SessionClaims{UID: "firebase-uid"}, nil
 		},
 	}
 
@@ -152,7 +151,7 @@ func TestNewAuth_EmptyCookie(t *testing.T) {
 
 func TestNewAuth_InvalidSessionCookie(t *testing.T) {
 	fb := &mockSessionVerifier{
-		verifyFn: func(_ context.Context, _ string) (*fbauth.Token, error) {
+		verifyFn: func(_ context.Context, _ string) (*SessionClaims, error) {
 			return nil, errors.New("expired cookie")
 		},
 	}
@@ -177,8 +176,8 @@ func TestNewAuth_InvalidSessionCookie(t *testing.T) {
 func TestNewAuth_IdentityNotFound(t *testing.T) {
 	// Session は有効だが DB に該当 ExternalIdentity がない異常系
 	fb := &mockSessionVerifier{
-		verifyFn: func(_ context.Context, _ string) (*fbauth.Token, error) {
-			return &fbauth.Token{UID: "unknown-uid"}, nil
+		verifyFn: func(_ context.Context, _ string) (*SessionClaims, error) {
+			return &SessionClaims{UID: "unknown-uid"}, nil
 		},
 	}
 	called := false
@@ -214,8 +213,8 @@ func (r *failingExtIDRepo) FindByProviderAndSubject(_ context.Context, _ value.A
 
 func TestNewAuth_RepoUnexpectedError(t *testing.T) {
 	fb := &mockSessionVerifier{
-		verifyFn: func(_ context.Context, _ string) (*fbauth.Token, error) {
-			return &fbauth.Token{UID: "uid"}, nil
+		verifyFn: func(_ context.Context, _ string) (*SessionClaims, error) {
+			return &SessionClaims{UID: "uid"}, nil
 		},
 	}
 	repo := &failingExtIDRepo{err: errors.New("db unreachable")}

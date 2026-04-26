@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"time"
 
-	fbauth "firebase.google.com/go/v4/auth"
 	"github.com/go-chi/chi/v5"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 	"github.com/karimiku/job-hunting-saas/internal/middleware"
@@ -36,10 +35,20 @@ type AuthConfig struct {
 	CookieSecure bool   // 本番 HTTPS では true
 }
 
+// IDTokenClaims は ID Token から取り出した認証クレーム。
+// Firebase 等の外部 IdP 固有型を handler 層から切り離すための DTO。
+type IDTokenClaims struct {
+	UID      string
+	Email    string
+	Name     string
+	AuthTime time.Time
+}
+
 // FirebaseSessionCreator は ID Token 検証と Session Cookie 発行に必要な
-// Firebase Auth クライアントの最小インターフェース。テスト時のモック差し替え点。
+// 認証バックエンドの最小インターフェース。テスト時のモック差し替え点。
+// 戻り値は IdP 非依存の DTO とし、SDK 型に handler が引きずられないようにする。
 type FirebaseSessionCreator interface {
-	VerifyIDToken(ctx context.Context, idToken string) (*fbauth.Token, error)
+	VerifyIDToken(ctx context.Context, idToken string) (*IDTokenClaims, error)
 	SessionCookie(ctx context.Context, idToken string, expiresIn time.Duration) (string, error)
 }
 
@@ -92,7 +101,7 @@ func (h *AuthHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.firebaseAuth.VerifyIDToken(ctx, body.IDToken)
+	claims, err := h.firebaseAuth.VerifyIDToken(ctx, body.IDToken)
 	if err != nil {
 		log.Printf("auth: VerifyIDToken failed: %v", err)
 		http.Error(w, "invalid id token", http.StatusUnauthorized)
@@ -100,22 +109,21 @@ func (h *AuthHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Firebase 推奨: 鮮度チェック。古いトークンでのセッション作成を拒否する。
-	if time.Since(time.Unix(token.AuthTime, 0)) > idTokenFreshness {
+	if time.Since(claims.AuthTime) > idTokenFreshness {
 		http.Error(w, "recent sign-in required", http.StatusUnauthorized)
 		return
 	}
 
-	email, _ := token.Claims["email"].(string)
-	name, _ := token.Claims["name"].(string)
+	name := claims.Name
 	if name == "" {
 		// Google アカウントで displayName が空の場合に備えたフォールバック
-		name = email
+		name = claims.Email
 	}
 
 	out, err := h.authenticate.Execute(ctx, useruc.AuthenticateInput{
 		Provider: "google",
-		Subject:  token.UID,
-		Email:    email,
+		Subject:  claims.UID,
+		Email:    claims.Email,
 		Name:     name,
 	})
 	if err != nil {

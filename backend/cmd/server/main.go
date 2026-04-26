@@ -97,10 +97,13 @@ func run() error {
 		}
 
 		authenticateUC := useruc.NewAuthenticate(userRepo, extIDRepo)
-		authHandler = handler.NewAuthHandler(fb.Auth, authenticateUC, userRepo, handler.AuthConfig{
+		// Firebase SDK 型を handler / middleware に漏らさないため、adapter で DTO に変換する。
+		sessionCreator := fbinfra.NewSessionCreator(fb.Auth)
+		sessionVerifier := fbinfra.NewSessionVerifier(fb.Auth)
+		authHandler = handler.NewAuthHandler(sessionCreator, authenticateUC, userRepo, handler.AuthConfig{
 			CookieSecure: os.Getenv("COOKIE_SECURE") == "true",
 		})
-		authMiddleware = middleware.NewAuth(fb.Auth, extIDRepo)
+		authMiddleware = middleware.NewAuth(sessionVerifier, extIDRepo)
 		log.Println("firebase auth wired")
 	}
 
