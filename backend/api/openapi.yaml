@@ -372,6 +372,63 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/v1/inbox/clips:
+    post:
+      operationId: createInboxClip
+      summary: Chrome 拡張等から保存されたページクリップを作成する
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInboxClipRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InboxClipResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: listInboxClips
+      summary: 自分のページクリップ一覧を返す
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clips:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/InboxClipResponse"
+                required:
+                  - clips
+
+  /api/v1/inbox/clips/{clipId}:
+    parameters:
+      - $ref: "#/components/parameters/ClipId"
+    delete:
+      operationId: deleteInboxClip
+      summary: ページクリップを削除する
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   parameters:
     CompanyId:
@@ -390,6 +447,13 @@ components:
         format: uuid
     TaskId:
       name: taskId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ClipId:
+      name: clipId
       in: path
       required: true
       schema:
@@ -626,6 +690,47 @@ components:
         - stageLabel
         - note
         - createdAt
+
+    CreateInboxClipRequest:
+      type: object
+      properties:
+        url:
+          type: string
+        title:
+          type: string
+        source:
+          type: string
+        guess:
+          type: string
+      required:
+        - url
+        - title
+        - source
+
+    InboxClipResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+        title:
+          type: string
+        source:
+          type: string
+        guess:
+          type: string
+        capturedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - url
+        - title
+        - source
+        - guess
+        - capturedAt
 
     ErrorResponse:
       type: object

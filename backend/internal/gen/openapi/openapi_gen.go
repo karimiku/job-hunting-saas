@@ -243,6 +243,14 @@ type CreateEntryRequest struct {
 	Source    string             `json:"source"`
 }
 
+// CreateInboxClipRequest defines model for CreateInboxClipRequest.
+type CreateInboxClipRequest struct {
+	Guess  *string `json:"guess,omitempty"`
+	Source string  `json:"source"`
+	Title  string  `json:"title"`
+	Url    string  `json:"url"`
+}
+
 // CreateStageHistoryRequest defines model for CreateStageHistoryRequest.
 type CreateStageHistoryRequest struct {
 	Note       *string                            `json:"note,omitempty"`
@@ -281,6 +289,16 @@ type EntryResponse struct {
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
 	Message string `json:"message"`
+}
+
+// InboxClipResponse defines model for InboxClipResponse.
+type InboxClipResponse struct {
+	CapturedAt time.Time          `json:"capturedAt"`
+	Guess      string             `json:"guess"`
+	Id         openapi_types.UUID `json:"id"`
+	Source     string             `json:"source"`
+	Title      string             `json:"title"`
+	Url        string             `json:"url"`
 }
 
 // StageHistoryResponse defines model for StageHistoryResponse.
@@ -344,6 +362,9 @@ type UpdateTaskRequestStatus string
 // UpdateTaskRequestType defines model for UpdateTaskRequest.Type.
 type UpdateTaskRequestType string
 
+// ClipId defines model for ClipId.
+type ClipId = openapi_types.UUID
+
 // CompanyId defines model for CompanyId.
 type CompanyId = openapi_types.UUID
 
@@ -383,6 +404,9 @@ type CreateStageHistoryJSONRequestBody = CreateStageHistoryRequest
 
 // CreateTaskJSONRequestBody defines body for CreateTask for application/json ContentType.
 type CreateTaskJSONRequestBody = CreateTaskRequest
+
+// CreateInboxClipJSONRequestBody defines body for CreateInboxClip for application/json ContentType.
+type CreateInboxClipJSONRequestBody = CreateInboxClipRequest
 
 // UpdateTaskJSONRequestBody defines body for UpdateTask for application/json ContentType.
 type UpdateTaskJSONRequestBody = UpdateTaskRequest
@@ -431,6 +455,15 @@ type ServerInterface interface {
 	// タスクを新規登録する
 	// (POST /api/v1/entries/{entryId}/tasks)
 	CreateTask(w http.ResponseWriter, r *http.Request, entryId EntryId)
+	// 自分のページクリップ一覧を返す
+	// (GET /api/v1/inbox/clips)
+	ListInboxClips(w http.ResponseWriter, r *http.Request)
+	// Chrome 拡張等から保存されたページクリップを作成する
+	// (POST /api/v1/inbox/clips)
+	CreateInboxClip(w http.ResponseWriter, r *http.Request)
+	// ページクリップを削除する
+	// (DELETE /api/v1/inbox/clips/{clipId})
+	DeleteInboxClip(w http.ResponseWriter, r *http.Request, clipId ClipId)
 	// タスクを削除する
 	// (DELETE /api/v1/tasks/{taskId})
 	DeleteTask(w http.ResponseWriter, r *http.Request, taskId TaskId)
@@ -527,6 +560,24 @@ func (_ Unimplemented) ListTasks(w http.ResponseWriter, r *http.Request, entryId
 // タスクを新規登録する
 // (POST /api/v1/entries/{entryId}/tasks)
 func (_ Unimplemented) CreateTask(w http.ResponseWriter, r *http.Request, entryId EntryId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// 自分のページクリップ一覧を返す
+// (GET /api/v1/inbox/clips)
+func (_ Unimplemented) ListInboxClips(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Chrome 拡張等から保存されたページクリップを作成する
+// (POST /api/v1/inbox/clips)
+func (_ Unimplemented) CreateInboxClip(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ページクリップを削除する
+// (DELETE /api/v1/inbox/clips/{clipId})
+func (_ Unimplemented) DeleteInboxClip(w http.ResponseWriter, r *http.Request, clipId ClipId) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -892,6 +943,59 @@ func (siw *ServerInterfaceWrapper) CreateTask(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// ListInboxClips operation middleware
+func (siw *ServerInterfaceWrapper) ListInboxClips(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListInboxClips(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateInboxClip operation middleware
+func (siw *ServerInterfaceWrapper) CreateInboxClip(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateInboxClip(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteInboxClip operation middleware
+func (siw *ServerInterfaceWrapper) DeleteInboxClip(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "clipId" -------------
+	var clipId ClipId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "clipId", chi.URLParam(r, "clipId"), &clipId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "clipId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteInboxClip(w, r, clipId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeleteTask operation middleware
 func (siw *ServerInterfaceWrapper) DeleteTask(w http.ResponseWriter, r *http.Request) {
 
@@ -1121,6 +1225,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v1/entries/{entryId}/tasks", wrapper.CreateTask)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/inbox/clips", wrapper.ListInboxClips)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/inbox/clips", wrapper.CreateInboxClip)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v1/inbox/clips/{clipId}", wrapper.DeleteInboxClip)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v1/tasks/{taskId}", wrapper.DeleteTask)

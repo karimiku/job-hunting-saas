@@ -22,6 +22,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/middleware"
 	companyuc "github.com/karimiku/job-hunting-saas/internal/usecase/company"
 	entryuc "github.com/karimiku/job-hunting-saas/internal/usecase/entry"
+	inboxclipuc "github.com/karimiku/job-hunting-saas/internal/usecase/inbox_clip"
 	stagehistoryuc "github.com/karimiku/job-hunting-saas/internal/usecase/stage_history"
 	taskuc "github.com/karimiku/job-hunting-saas/internal/usecase/task"
 	useruc "github.com/karimiku/job-hunting-saas/internal/usecase/user"
@@ -51,6 +52,7 @@ func run() error {
 		stageHistoryRepo repository.StageHistoryRepository
 		userRepo         repository.UserRepository
 		extIDRepo        repository.ExternalIdentityRepository
+		inboxClipRepo    repository.InboxClipRepository
 	)
 
 	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
@@ -66,7 +68,10 @@ func run() error {
 		stageHistoryRepo = postgres.NewStageHistoryRepository(pool)
 		userRepo = postgres.NewUserRepository(pool)
 		extIDRepo = postgres.NewExternalIdentityRepository(pool)
-		log.Println("using PostgreSQL repositories")
+		// Postgres 版が未実装のため、Inbox は in-memory のまま運用する。
+		// （Chrome 拡張用のクリップ保存。永続化は後続 PR で対応予定。）
+		inboxClipRepo = inmemory.NewInboxClipRepository()
+		log.Println("using PostgreSQL repositories (Inbox clips: in-memory only)")
 	} else {
 		inMemoryCompanyRepo := inmemory.NewCompanyRepository()
 		inMemoryEntryRepo := inmemory.NewEntryRepository()
@@ -75,6 +80,7 @@ func run() error {
 		entryRepo = inMemoryEntryRepo
 		taskRepo = inmemory.NewTaskRepository(inMemoryEntryRepo)
 		stageHistoryRepo = inmemory.NewStageHistoryRepository()
+		inboxClipRepo = inmemory.NewInboxClipRepository()
 		log.Println("using in-memory repositories (DATABASE_URL not set) — auth endpoints disabled")
 	}
 
@@ -136,11 +142,18 @@ func run() error {
 		stagehistoryuc.NewList(stageHistoryRepo, entryRepo),
 	)
 
+	inboxClipHandler := handler.NewInboxClipHandler(
+		inboxclipuc.NewCreate(inboxClipRepo),
+		inboxclipuc.NewList(inboxClipRepo),
+		inboxclipuc.NewDelete(inboxClipRepo),
+	)
+
 	h := &handler.Handler{
 		CompanyHandler:      companyHandler,
 		EntryHandler:        entryHandler,
 		TaskHandler:         taskHandler,
 		StageHistoryHandler: stageHistoryHandler,
+		InboxClipHandler:    inboxClipHandler,
 	}
 
 	router := chi.NewRouter()

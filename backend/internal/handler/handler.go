@@ -9,6 +9,7 @@ type Handler struct {
 	*EntryHandler
 	*TaskHandler
 	*StageHistoryHandler
+	*InboxClipHandler
 }
 
 var _ openapi.ServerInterface = (*Handler)(nil)
