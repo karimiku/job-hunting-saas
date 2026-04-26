@@ -5,25 +5,12 @@ import { useEffect } from "react";
 import { useUser } from "@/lib/use-user";
 import { AppShell } from "@/components/entre/AppShell";
 import { Mascot } from "@/components/entre/Mascot";
-
-interface Clip {
-  id: string;
-  url: string;
-  title: string;
-  source: string;
-  captured: string;
-  guess: string;
-}
-
-const CLIPS: Clip[] = [
-  { id: "c1", url: "recruit.example.com/jobs/3921", title: "【26卒】エンジニア職 本選考 | パネル製作所", source: "リクナビ", captured: "15分前", guess: "パネル製作所" },
-  { id: "c2", url: "mypage.ats-i-web.com/candidate/...", title: "マイページ | 選考スケジュール", source: "i-web", captured: "1時間前", guess: "オリーブ商事（候補）" },
-  { id: "c3", url: "one-career.example/report/interview-report", title: "面接レポート — ブリック出版 1次", source: "ONE CAREER", captured: "今朝", guess: "ブリック出版" },
-];
+import { useInboxClips } from "@/hooks/useInboxClips";
 
 export default function InboxPage() {
   const router = useRouter();
   const state = useUser();
+  const { data, loading, error } = useInboxClips();
 
   useEffect(() => {
     if (state.status === "guest") router.replace("/login");
@@ -43,16 +30,26 @@ export default function InboxPage() {
               Chrome拡張から保存したクリップ
             </p>
           </div>
-          <span className="text-[20px]">
-            <Mascot size={32} mood="wink" />
-          </span>
+          <Mascot size={32} mood="wink" />
         </header>
 
-        {CLIPS.length === 0 ? (
-          <EmptyState />
-        ) : (
+        {loading && (
+          <p role="status" className="text-[12px] text-ink-3">
+            読み込み中…
+          </p>
+        )}
+
+        {error && (
+          <p role="alert" className="rounded-lg bg-pink/40 p-3 text-[12px] font-semibold text-ink">
+            読み込みに失敗しました（{error.message}）
+          </p>
+        )}
+
+        {!loading && !error && (data?.length ?? 0) === 0 && <EmptyState />}
+
+        {!loading && !error && (data?.length ?? 0) > 0 && (
           <ul className="flex flex-col gap-2">
-            {CLIPS.map((c) => (
+            {data!.map((c) => (
               <li
                 key={c.id}
                 className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-surface p-3.5 transition-colors hover:border-sage"
@@ -62,13 +59,13 @@ export default function InboxPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[12px] font-bold">{c.title}</div>
-                  <div className="mt-0.5 truncate font-mono text-[10px] text-ink-3">{c.url}</div>
+                  <div className="mt-0.5 truncate font-mono text-[10px] text-ink-3">
+                    {c.url}
+                  </div>
                   <div className="mt-1 flex items-center gap-2 text-[10px] text-ink-2">
-                    <span className="rounded-sm bg-cream-2 px-1.5 py-0.5 font-bold">
-                      {c.source}
-                    </span>
-                    <span>{c.captured}</span>
-                    <span className="text-sage">→ {c.guess}</span>
+                    <span className="rounded-sm bg-cream-2 px-1.5 py-0.5 font-bold">{c.source}</span>
+                    <RelativeTime iso={c.capturedAt} />
+                    {c.guess && <span className="text-sage">→ {c.guess}</span>}
                   </div>
                 </div>
               </li>
@@ -78,6 +75,18 @@ export default function InboxPage() {
       </div>
     </AppShell>
   );
+}
+
+function RelativeTime({ iso }: { iso: string }) {
+  const date = new Date(iso);
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  let label: string;
+  if (diffMin < 1) label = "たった今";
+  else if (diffMin < 60) label = `${diffMin}分前`;
+  else if (diffMin < 60 * 24) label = `${Math.floor(diffMin / 60)}時間前`;
+  else label = `${Math.floor(diffMin / (60 * 24))}日前`;
+  return <span>{label}</span>;
 }
 
 function EmptyState() {
