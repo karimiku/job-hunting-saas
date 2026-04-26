@@ -15,3 +15,9 @@ backend/secrets/
 # LP デザイン検証用のローカル成果物
 frontend/screenshots/
 frontend/.playwright-mcp/
+.playwright-mcp/
+hero-*.png
+entre-*.png
+
+# repo root に誤って生成された oapi-codegen 出力（正しくは backend/internal/...）
+/internal/
