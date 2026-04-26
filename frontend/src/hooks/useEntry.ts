@@ -3,6 +3,12 @@
 import { useEffect, useState } from "react";
 import { getEntry, type EntryResponse } from "@/lib/api/entries";
 
+interface FetchState {
+  data: EntryResponse | undefined;
+  loading: boolean;
+  error: Error | undefined;
+}
+
 export interface UseEntryResult {
   data: EntryResponse | undefined;
   loading: boolean;
@@ -12,30 +18,33 @@ export interface UseEntryResult {
 
 /** Entry 1件を取得するフック。id 未指定なら何もしない。 */
 export function useEntry(id: string | undefined): UseEntryResult {
-  const [data, setData] = useState<EntryResponse | undefined>(undefined);
-  const [loading, setLoading] = useState(Boolean(id));
-  const [error, setError] = useState<Error | undefined>(undefined);
+  // 初期 loading は id があれば true。id が undefined のときは loading=false で確定。
+  const [state, setState] = useState<FetchState>({
+    data: undefined,
+    loading: Boolean(id),
+    error: undefined,
+  });
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!id) {
-      setLoading(false);
+      // 何もしない (loading は初期値で false / 既に false)
       return;
     }
     let cancelled = false;
-    setLoading(true);
-    setError(undefined);
     getEntry(id)
       .then((res) => {
         if (!cancelled) {
-          setData(res);
-          setLoading(false);
+          setState({ data: res, loading: false, error: undefined });
         }
       })
       .catch((e: unknown) => {
         if (!cancelled) {
-          setError(e instanceof Error ? e : new Error(String(e)));
-          setLoading(false);
+          setState({
+            data: undefined,
+            loading: false,
+            error: e instanceof Error ? e : new Error(String(e)),
+          });
         }
       });
     return () => {
@@ -43,5 +52,11 @@ export function useEntry(id: string | undefined): UseEntryResult {
     };
   }, [id, reloadKey]);
 
-  return { data, loading, error, refetch: () => setReloadKey((n) => n + 1) };
+  return {
+    data: state.data,
+    // id が消えたら loading は false 扱い (effect では state を触らない)
+    loading: id ? state.loading : false,
+    error: state.error,
+    refetch: () => setReloadKey((n) => n + 1),
+  };
 }

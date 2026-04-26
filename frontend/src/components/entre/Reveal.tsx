@@ -16,10 +16,11 @@ export function Reveal({ children, delay = 0, className = "" }: RevealProps) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    // jsdom や古いブラウザのフォールバック — 即時表示
+    // jsdom や古いブラウザのフォールバック — 次のタスクで表示する。
+    // setShown を effect 内で同期に呼ぶと react-hooks/set-state-in-effect になるため。
     if (typeof IntersectionObserver === "undefined") {
-      setShown(true);
-      return;
+      const id = setTimeout(() => setShown(true), 0);
+      return () => clearTimeout(id);
     }
     const io = new IntersectionObserver(
       ([e]) => {

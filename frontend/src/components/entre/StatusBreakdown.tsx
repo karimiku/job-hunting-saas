@@ -32,14 +32,18 @@ export function StatusBreakdown() {
   const total = data?.length ?? 0;
 
   // 円グラフ用 — 各ステージの dasharray (周長 113 を total で按分)
-  let offset = 0;
-  const segments = ORDER.map((kind) => {
-    const count = counts.get(kind) ?? 0;
-    const length = total > 0 ? (count / total) * 113 : 0;
-    const seg = { kind, length, offset };
-    offset -= length;
-    return seg;
-  });
+  // 累積 offset は reduce で純関数的に計算 (ループ内 mutation を避ける)
+  const segments = ORDER.reduce<Array<{ kind: string; length: number; offset: number }>>(
+    (acc, kind) => {
+      const count = counts.get(kind) ?? 0;
+      const length = total > 0 ? (count / total) * 113 : 0;
+      const prev = acc[acc.length - 1];
+      const offset = prev ? prev.offset - prev.length : 0;
+      acc.push({ kind, length, offset });
+      return acc;
+    },
+    [],
+  );
 
   return (
     <div className="flex items-center gap-3.5">

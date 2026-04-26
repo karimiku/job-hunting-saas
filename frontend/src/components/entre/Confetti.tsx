@@ -1,6 +1,6 @@
 "use client";
 
-import { CSSProperties, useMemo } from "react";
+import { CSSProperties, useState } from "react";
 
 interface ConfettiProps {
   /** 値が変わるたびに紙吹雪を再発火する。0 の間は描画しない。 */
@@ -22,28 +22,27 @@ interface Piece {
 
 /** タスク完了・内定獲得時の紙吹雪エフェクト。 */
 export function Confetti({ trigger, count = 18 }: ConfettiProps) {
-  const pieces = useMemo<Piece[]>(
-    () =>
-      Array.from({ length: count }, (_, i) => ({
-        id: i,
-        cx: (Math.random() * 2 - 1) * 80,
-        cy: 40 + Math.random() * 60,
-        cr: (Math.random() * 2 - 1) * 540,
-        color: COLORS[i % COLORS.length],
-        delay: Math.random() * 0.1,
-        shape: (i % 3) as 0 | 1 | 2,
-      })),
-    // pieces を trigger ごとに作り直して再アニメーションさせる
-    [trigger, count],
+  if (!trigger) return null;
+  // trigger ごとに ConfettiBurst を再マウントすることで pieces を再生成する。
+  return <ConfettiBurst key={trigger} count={count} />;
+}
+
+/** trigger 値ごとにマウントされ、useState 初期化子で乱数値を1度だけ生成する。 */
+function ConfettiBurst({ count }: { count: number }) {
+  const [pieces] = useState<Piece[]>(() =>
+    Array.from({ length: count }, (_, i) => ({
+      id: i,
+      cx: (Math.random() * 2 - 1) * 80,
+      cy: 40 + Math.random() * 60,
+      cr: (Math.random() * 2 - 1) * 540,
+      color: COLORS[i % COLORS.length],
+      delay: Math.random() * 0.1,
+      shape: (i % 3) as 0 | 1 | 2,
+    })),
   );
 
-  if (!trigger) return null;
-
   return (
-    <div
-      key={trigger}
-      className="pointer-events-none absolute left-1/2 top-[40%] z-50"
-    >
+    <div className="pointer-events-none absolute left-1/2 top-[40%] z-50">
       {pieces.map((p) => {
         const style: CSSProperties & Record<string, string | number> = {
           position: "absolute",

@@ -3,6 +3,12 @@
 import { useEffect, useState } from "react";
 import { listInboxClips, type InboxClipResponse } from "@/lib/api/inboxClips";
 
+interface FetchState {
+  data: InboxClipResponse[] | undefined;
+  loading: boolean;
+  error: Error | undefined;
+}
+
 export interface UseInboxClipsResult {
   data: InboxClipResponse[] | undefined;
   loading: boolean;
@@ -10,28 +16,28 @@ export interface UseInboxClipsResult {
   refetch: () => void;
 }
 
+const INITIAL: FetchState = { data: undefined, loading: true, error: undefined };
+
 /** Inbox クリップ一覧を取得するフック。 */
 export function useInboxClips(): UseInboxClipsResult {
-  const [data, setData] = useState<InboxClipResponse[] | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | undefined>(undefined);
+  const [state, setState] = useState<FetchState>(INITIAL);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(undefined);
     listInboxClips()
       .then((res) => {
         if (!cancelled) {
-          setData(res);
-          setLoading(false);
+          setState({ data: res, loading: false, error: undefined });
         }
       })
       .catch((e: unknown) => {
         if (!cancelled) {
-          setError(e instanceof Error ? e : new Error(String(e)));
-          setLoading(false);
+          setState({
+            data: undefined,
+            loading: false,
+            error: e instanceof Error ? e : new Error(String(e)),
+          });
         }
       });
     return () => {
@@ -39,5 +45,10 @@ export function useInboxClips(): UseInboxClipsResult {
     };
   }, [reloadKey]);
 
-  return { data, loading, error, refetch: () => setReloadKey((n) => n + 1) };
+  return {
+    data: state.data,
+    loading: state.loading,
+    error: state.error,
+    refetch: () => setReloadKey((n) => n + 1),
+  };
 }

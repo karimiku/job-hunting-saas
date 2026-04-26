@@ -3,6 +3,12 @@
 import { useEffect, useState } from "react";
 import { listTasksByEntry, type TaskResponse } from "@/lib/api/tasks";
 
+interface FetchState {
+  data: TaskResponse[] | undefined;
+  loading: boolean;
+  error: Error | undefined;
+}
+
 export interface UseTasksByEntryResult {
   data: TaskResponse[] | undefined;
   loading: boolean;
@@ -12,30 +18,31 @@ export interface UseTasksByEntryResult {
 
 /** entryId 配下のタスク一覧を取得。 */
 export function useTasksByEntry(entryId: string | undefined): UseTasksByEntryResult {
-  const [data, setData] = useState<TaskResponse[] | undefined>(undefined);
-  const [loading, setLoading] = useState(Boolean(entryId));
-  const [error, setError] = useState<Error | undefined>(undefined);
+  const [state, setState] = useState<FetchState>({
+    data: undefined,
+    loading: Boolean(entryId),
+    error: undefined,
+  });
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!entryId) {
-      setLoading(false);
       return;
     }
     let cancelled = false;
-    setLoading(true);
-    setError(undefined);
     listTasksByEntry(entryId)
       .then((res) => {
         if (!cancelled) {
-          setData(res);
-          setLoading(false);
+          setState({ data: res, loading: false, error: undefined });
         }
       })
       .catch((e: unknown) => {
         if (!cancelled) {
-          setError(e instanceof Error ? e : new Error(String(e)));
-          setLoading(false);
+          setState({
+            data: undefined,
+            loading: false,
+            error: e instanceof Error ? e : new Error(String(e)),
+          });
         }
       });
     return () => {
@@ -43,5 +50,10 @@ export function useTasksByEntry(entryId: string | undefined): UseTasksByEntryRes
     };
   }, [entryId, reloadKey]);
 
-  return { data, loading, error, refetch: () => setReloadKey((n) => n + 1) };
+  return {
+    data: state.data,
+    loading: entryId ? state.loading : false,
+    error: state.error,
+    refetch: () => setReloadKey((n) => n + 1),
+  };
 }

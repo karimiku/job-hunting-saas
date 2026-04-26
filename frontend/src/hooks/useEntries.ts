@@ -3,6 +3,12 @@
 import { useEffect, useState } from "react";
 import { listEntries, type EntryResponse, type ListEntriesParams } from "@/lib/api/entries";
 
+interface FetchState {
+  data: EntryResponse[] | undefined;
+  loading: boolean;
+  error: Error | undefined;
+}
+
 export interface UseEntriesResult {
   data: EntryResponse[] | undefined;
   loading: boolean;
@@ -10,11 +16,11 @@ export interface UseEntriesResult {
   refetch: () => void;
 }
 
+const INITIAL: FetchState = { data: undefined, loading: true, error: undefined };
+
 /** エントリー一覧を取得するフック。loading / error / data の3状態を返す。 */
 export function useEntries(params: ListEntriesParams = {}): UseEntriesResult {
-  const [data, setData] = useState<EntryResponse[] | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | undefined>(undefined);
+  const [state, setState] = useState<FetchState>(INITIAL);
   const [reloadKey, setReloadKey] = useState(0);
 
   // params をシリアライズしてキー化（オブジェクト同値性で reload しないように）
@@ -22,19 +28,20 @@ export function useEntries(params: ListEntriesParams = {}): UseEntriesResult {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(undefined);
+    // setState を effect body で同期実行せず、Promise 解決時のコールバックでのみ呼ぶ
     listEntries(JSON.parse(key) as ListEntriesParams)
       .then((res) => {
         if (!cancelled) {
-          setData(res);
-          setLoading(false);
+          setState({ data: res, loading: false, error: undefined });
         }
       })
       .catch((e: unknown) => {
         if (!cancelled) {
-          setError(e instanceof Error ? e : new Error(String(e)));
-          setLoading(false);
+          setState({
+            data: undefined,
+            loading: false,
+            error: e instanceof Error ? e : new Error(String(e)),
+          });
         }
       });
     return () => {
@@ -42,5 +49,10 @@ export function useEntries(params: ListEntriesParams = {}): UseEntriesResult {
     };
   }, [key, reloadKey]);
 
-  return { data, loading, error, refetch: () => setReloadKey((n) => n + 1) };
+  return {
+    data: state.data,
+    loading: state.loading,
+    error: state.error,
+    refetch: () => setReloadKey((n) => n + 1),
+  };
 }

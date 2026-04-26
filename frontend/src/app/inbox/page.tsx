@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useUser } from "@/lib/use-user";
 import { AppShell } from "@/components/entre/AppShell";
 import { Mascot } from "@/components/entre/Mascot";
@@ -78,15 +78,20 @@ export default function InboxPage() {
 }
 
 function RelativeTime({ iso }: { iso: string }) {
+  // Date.now() は impure call なので render 中ではなく初期化子で 1 回だけ評価する。
+  // クリップ表示は再描画頻度が低いので、相対時刻はマウント時の値で固定する想定。
+  const [label] = useState(() => formatRelative(iso));
+  return <span>{label}</span>;
+}
+
+function formatRelative(iso: string): string {
   const date = new Date(iso);
   const diffMs = Date.now() - date.getTime();
   const diffMin = Math.floor(diffMs / 60000);
-  let label: string;
-  if (diffMin < 1) label = "たった今";
-  else if (diffMin < 60) label = `${diffMin}分前`;
-  else if (diffMin < 60 * 24) label = `${Math.floor(diffMin / 60)}時間前`;
-  else label = `${Math.floor(diffMin / (60 * 24))}日前`;
-  return <span>{label}</span>;
+  if (diffMin < 1) return "たった今";
+  if (diffMin < 60) return `${diffMin}分前`;
+  if (diffMin < 60 * 24) return `${Math.floor(diffMin / 60)}時間前`;
+  return `${Math.floor(diffMin / (60 * 24))}日前`;
 }
 
 function EmptyState() {
