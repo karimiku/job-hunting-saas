@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Entré — 就活エントリー保存",
+  "version": "0.1.0",
+  "description": "マイナビ・リクナビ・ONE CAREER 等から1クリックで Entré に保存",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_popup": "src/popup/index.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png"
+    }
+  },
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": [
+    "https://*.mynavi.jp/*",
+    "https://*.rikunabi.com/*",
+    "https://*.onecareer.jp/*",
+    "https://offerbox.jp/*",
+    "https://*.localhost/*",
+    "http://localhost:8080/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.mynavi.jp/*",
+        "https://*.rikunabi.com/*",
+        "https://*.onecareer.jp/*",
+        "https://offerbox.jp/*"
+      ],
+      "js": ["src/content/scrape.ts"],
+      "run_at": "document_idle"
+    }
+  ]
+}
