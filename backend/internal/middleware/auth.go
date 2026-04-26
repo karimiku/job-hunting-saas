@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 
-	fbauth "firebase.google.com/go/v4/auth"
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
@@ -36,6 +35,18 @@ func GetUserID(ctx context.Context) entity.UserID {
 	return userID
 }
 
+// SessionClaims は Session Cookie から取り出した認証クレーム。
+// Firebase 等の外部 IdP 固有型を middleware 層から切り離すための DTO。
+type SessionClaims struct {
+	UID string
+}
+
+// FirebaseSessionVerifier は Session Cookie 検証に必要な認証バックエンドの最小インターフェース。
+// テスト時のモック差し替え点。戻り値は IdP 非依存の DTO。
+type FirebaseSessionVerifier interface {
+	VerifySessionCookie(ctx context.Context, sessionCookie string) (*SessionClaims, error)
+}
+
 // NewAuth は Session Cookie を検証して userID を context に埋め込む chi ミドルウェアを返す。
 //
 // フロー:
@@ -43,7 +54,7 @@ func GetUserID(ctx context.Context) entity.UserID {
 //  2. Firebase Admin SDK で Session Cookie 検証 → 失敗は 401
 //  3. Firebase UID → external_identities → users の順で UserID を解決
 //  4. context に UserID をセットして次へ
-func NewAuth(fbAuth *fbauth.Client, extIDRepo repository.ExternalIdentityRepository) func(http.Handler) http.Handler {
+func NewAuth(fbAuth FirebaseSessionVerifier, extIDRepo repository.ExternalIdentityRepository) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -54,14 +65,14 @@ func NewAuth(fbAuth *fbauth.Client, extIDRepo repository.ExternalIdentityReposit
 				return
 			}
 
-			token, err := fbAuth.VerifySessionCookie(ctx, cookie.Value)
+			claims, err := fbAuth.VerifySessionCookie(ctx, cookie.Value)
 			if err != nil {
 				// 失効・改ざん・期限切れを区別せずに 401 を返す
 				http.Error(w, "unauthenticated", http.StatusUnauthorized)
 				return
 			}
 
-			identity, err := extIDRepo.FindByProviderAndSubject(ctx, value.AuthProviderGoogle(), token.UID)
+			identity, err := extIDRepo.FindByProviderAndSubject(ctx, value.AuthProviderGoogle(), claims.UID)
 			if err != nil {
 				if errors.Is(err, repository.ErrNotFound) {
 					// Session は有効だが DB にユーザーがいない異常系
