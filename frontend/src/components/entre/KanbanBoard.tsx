@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -40,6 +40,9 @@ export function KanbanBoard() {
   // entryId → 楽観的に上書きされた stageKind。API 成功で消し、失敗で消してロールバック。
   const [overrides, setOverrides] = useState<Record<string, string>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
+  // 同一カード連続移動の race 対策: entryId ごとに最新リクエスト ID を採番。
+  // 自分が最新でないリクエストは override clear / refetch をスキップする。
+  const requestIdsRef = useRef<Map<string, number>>(new Map());
 
   // 5px 以上動かさないとドラッグ開始しない（クリックでカード詳細に飛べるように）
   const sensors = useSensors(
@@ -87,6 +90,11 @@ export function KanbanBoard() {
     const current = entries.find((e) => e.id === entryId);
     if (!current || current.stageKind === targetKind) return;
 
+    // この entry に対する最新リクエスト番号を採番。
+    // 後続のドラッグで番号が更新されたら、自分は古いリクエストとして clear/refetch をスキップする。
+    const requestId = (requestIdsRef.current.get(entryId) ?? 0) + 1;
+    requestIdsRef.current.set(entryId, requestId);
+
     // 楽観的反映
     setOverrides((prev) => ({ ...prev, [entryId]: targetKind }));
 
@@ -95,20 +103,25 @@ export function KanbanBoard() {
         stageKind: targetKind,
         stageLabel: STAGE_LABEL[targetKind] ?? targetKind,
       });
-      // 成功 — refetch で server state に同期 + override をクリア
-      refetch();
-      setOverrides((prev) => {
-        const next = { ...prev };
-        delete next[entryId];
-        return next;
-      });
+      // 自分が最新のリクエストのときだけ refetch + override clear する。
+      // そうでない場合は後続のドラッグが進行中なので、その完了に任せる。
+      if (requestIdsRef.current.get(entryId) === requestId) {
+        refetch();
+        setOverrides((prev) => {
+          const next = { ...prev };
+          delete next[entryId];
+          return next;
+        });
+      }
     } catch {
-      // 失敗 — override 削除でロールバック
-      setOverrides((prev) => {
-        const next = { ...prev };
-        delete next[entryId];
-        return next;
-      });
+      // 失敗 — 自分が最新のリクエストのときだけロールバックする。
+      if (requestIdsRef.current.get(entryId) === requestId) {
+        setOverrides((prev) => {
+          const next = { ...prev };
+          delete next[entryId];
+          return next;
+        });
+      }
     }
   }
 

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { getEntry, type EntryResponse } from "@/lib/api/entries";
 
 interface FetchState {
+  // 取得を要求している id。state と現 prop id が一致しない間は stale 扱いにする。
+  requestedId: string | undefined;
   data: EntryResponse | undefined;
   loading: boolean;
   error: Error | undefined;
@@ -16,31 +18,31 @@ export interface UseEntryResult {
   refetch: () => void;
 }
 
-/** Entry 1件を取得するフック。id 未指定なら何もしない。 */
+/** Entry 1件を取得するフック。
+ *  id が変わったら即時に loading=true / data=undefined を返し、stale data を出さない。
+ *  state.requestedId と現 prop id を比較して derived state で判定する (同期 setState は使わない)。 */
 export function useEntry(id: string | undefined): UseEntryResult {
-  // 初期 loading は id があれば true。id が undefined のときは loading=false で確定。
-  const [state, setState] = useState<FetchState>({
+  const [state, setState] = useState<FetchState>(() => ({
+    requestedId: id,
     data: undefined,
     loading: Boolean(id),
     error: undefined,
-  });
+  }));
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    if (!id) {
-      // 何もしない (loading は初期値で false / 既に false)
-      return;
-    }
+    if (!id) return;
     let cancelled = false;
     getEntry(id)
       .then((res) => {
         if (!cancelled) {
-          setState({ data: res, loading: false, error: undefined });
+          setState({ requestedId: id, data: res, loading: false, error: undefined });
         }
       })
       .catch((e: unknown) => {
         if (!cancelled) {
           setState({
+            requestedId: id,
             data: undefined,
             loading: false,
             error: e instanceof Error ? e : new Error(String(e)),
@@ -52,11 +54,20 @@ export function useEntry(id: string | undefined): UseEntryResult {
     };
   }, [id, reloadKey]);
 
+  const refetch = () => setReloadKey((n) => n + 1);
+
+  // id が無い → 何も読み込まない
+  if (!id) {
+    return { data: undefined, loading: false, error: undefined, refetch };
+  }
+  // id が変わった直後 (state は前回の id 用) → 即時 loading 表示
+  if (state.requestedId !== id) {
+    return { data: undefined, loading: true, error: undefined, refetch };
+  }
   return {
     data: state.data,
-    // id が消えたら loading は false 扱い (effect では state を触らない)
-    loading: id ? state.loading : false,
+    loading: state.loading,
     error: state.error,
-    refetch: () => setReloadKey((n) => n + 1),
+    refetch,
   };
 }

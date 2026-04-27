@@ -27,4 +27,27 @@ describe("useEntry", () => {
     expect(result.current.loading).toBe(false);
     expect(result.current.data).toBeUndefined();
   });
+
+  it("id を切り替えた直後は stale data を出さず loading=true になる", async () => {
+    server.use(
+      http.get(`${API}/api/v1/entries/e1`, () =>
+        HttpResponse.json({ ...sample, id: "e1", stageLabel: "一次面接" }),
+      ),
+      http.get(`${API}/api/v1/entries/e2`, () =>
+        HttpResponse.json({ ...sample, id: "e2", stageLabel: "二次面接" }),
+      ),
+    );
+
+    const { result, rerender } = renderHook(({ id }) => useEntry(id), {
+      initialProps: { id: "e1" as string | undefined },
+    });
+    await waitFor(() => expect(result.current.data?.stageLabel).toBe("一次面接"));
+
+    // id 切り替え直後 — 古い data を返してはいけない
+    rerender({ id: "e2" });
+    expect(result.current.loading).toBe(true);
+    expect(result.current.data).toBeUndefined();
+
+    await waitFor(() => expect(result.current.data?.stageLabel).toBe("二次面接"));
+  });
 });

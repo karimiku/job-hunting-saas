@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useUser } from "@/lib/use-user";
 import { AppShell } from "@/components/entre/AppShell";
 import { Mascot } from "@/components/entre/Mascot";
-import { createCompany } from "@/lib/api/companies";
+import { createCompany, deleteCompany } from "@/lib/api/companies";
 import { createEntry } from "@/lib/api/entries";
 
 const ROUTES = ["本選考", "インターン", "OB訪問", "その他"] as const;
@@ -46,8 +46,17 @@ export default function NewEntryPage() {
     if (!companyName.trim() || submitting) return;
     setError(null);
     setSubmitting(true);
+
+    let company;
     try {
-      const company = await createCompany({ name: companyName.trim() });
+      company = await createCompany({ name: companyName.trim() });
+    } catch (err) {
+      setSubmitting(false);
+      setError(err instanceof Error ? err.message : "会社の作成に失敗しました");
+      return;
+    }
+
+    try {
       await createEntry({
         companyId: company.id,
         route,
@@ -56,8 +65,23 @@ export default function NewEntryPage() {
       });
       router.push("/entry");
     } catch (err) {
+      // Entry 作成に失敗 — orphan company を残さないよう best-effort で削除する。
+      // backend に transaction-aware UseCase が無いので、フロントで補償ロールバック。
+      // 削除自体に失敗した場合はユーザーに通知してリトライ導線を出す。
+      try {
+        await deleteCompany(company.id);
+      } catch (rollbackErr) {
+        console.error("orphan company rollback failed:", rollbackErr);
+        setSubmitting(false);
+        setError(
+          "エントリーの保存に失敗しました。会社「" +
+            company.name +
+            "」だけ作成された状態です。お手数ですが /entry から該当会社を確認してください。",
+        );
+        return;
+      }
       setSubmitting(false);
-      setError(err instanceof Error ? err.message : "保存に失敗しました");
+      setError(err instanceof Error ? err.message : "エントリーの保存に失敗しました");
     }
   }
 
