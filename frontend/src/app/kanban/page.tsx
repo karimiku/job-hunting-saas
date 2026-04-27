@@ -1,26 +1,21 @@
-"use client";
+// Server Component。entries を SSR で取得し、KanbanBoard (Client) に initial data を渡す。
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useUser } from "@/lib/use-user";
+import { redirect } from "next/navigation";
+import { getCurrentUserServer } from "@/lib/auth-server";
+import { listEntriesServer } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { KanbanBoard } from "@/components/entre/KanbanBoard";
 
-export default function KanbanPage() {
-  const router = useRouter();
-  const state = useUser();
-
-  useEffect(() => {
-    if (state.status === "guest") router.replace("/login");
-  }, [state.status, router]);
-
-  if (state.status !== "authenticated") {
-    return <div className="min-h-screen bg-cream" />;
-  }
+export default async function KanbanPage() {
+  const [user, entries] = await Promise.all([
+    getCurrentUserServer(),
+    listEntriesServer().catch(() => [] as never[]),
+  ]);
+  if (!user) redirect("/login");
 
   return (
-    <AppShell userName={state.user.name} userSubtitle="○○大学 4年">
+    <AppShell userName={user.name} userSubtitle="○○大学 4年">
       <div className="mx-auto max-w-[1400px] px-5 py-6 md:px-8 md:py-7">
         <header className="mb-5 flex items-baseline justify-between">
           <div>
@@ -35,7 +30,7 @@ export default function KanbanPage() {
           </Link>
         </header>
 
-        <KanbanBoard />
+        <KanbanBoard initialEntries={entries} />
       </div>
     </AppShell>
   );
