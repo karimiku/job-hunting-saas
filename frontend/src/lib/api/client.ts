@@ -1,23 +1,12 @@
-// 共通の fetch ラッパー。Session Cookie を含めるため credentials: include を必ず付ける。
+// Client Component 専用の fetch ラッパー。Session Cookie を含めるため credentials: include を必ず付ける。
 // HTTP エラーは ApiError に統一して投げる（呼び出し側で .unauthorized / .notFound で分岐できる）。
+// Server Component からは ./server.ts の serverFetch を使うこと (cookie 転送のため)。
+
+import { ApiError } from "./client-types";
+export { ApiError } from "./client-types";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
-
-export class ApiError extends Error {
-  readonly status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.name = "ApiError";
-    this.status = status;
-  }
-  get unauthorized(): boolean {
-    return this.status === 401;
-  }
-  get notFound(): boolean {
-    return this.status === 404;
-  }
-}
 
 export async function apiFetch<T>(
   path: string,

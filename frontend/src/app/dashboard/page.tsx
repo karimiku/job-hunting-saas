@@ -1,15 +1,16 @@
-"use client";
+// Server Component。auth + entries を SSR で並列取得し、
+// 集計済みデータを子コンポーネントに props で渡す。useEffect は使わない。
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { signOut } from "@/lib/auth";
-import { useUser } from "@/lib/use-user";
+import { redirect } from "next/navigation";
+import { getCurrentUserServer } from "@/lib/auth-server";
+import { listEntriesServer } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { Mascot } from "@/components/entre/Mascot";
 import { Reveal } from "@/components/entre/Reveal";
 import { DashboardStats } from "@/components/entre/DashboardStats";
 import { StatusBreakdown } from "@/components/entre/StatusBreakdown";
+import { SignOutButton } from "@/components/entre/SignOutButton";
 
 const QUESTS = [
   { t: "14:00", e: "○○商事 一次面接(Web)", s: "明日締切 ES確認", co: "bg-pink", done: false },
@@ -18,21 +19,14 @@ const QUESTS = [
   { t: "本日中", e: "◇◇テック SPI受験", s: "45分", co: "bg-sky", done: false },
 ];
 
-export default function DashboardPage() {
-  const router = useRouter();
-  const state = useUser();
+export default async function DashboardPage() {
+  // user / entries は独立なので並列取得 (cookies() は内部で memoize される)
+  const [user, entries] = await Promise.all([
+    getCurrentUserServer(),
+    listEntriesServer().catch(() => [] as never[]),
+  ]);
+  if (!user) redirect("/login");
 
-  useEffect(() => {
-    if (state.status === "guest") {
-      router.replace("/login");
-    }
-  }, [state.status, router]);
-
-  if (state.status !== "authenticated") {
-    return <div className="min-h-screen bg-cream" />;
-  }
-
-  const user = state.user;
   const firstName = user.name.split(/[\s　]/)[0] || user.name;
 
   return (
@@ -67,9 +61,9 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        {/* Stats — API 集計 */}
+        {/* Stats — SSR 集計 */}
         <section className="mb-5 md:mb-6">
-          <DashboardStats />
+          <DashboardStats entries={entries} />
         </section>
 
         {/* Quest + Status */}
@@ -120,11 +114,11 @@ export default function DashboardPage() {
             </div>
           </Reveal>
 
-          {/* Status pie — API 集計 */}
+          {/* Status pie — SSR 集計 */}
           <Reveal delay={250}>
             <div className="rounded-xl border border-line bg-surface p-5">
               <h2 className="mb-3 text-[13px] font-extrabold">選考ステータス</h2>
-              <StatusBreakdown />
+              <StatusBreakdown entries={entries} />
             </div>
           </Reveal>
         </div>
@@ -154,21 +148,5 @@ export default function DashboardPage() {
         </Reveal>
       </div>
     </AppShell>
-  );
-}
-
-function SignOutButton() {
-  const router = useRouter();
-  return (
-    <button
-      type="button"
-      onClick={async () => {
-        await signOut();
-        router.push("/login");
-      }}
-      className="rounded-md border border-line bg-surface px-3 py-1.5 text-[11px] font-semibold text-ink-2 transition-colors hover:bg-line-2"
-    >
-      ログアウト
-    </button>
   );
 }
