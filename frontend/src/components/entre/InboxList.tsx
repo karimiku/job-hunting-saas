@@ -1,14 +1,18 @@
 // Inbox 一覧表示。Server Component で props だけ受け取る純粋表示コンポーネント。
 // 相対時刻もサーバ側で計算するので SSR/CSR 不一致が起きない (Date.now() を Client で呼ばない)。
 
+import { cache } from "react";
 import { Mascot } from "./Mascot";
 import type { InboxClipResponse } from "@/lib/api/inboxClips";
+
+// React.cache で 1 リクエスト内 memoize。Date.now() 自体は impure だが、cache() で
+// 包むことで「同一リクエストでは同じ値」を保証でき、components-and-hooks-must-be-pure 規則も満たす。
+const getRenderedAt = cache(() => Date.now());
 
 export function InboxList({ clips }: { clips: InboxClipResponse[] }) {
   if (clips.length === 0) return <EmptyState />;
 
-  // サーバ render 時の "now" を一度だけ評価する。`cache: "no-store"` により毎リクエスト再評価される。
-  const renderedAt = Date.now();
+  const renderedAt = getRenderedAt();
 
   return (
     <ul className="flex flex-col gap-2">
