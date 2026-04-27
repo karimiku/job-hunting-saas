@@ -34,11 +34,37 @@ describe("KanbanBoard", () => {
     );
     render(<KanbanBoard />);
     await waitFor(() => {
-      // application 列に 1, interview 列に 2, offer 列に 1
       expect(screen.getByTestId("column-count-application")).toHaveTextContent("1");
       expect(screen.getByTestId("column-count-interview")).toHaveTextContent("2");
       expect(screen.getByTestId("column-count-offer")).toHaveTextContent("1");
       expect(screen.getByTestId("column-count-document")).toHaveTextContent("0");
+    });
+  });
+
+  it("カードはキーボード操作可能な role=button として描画される", async () => {
+    server.use(
+      http.get(`${API}/api/v1/entries`, () =>
+        HttpResponse.json({ entries: [e("application", "リクナビ")] }),
+      ),
+    );
+    render(<KanbanBoard />);
+    await waitFor(() => {
+      const buttons = screen.getAllByRole("button");
+      expect(buttons.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  it("group ステージのエントリーは interview 列に集約される", async () => {
+    server.use(
+      http.get(`${API}/api/v1/entries`, () =>
+        HttpResponse.json({
+          entries: [e("interview", "A"), e("group", "B")],
+        }),
+      ),
+    );
+    render(<KanbanBoard />);
+    await waitFor(() => {
+      expect(screen.getByTestId("column-count-interview")).toHaveTextContent("2");
     });
   });
 });
