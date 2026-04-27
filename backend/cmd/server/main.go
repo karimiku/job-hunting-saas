@@ -72,8 +72,8 @@ func run() error {
 		// 黙って in-memory が動くと再起動でクリップ消失する事故になる。明示的な opt-in を要求。
 		if os.Getenv("INBOX_ALLOW_INMEMORY") != "true" {
 			return errors.New("INBOX_ALLOW_INMEMORY=true is required when DATABASE_URL is set " +
-				"because the Inbox repository is not yet persisted to PostgreSQL — clips will be " +
-				"lost on every restart. Set the flag to acknowledge this.")
+				"because the Inbox repository is not yet persisted to PostgreSQL and clips will be " +
+				"lost on every restart; set the flag to acknowledge this")
 		}
 		inboxClipRepo = inmemory.NewInboxClipRepository()
 		log.Println("using PostgreSQL repositories (Inbox clips: in-memory only — INBOX_ALLOW_INMEMORY=true)")
@@ -82,9 +82,9 @@ func run() error {
 		// 全エンドポイントが認証なしで通る。これを誤って本番起動しないよう明示フラグを要求。
 		if os.Getenv("ALLOW_INSECURE_NO_AUTH") != "true" {
 			return errors.New("DATABASE_URL is not set, which disables authentication and " +
-				"causes all clips/entries to share a zero-value UserID. Set " +
+				"causes all clips/entries to share a zero-value UserID; set " +
 				"ALLOW_INSECURE_NO_AUTH=true to proceed in dev mode, or configure DATABASE_URL " +
-				"and FIREBASE_PROJECT_ID for a real environment.")
+				"and FIREBASE_PROJECT_ID for a real environment")
 		}
 		inMemoryCompanyRepo := inmemory.NewCompanyRepository()
 		inMemoryEntryRepo := inmemory.NewEntryRepository()
