@@ -15,6 +15,8 @@ export interface CreateEntryInput {
   route: string;
   source: string;
   memo?: string;
+  stageKind?: string;
+  stageLabel?: string;
 }
 
 export interface CompanyResponse {
@@ -52,18 +54,40 @@ export async function createEntry(input: CreateEntryInput): Promise<{ id: string
   });
 }
 
-/** 会社+エントリーを 1 つの操作で保存する。 */
+interface UpdateEntryInput {
+  stageKind?: string;
+  stageLabel?: string;
+}
+
+async function updateEntry(id: string, input: UpdateEntryInput): Promise<void> {
+  await request<unknown>(`/api/v1/entries/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+/** 会社+エントリーを 1 つの操作で保存する。
+ *  popup でユーザーが選んだ stageKind/stageLabel は CreateEntryRequest が受けないため、
+ *  default 以外を選んだときは create 後に PATCH で反映する (openapi 拡張は別 PR)。 */
 export async function saveDetectedJob(input: {
   companyName: string;
   route: string;
   source: string;
   memo?: string;
+  stageKind?: string;
+  stageLabel?: string;
 }): Promise<void> {
   const company = await createCompany({ name: input.companyName });
-  await createEntry({
+  const entry = await createEntry({
     companyId: company.id,
     route: input.route,
     source: input.source,
     memo: input.memo,
   });
+  if (input.stageKind && input.stageKind !== "application") {
+    await updateEntry(entry.id, {
+      stageKind: input.stageKind,
+      stageLabel: input.stageLabel,
+    });
+  }
 }

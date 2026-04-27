@@ -10,10 +10,12 @@ interface DetectedPage {
   url: string;
 }
 
+// key = backend の stageKind (CreateEntryRequest と互換、UpdateEntryRequest enum と一致)。
+// label = popup 表示名 + UpdateEntryRequest の stageLabel に流す値。
 const STAGES = [
-  { key: "entry", label: "エントリー", color: "#C9CBB4" },
-  { key: "doc", label: "書類選考", color: "#A8C0DA" },
-  { key: "es", label: "ES提出", color: "#D4BA82" },
+  { key: "application", label: "エントリー", color: "#C9CBB4" },
+  { key: "document", label: "書類選考", color: "#A8C0DA" },
+  { key: "test", label: "ES提出", color: "#D4BA82" },
   { key: "interview", label: "面接", color: "#E9B9B0" },
   { key: "offer", label: "内定", color: "#9BB58A" },
 ] as const;
@@ -41,12 +43,15 @@ export function Popup() {
     if (!page || saving) return;
     setError(null);
     setSaving(true);
+    const stage = STAGES[stageIdx];
     try {
       await saveDetectedJob({
         companyName: page.companyName,
         route: "本選考",
         source: page.source,
         memo,
+        stageKind: stage.key,
+        stageLabel: stage.label,
       });
       setConfetti((n) => n + 1);
       setSaving(false);

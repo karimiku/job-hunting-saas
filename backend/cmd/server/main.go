@@ -68,11 +68,24 @@ func run() error {
 		stageHistoryRepo = postgres.NewStageHistoryRepository(pool)
 		userRepo = postgres.NewUserRepository(pool)
 		extIDRepo = postgres.NewExternalIdentityRepository(pool)
-		// Postgres 版が未実装のため、Inbox は in-memory のまま運用する。
-		// （Chrome 拡張用のクリップ保存。永続化は後続 PR で対応予定。）
+		// Inbox の Postgres 実装が未着手のため in-memory を採用するが、Postgres モードで
+		// 黙って in-memory が動くと再起動でクリップ消失する事故になる。明示的な opt-in を要求。
+		if os.Getenv("INBOX_ALLOW_INMEMORY") != "true" {
+			return errors.New("INBOX_ALLOW_INMEMORY=true is required when DATABASE_URL is set " +
+				"because the Inbox repository is not yet persisted to PostgreSQL — clips will be " +
+				"lost on every restart. Set the flag to acknowledge this.")
+		}
 		inboxClipRepo = inmemory.NewInboxClipRepository()
-		log.Println("using PostgreSQL repositories (Inbox clips: in-memory only)")
+		log.Println("using PostgreSQL repositories (Inbox clips: in-memory only — INBOX_ALLOW_INMEMORY=true)")
 	} else {
+		// DATABASE_URL 未設定 = 開発・ローカルテストモード。auth middleware も配線できないため
+		// 全エンドポイントが認証なしで通る。これを誤って本番起動しないよう明示フラグを要求。
+		if os.Getenv("ALLOW_INSECURE_NO_AUTH") != "true" {
+			return errors.New("DATABASE_URL is not set, which disables authentication and " +
+				"causes all clips/entries to share a zero-value UserID. Set " +
+				"ALLOW_INSECURE_NO_AUTH=true to proceed in dev mode, or configure DATABASE_URL " +
+				"and FIREBASE_PROJECT_ID for a real environment.")
+		}
 		inMemoryCompanyRepo := inmemory.NewCompanyRepository()
 		inMemoryEntryRepo := inmemory.NewEntryRepository()
 
@@ -81,7 +94,7 @@ func run() error {
 		taskRepo = inmemory.NewTaskRepository(inMemoryEntryRepo)
 		stageHistoryRepo = inmemory.NewStageHistoryRepository()
 		inboxClipRepo = inmemory.NewInboxClipRepository()
-		log.Println("using in-memory repositories (DATABASE_URL not set) — auth endpoints disabled")
+		log.Println("using in-memory repositories (ALLOW_INSECURE_NO_AUTH=true) — auth endpoints disabled, all data shared across users")
 	}
 
 	// Firebase 初期化 / Auth 配線は DB 永続化できる場合のみ有効化する
@@ -157,7 +170,13 @@ func run() error {
 	}
 
 	router := chi.NewRouter()
-	router.Use(corsMiddleware(os.Getenv("CORS_ALLOWED_ORIGIN")))
+	// CORS_ALLOWED_ORIGINS (新): カンマ区切りで複数 origin を許可 (chrome 拡張等を追加するときに使う)。
+	// CORS_ALLOWED_ORIGIN (旧, 後方互換): 単一 origin。両方セットされていれば新の方を優先。
+	corsOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
+	if corsOrigins == "" {
+		corsOrigins = os.Getenv("CORS_ALLOWED_ORIGIN")
+	}
+	router.Use(corsMiddleware(corsOrigins))
 
 	router.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -201,15 +220,26 @@ func run() error {
 }
 
 // corsMiddleware はフロントエンドとの Cookie 付き通信を許可する最小 CORS 実装。
-// allowedOrigin が空の場合は http://localhost:3000 をデフォルトとする。
-func corsMiddleware(allowedOrigin string) func(http.Handler) http.Handler {
-	if allowedOrigin == "" {
-		allowedOrigin = "http://localhost:3000"
+// 受け取るのはカンマ区切りの allowlist。空なら http://localhost:3000 のみ。
+//
+// Chrome 拡張から呼びたい場合は `chrome-extension://<extension-id>` を allowlist に追加する。
+// なお Cookie が SameSite=Lax である限り、拡張 origin への credentials 付き fetch には
+// Cookie が乗らない点には注意 (本番では Cookie の SameSite=None;Secure 化が別途必要)。
+func corsMiddleware(allowedOriginsRaw string) func(http.Handler) http.Handler {
+	if allowedOriginsRaw == "" {
+		allowedOriginsRaw = "http://localhost:3000"
+	}
+	allowed := make(map[string]struct{})
+	for _, o := range strings.Split(allowedOriginsRaw, ",") {
+		o = strings.TrimSpace(o)
+		if o != "" {
+			allowed[o] = struct{}{}
+		}
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
-			if origin != "" && origin == allowedOrigin {
+			if _, ok := allowed[origin]; ok && origin != "" {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
 				w.Header().Set("Vary", "Origin")
