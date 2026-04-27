@@ -13,7 +13,6 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { useEntries } from "@/hooks/useEntries";
 import { updateEntry, type EntryResponse } from "@/lib/api/entries";
 
 const COLUMNS = [
@@ -32,16 +31,22 @@ const STAGE_LABEL: Record<string, string> = {
   offer: "内定",
 };
 
+interface Props {
+  initialEntries: EntryResponse[];
+}
+
 /** Entry を stageKind ごとに振り分けるカンバン。
- *  カードはドラッグで列間移動でき、ドロップ時に PATCH /entries/{id} で永続化する。
- *  楽観的更新 (overrides) で UI を即時反映、API 失敗時はロールバック。 */
-export function KanbanBoard() {
-  const { data, loading, error, refetch } = useEntries();
+ *  initialEntries は SSR で取得した snapshot。ドラッグで列間移動 → PATCH /entries/{id}
+ *  で永続化、楽観的更新 (overrides) で UI を即時反映する。
+ *  API 成功後は router.refresh() で Server Component を再評価して整合させる (overrides は clear)。
+ *  API 失敗時は overrides を消してロールバック。 */
+export function KanbanBoard({ initialEntries }: Props) {
+  const router = useRouter();
   // entryId → 楽観的に上書きされた stageKind。API 成功で消し、失敗で消してロールバック。
   const [overrides, setOverrides] = useState<Record<string, string>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
   // 同一カード連続移動の race 対策: entryId ごとに最新リクエスト ID を採番。
-  // 自分が最新でないリクエストは override clear / refetch をスキップする。
+  // 自分が最新でないリクエストは override clear / refresh をスキップする。
   const requestIdsRef = useRef<Map<string, number>>(new Map());
 
   // 5px 以上動かさないとドラッグ開始しない（クリックでカード詳細に飛べるように）
@@ -49,19 +54,8 @@ export function KanbanBoard() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
-  if (loading) {
-    return <p role="status" className="text-[12px] text-ink-3">読み込み中…</p>;
-  }
-  if (error) {
-    return (
-      <p role="alert" className="rounded-lg bg-pink/40 p-3 text-[12px] font-semibold text-ink">
-        読み込みに失敗しました
-      </p>
-    );
-  }
-
-  // overrides を適用した entries
-  const entries = (data ?? []).map((e) => ({
+  // overrides を適用した entries (initialEntries が SSR で来ている前提)
+  const entries = initialEntries.map((e) => ({
     ...e,
     stageKind: overrides[e.id] ?? e.stageKind,
   }));
@@ -103,10 +97,10 @@ export function KanbanBoard() {
         stageKind: targetKind,
         stageLabel: STAGE_LABEL[targetKind] ?? targetKind,
       });
-      // 自分が最新のリクエストのときだけ refetch + override clear する。
+      // 自分が最新のリクエストのときだけ Server Component を再評価し override clear する。
       // そうでない場合は後続のドラッグが進行中なので、その完了に任せる。
       if (requestIdsRef.current.get(entryId) === requestId) {
-        refetch();
+        router.refresh();
         setOverrides((prev) => {
           const next = { ...prev };
           delete next[entryId];

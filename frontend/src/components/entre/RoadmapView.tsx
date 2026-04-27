@@ -1,6 +1,7 @@
-"use client";
+// Server Component。entries は props で受け取る (SSR 時に集計)。
+// CountUp / Reveal が animation 用の Client なので、それらは内部で混在表示される。
 
-import { useEntries } from "@/hooks/useEntries";
+import type { EntryResponse } from "@/lib/api/entries";
 import { Mascot } from "./Mascot";
 import { Reveal } from "./Reveal";
 import { CountUp } from "./CountUp";
@@ -33,13 +34,10 @@ interface MilestoneStat {
 }
 
 /** ロードマップ — Entry の最大ステージから現在地を判定し、各マイルストーンの社数を集計。 */
-export function RoadmapView() {
-  const { data, loading } = useEntries();
-  if (loading) return <p role="status" className="text-[12px] text-ink-3">読み込み中…</p>;
-
+export function RoadmapView({ entries }: { entries: EntryResponse[] }) {
   const counts = new Map<string, number>();
   let maxIdx = -1;
-  for (const e of data ?? []) {
+  for (const e of entries) {
     counts.set(e.stageKind, (counts.get(e.stageKind) ?? 0) + 1);
     const idx = STAGE_INDEX[e.stageKind];
     if (idx !== undefined && idx > maxIdx) maxIdx = idx;

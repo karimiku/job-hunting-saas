@@ -1,27 +1,37 @@
-"use client";
+// Server Component。entry + tasks を SSR で並列取得し、interactive 部分は Client に委譲。
 
-import { useRouter, useParams } from "next/navigation";
-import { useEffect } from "react";
 import Link from "next/link";
-import { useUser } from "@/lib/use-user";
+import { redirect } from "next/navigation";
+import { getCurrentUserServer } from "@/lib/auth-server";
+import {
+  getEntryServer,
+  listTasksByEntryServer,
+} from "@/lib/api/server-resources";
+import { ApiError } from "@/lib/api/client-types";
 import { AppShell } from "@/components/entre/AppShell";
 import { EntryDetailView } from "@/components/entre/EntryDetailView";
 
-export default function EntryDetailPage() {
-  const router = useRouter();
-  const state = useUser();
-  const { entryId } = useParams<{ entryId: string }>();
+interface Props {
+  params: Promise<{ entryId: string }>;
+}
 
-  useEffect(() => {
-    if (state.status === "guest") router.replace("/login");
-  }, [state.status, router]);
+export default async function EntryDetailPage({ params }: Props) {
+  const { entryId } = await params;
+  const user = await getCurrentUserServer();
+  if (!user) redirect("/login");
 
-  if (state.status !== "authenticated") {
-    return <div className="min-h-screen bg-cream" />;
-  }
+  // entry + tasks は独立なので並列 fetch。
+  // 取得失敗 (404 等) は EntryDetailView に渡す initial=null として扱い、UI 側でエラー表示。
+  const [entry, tasks] = await Promise.all([
+    getEntryServer(entryId).catch((e) => {
+      if (e instanceof ApiError) return null;
+      throw e;
+    }),
+    listTasksByEntryServer(entryId).catch(() => []),
+  ]);
 
   return (
-    <AppShell userName={state.user.name} userSubtitle="○○大学 4年">
+    <AppShell userName={user.name} userSubtitle="○○大学 4年">
       <div className="mx-auto max-w-[700px] px-5 py-6 md:px-8 md:py-7">
         <Link
           href="/entry"
@@ -29,7 +39,7 @@ export default function EntryDetailPage() {
         >
           ‹ Entry 一覧
         </Link>
-        <EntryDetailView entryId={entryId} />
+        <EntryDetailView initialEntry={entry} initialTasks={tasks} />
       </div>
     </AppShell>
   );

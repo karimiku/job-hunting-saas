@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { useEntry } from "@/hooks/useEntry";
-import { useTasksByEntry } from "@/hooks/useTasksByEntry";
-import { updateEntry } from "@/lib/api/entries";
+// Server から initialEntry / initialTasks を受け取る Client Component。
+// 「進める →」ボタンで PATCH したあと router.refresh() で SSR を再評価する
+// (SWR 的な戻し方をするわけではなく、Next.js の RSC 再フェッチに任せる)。
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { updateEntry, type EntryResponse } from "@/lib/api/entries";
+import type { TaskResponse } from "@/lib/api/tasks";
 import { Mascot } from "./Mascot";
 import { Confetti } from "./Confetti";
 
@@ -26,20 +30,17 @@ const STAGE_COLOR: Record<string, string> = {
 };
 
 interface Props {
-  entryId: string;
+  initialEntry: EntryResponse | null;
+  initialTasks: TaskResponse[];
 }
 
 /** Entry 詳細 — ステージ進捗バー + 「進める →」 + 内定スタンプ + Tasks 表示。 */
-export function EntryDetailView({ entryId }: Props) {
-  const entry = useEntry(entryId);
-  const tasks = useTasksByEntry(entryId);
+export function EntryDetailView({ initialEntry, initialTasks }: Props) {
+  const router = useRouter();
   const [confetti, setConfetti] = useState(0);
-  const [advancing, setAdvancing] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
-  if (entry.loading) {
-    return <p role="status" className="text-[12px] text-ink-3">読み込み中…</p>;
-  }
-  if (entry.error || !entry.data) {
+  if (!initialEntry) {
     return (
       <p role="alert" className="rounded-lg bg-pink/40 p-3 text-[12px] font-semibold text-ink">
         詳細を読み込めませんでした
@@ -47,26 +48,21 @@ export function EntryDetailView({ entryId }: Props) {
     );
   }
 
-  const e = entry.data;
+  const e = initialEntry;
   const currentIdx = STAGE_ORDER.indexOf(e.stageKind as (typeof STAGE_ORDER)[number]);
   const isOffer = e.stageKind === "offer";
 
-  const handleAdvance = async () => {
+  const handleAdvance = () => {
     if (currentIdx < 0 || currentIdx >= STAGE_ORDER.length - 1) return;
-    setAdvancing(true);
     const nextKind = STAGE_ORDER[currentIdx + 1];
-    try {
+    startTransition(async () => {
       await updateEntry(e.id, {
         stageKind: nextKind,
         stageLabel: STAGE_LABEL[nextKind],
       });
-      entry.refetch();
-      if (nextKind === "offer") {
-        setConfetti((n) => n + 1);
-      }
-    } finally {
-      setAdvancing(false);
-    }
+      if (nextKind === "offer") setConfetti((n) => n + 1);
+      router.refresh(); // Server Component を再評価して新しい entry を取得
+    });
   };
 
   return (
@@ -97,7 +93,7 @@ export function EntryDetailView({ entryId }: Props) {
           <button
             type="button"
             onClick={handleAdvance}
-            disabled={advancing || isOffer}
+            disabled={isPending || isOffer}
             className="rounded border border-sage px-1.5 py-0.5 text-[9px] font-bold text-sage transition-opacity disabled:opacity-50"
           >
             進める →
@@ -137,13 +133,12 @@ export function EntryDetailView({ entryId }: Props) {
       {/* Tasks */}
       <section className="mb-3 rounded-xl border border-line bg-surface p-3">
         <p className="mb-2 text-[12px] font-bold">📌 タスク</p>
-        {tasks.loading && <p className="text-[11px] text-ink-3">読み込み中…</p>}
-        {tasks.data?.length === 0 && (
+        {initialTasks.length === 0 && (
           <p className="text-[11px] text-ink-3">まだタスクがありません</p>
         )}
-        {tasks.data && tasks.data.length > 0 && (
+        {initialTasks.length > 0 && (
           <ul className="flex flex-col gap-1.5">
-            {tasks.data.map((t) => (
+            {initialTasks.map((t) => (
               <li
                 key={t.id}
                 className={`flex items-center gap-2 text-[11px] ${

@@ -1,7 +1,8 @@
-"use client";
+// Server Component で render される純粋表示コンポーネント。
+// データは props で渡される (page.tsx 側で SSR 取得済み)。
 
 import Link from "next/link";
-import { useEntries } from "@/hooks/useEntries";
+import type { EntryResponse } from "@/lib/api/entries";
 
 const STAGE_BG: Record<string, string> = {
   application: "var(--color-stage-entry)",
@@ -12,27 +13,8 @@ const STAGE_BG: Record<string, string> = {
   offer: "var(--color-stage-offer)",
 };
 
-/** エントリー一覧を API から取得して表示するビュー。 */
-export function EntryListView() {
-  const { data, loading, error } = useEntries();
-
-  if (loading) {
-    return (
-      <p role="status" className="text-[12px] text-ink-3">
-        読み込み中…
-      </p>
-    );
-  }
-
-  if (error) {
-    return (
-      <p role="alert" className="rounded-lg bg-pink/40 p-3 text-[12px] font-semibold text-ink">
-        読み込みに失敗しました（{error.message}）
-      </p>
-    );
-  }
-
-  if (!data || data.length === 0) {
+export function EntryListView({ entries }: { entries: EntryResponse[] }) {
+  if (entries.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-line bg-surface p-6 text-center text-[12px] text-ink-2">
         まだエントリーがありません。＋ボタンから1件追加しましょう。
@@ -42,7 +24,7 @@ export function EntryListView() {
 
   return (
     <ul className="entre-stagger flex flex-col gap-2">
-      {data.map((e) => (
+      {entries.map((e) => (
         <li
           key={e.id}
           className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-line bg-surface p-3 transition-all hover:translate-x-0.5 hover:border-sage"

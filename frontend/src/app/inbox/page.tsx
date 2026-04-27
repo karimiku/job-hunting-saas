@@ -1,27 +1,22 @@
-"use client";
+// Server Component。
+// 認証 + クリップ一覧を SSR で取得し、子の Client Component には完成した DTO を props で渡す。
+// ここでは useEffect/useState を使わない。
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useUser } from "@/lib/use-user";
+import { redirect } from "next/navigation";
+import { getCurrentUserServer } from "@/lib/auth-server";
+import { listInboxClipsServer } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { Mascot } from "@/components/entre/Mascot";
-import { useInboxClips } from "@/hooks/useInboxClips";
+import { InboxList } from "@/components/entre/InboxList";
 
-export default function InboxPage() {
-  const router = useRouter();
-  const state = useUser();
-  const { data, loading, error } = useInboxClips();
+export default async function InboxPage() {
+  const user = await getCurrentUserServer();
+  if (!user) redirect("/login");
 
-  useEffect(() => {
-    if (state.status === "guest") router.replace("/login");
-  }, [state.status, router]);
-
-  if (state.status !== "authenticated") {
-    return <div className="min-h-screen bg-cream" />;
-  }
+  const clips = await listInboxClipsServer();
 
   return (
-    <AppShell userName={state.user.name} userSubtitle="○○大学 4年">
+    <AppShell userName={user.name} userSubtitle="○○大学 4年">
       <div className="mx-auto max-w-[800px] px-5 py-6 md:px-8 md:py-7">
         <header className="mb-4 flex items-baseline justify-between">
           <div>
@@ -33,77 +28,8 @@ export default function InboxPage() {
           <Mascot size={32} mood="wink" />
         </header>
 
-        {loading && (
-          <p role="status" className="text-[12px] text-ink-3">
-            読み込み中…
-          </p>
-        )}
-
-        {error && (
-          <p role="alert" className="rounded-lg bg-pink/40 p-3 text-[12px] font-semibold text-ink">
-            読み込みに失敗しました（{error.message}）
-          </p>
-        )}
-
-        {!loading && !error && (data?.length ?? 0) === 0 && <EmptyState />}
-
-        {!loading && !error && (data?.length ?? 0) > 0 && (
-          <ul className="flex flex-col gap-2">
-            {data!.map((c) => (
-              <li
-                key={c.id}
-                className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-surface p-3.5 transition-colors hover:border-sage"
-              >
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-sage-wash text-base">
-                  ✉
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[12px] font-bold">{c.title}</div>
-                  <div className="mt-0.5 truncate font-mono text-[10px] text-ink-3">
-                    {c.url}
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 text-[10px] text-ink-2">
-                    <span className="rounded-sm bg-cream-2 px-1.5 py-0.5 font-bold">{c.source}</span>
-                    <RelativeTime iso={c.capturedAt} />
-                    {c.guess && <span className="text-sage">→ {c.guess}</span>}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+        <InboxList clips={clips} />
       </div>
     </AppShell>
-  );
-}
-
-function RelativeTime({ iso }: { iso: string }) {
-  // Date.now() は impure call なので render 中ではなく初期化子で 1 回だけ評価する。
-  // クリップ表示は再描画頻度が低いので、相対時刻はマウント時の値で固定する想定。
-  const [label] = useState(() => formatRelative(iso));
-  return <span>{label}</span>;
-}
-
-function formatRelative(iso: string): string {
-  const date = new Date(iso);
-  const diffMs = Date.now() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "たった今";
-  if (diffMin < 60) return `${diffMin}分前`;
-  if (diffMin < 60 * 24) return `${Math.floor(diffMin / 60)}時間前`;
-  return `${Math.floor(diffMin / (60 * 24))}日前`;
-}
-
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center rounded-xl border border-dashed border-line bg-surface p-10 text-center">
-      <div style={{ animation: "entre-float 3s infinite" }}>
-        <Mascot size={80} mood="sleeping" />
-      </div>
-      <p className="mt-3 font-serif text-base font-extrabold">クリップは空です</p>
-      <p className="mt-1 text-[11px] text-ink-2">
-        Chrome拡張で気になる求人ページを保存すると、ここに溜まります。
-      </p>
-    </div>
   );
 }

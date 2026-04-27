@@ -1,26 +1,20 @@
-"use client";
+// Server Component。エントリー一覧を SSR で取得して EntryListView に渡す。
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { redirect } from "next/navigation";
 import Link from "next/link";
-import { useUser } from "@/lib/use-user";
+import { getCurrentUserServer } from "@/lib/auth-server";
+import { listEntriesServer } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { EntryListView } from "@/components/entre/EntryListView";
 
-export default function EntryListPage() {
-  const router = useRouter();
-  const state = useUser();
+export default async function EntryListPage() {
+  const user = await getCurrentUserServer();
+  if (!user) redirect("/login");
 
-  useEffect(() => {
-    if (state.status === "guest") router.replace("/login");
-  }, [state.status, router]);
-
-  if (state.status !== "authenticated") {
-    return <div className="min-h-screen bg-cream" />;
-  }
+  const entries = await listEntriesServer();
 
   return (
-    <AppShell userName={state.user.name} userSubtitle="○○大学 4年">
+    <AppShell userName={user.name} userSubtitle="○○大学 4年">
       <div className="mx-auto max-w-[900px] px-5 py-6 md:px-8 md:py-7">
         <header className="mb-4 flex items-baseline justify-between">
           <h1 className="font-serif text-2xl font-extrabold tracking-tight">
@@ -34,7 +28,7 @@ export default function EntryListPage() {
           </Link>
         </header>
 
-        <EntryListView />
+        <EntryListView entries={entries} />
       </div>
     </AppShell>
   );
