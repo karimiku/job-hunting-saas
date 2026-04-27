@@ -5,16 +5,16 @@ import { useState } from "react";
 import {
   DndContext,
   DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
   PointerSensor,
   useDraggable,
   useDroppable,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { CSS } from "@dnd-kit/utilities";
 import { useEntries } from "@/hooks/useEntries";
 import { updateEntry, type EntryResponse } from "@/lib/api/entries";
-import { Reveal } from "./Reveal";
 
 const COLUMNS = [
   { kind: "application", label: "エントリー", color: "var(--color-stage-entry)" },
@@ -39,6 +39,7 @@ export function KanbanBoard() {
   const { data, loading, error, refetch } = useEntries();
   // entryId → 楽観的に上書きされた stageKind。API 成功で消し、失敗で消してロールバック。
   const [overrides, setOverrides] = useState<Record<string, string>>({});
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   // 5px 以上動かさないとドラッグ開始しない（クリックでカード詳細に飛べるように）
   const sensors = useSensors(
@@ -70,7 +71,14 @@ export function KanbanBoard() {
     byKind.get(key)!.push(e);
   }
 
+  const activeEntry = activeId ? entries.find((e) => e.id === activeId) ?? null : null;
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(String(event.active.id));
+  }
+
   async function handleDragEnd(event: DragEndEvent) {
+    setActiveId(null);
     const { active, over } = event;
     if (!over) return;
 
@@ -105,14 +113,17 @@ export function KanbanBoard() {
   }
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="grid gap-2.5 md:grid-cols-5 grid-cols-[repeat(5,minmax(220px,1fr))] overflow-x-auto pb-2">
-        {COLUMNS.map((col, i) => (
-          <Reveal key={col.kind} delay={i * 80}>
-            <KanbanColumn col={col} cards={byKind.get(col.kind) ?? []} />
-          </Reveal>
+        {COLUMNS.map((col) => (
+          <KanbanColumn key={col.kind} col={col} cards={byKind.get(col.kind) ?? []} activeId={activeId} />
         ))}
       </div>
+
+      {/* DragOverlay は親の transform / overflow に影響されない portal 的な場所で描画される。 */}
+      <DragOverlay dropAnimation={null}>
+        {activeEntry ? <KanbanCardPreview entry={activeEntry} /> : null}
+      </DragOverlay>
     </DndContext>
   );
 }
@@ -120,9 +131,11 @@ export function KanbanBoard() {
 function KanbanColumn({
   col,
   cards,
+  activeId,
 }: {
   col: (typeof COLUMNS)[number];
   cards: EntryResponse[];
+  activeId: string | null;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.kind });
   return (
@@ -142,9 +155,9 @@ function KanbanColumn({
           {cards.length}
         </span>
       </div>
-      <ul className="flex flex-col gap-1.5 min-h-[40px]">
+      <ul className="flex flex-col gap-1.5 min-h-[60px]">
         {cards.map((c) => (
-          <KanbanCard key={c.id} entry={c} />
+          <KanbanCard key={c.id} entry={c} dragging={c.id === activeId} />
         ))}
         {cards.length === 0 && (
           <li className="rounded-md border border-dashed border-line p-2 text-center text-[9px] text-ink-3">
@@ -156,39 +169,55 @@ function KanbanColumn({
   );
 }
 
-function KanbanCard({ entry }: { entry: EntryResponse }) {
+function KanbanCard({ entry, dragging }: { entry: EntryResponse; dragging: boolean }) {
   const router = useRouter();
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: entry.id,
-  });
-
-  const style = {
-    transform: CSS.Translate.toString(transform),
-    opacity: isDragging ? 0.4 : 1,
-    zIndex: isDragging ? 50 : "auto",
-    cursor: isDragging ? "grabbing" : "grab",
-  } as const;
+  const { attributes, listeners, setNodeRef } = useDraggable({ id: entry.id });
 
   // クリックは詳細遷移、ドラッグはカード移動。
   // PointerSensor の activationConstraint で 5px 未満は click として扱われる。
-  // dnd-kit が drag 中の click を抑制してくれるので、単純に navigate するだけで良い。
   const handleClick = () => {
-    if (isDragging) return;
+    if (dragging) return;
     router.push(`/entry/${entry.id}`);
   };
 
   return (
     <li
       ref={setNodeRef}
-      style={style}
       onClick={handleClick}
       onKeyDown={(e) => {
         if (e.key === "Enter") handleClick();
       }}
       {...attributes}
       {...listeners}
+      style={{
+        // ドラッグ中はカード位置の元の場所に半透明スロットを残す（DragOverlay でゴーストが追従）
+        opacity: dragging ? 0.3 : 1,
+        cursor: "grab",
+        touchAction: "none",
+      }}
       className="rounded-[10px] border border-line bg-cream p-2.5 transition-shadow hover:shadow-[0_6px_14px_-4px_rgba(0,0,0,0.15)] focus:outline-none focus:ring-2 focus:ring-sage"
     >
+      <CardContent entry={entry} />
+    </li>
+  );
+}
+
+/** DragOverlay 内に描画される、ポインタ追従のゴーストカード。
+ *  親 transform に影響されないので、どこにドラッグしてもズレない。 */
+function KanbanCardPreview({ entry }: { entry: EntryResponse }) {
+  return (
+    <div
+      style={{ cursor: "grabbing" }}
+      className="rounded-[10px] border-[1.5px] border-sage bg-cream p-2.5 shadow-[0_12px_24px_-8px_rgba(79,110,88,0.4)]"
+    >
+      <CardContent entry={entry} />
+    </div>
+  );
+}
+
+function CardContent({ entry }: { entry: EntryResponse }) {
+  return (
+    <>
       <div className="mb-1.5 flex items-center gap-2">
         <div className="grid h-6 w-6 place-items-center rounded-md bg-sage-wash font-serif text-xs font-extrabold text-sage">
           {entry.source.slice(0, 1)}
@@ -199,6 +228,6 @@ function KanbanCard({ entry }: { entry: EntryResponse }) {
         <span>{entry.route}</span>
         <span aria-hidden>⇆</span>
       </div>
-    </li>
+    </>
   );
 }
