@@ -1,0 +1,9 @@
+node_modules
+dist
+*.log
+.env
+.env.local
+.DS_Store
+tsconfig.tsbuildinfo
+# duplicate artifact (一時的なミス、手動削除後に消す)
+chrome-extension/

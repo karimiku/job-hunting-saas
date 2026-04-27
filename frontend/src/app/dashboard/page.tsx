@@ -2,282 +2,173 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { signOut } from "@/lib/auth";
 import { useUser } from "@/lib/use-user";
+import { AppShell } from "@/components/entre/AppShell";
+import { Mascot } from "@/components/entre/Mascot";
+import { Reveal } from "@/components/entre/Reveal";
+import { DashboardStats } from "@/components/entre/DashboardStats";
+import { StatusBreakdown } from "@/components/entre/StatusBreakdown";
+
+const QUESTS = [
+  { t: "14:00", e: "○○商事 一次面接(Web)", s: "明日締切 ES確認", co: "bg-pink", done: false },
+  { t: "17:00", e: "OBの田中さんへDM返信", s: "メッセージ準備済", co: "bg-sage", done: true },
+  { t: "23:59", e: "△△株式会社 ESを提出", s: "最終チェック", co: "bg-amber", done: false },
+  { t: "本日中", e: "◇◇テック SPI受験", s: "45分", co: "bg-sky", done: false },
+];
 
 export default function DashboardPage() {
   const router = useRouter();
   const state = useUser();
-  const [signingOut, setSigningOut] = useState(false);
 
-  // ゲストは /login にリダイレクト
   useEffect(() => {
     if (state.status === "guest") {
       router.replace("/login");
     }
   }, [state.status, router]);
 
-  async function handleSignOut() {
-    setSigningOut(true);
-    try {
-      await signOut();
-      router.push("/login");
-    } finally {
-      setSigningOut(false);
-    }
-  }
-
   if (state.status !== "authenticated") {
-    // loading / redirect 中はクリーム背景だけ出しておく
-    return <div className="lp-scope" style={{ minHeight: "100vh", background: "var(--lp-cream)" }} />;
+    return <div className="min-h-screen bg-cream" />;
   }
 
   const user = state.user;
+  const firstName = user.name.split(/[\s　]/)[0] || user.name;
 
   return (
-    <div
-      className="lp-scope"
-      style={{
-        minHeight: "100vh",
-        background: "var(--lp-cream)",
-        color: "var(--lp-ink)",
-        fontFamily: "var(--lp-font-jp)",
-      }}
-    >
-      {/* ヘッダー */}
-      <header
-        style={{
-          borderBottom: "1px solid var(--lp-line)",
-          background: "var(--lp-cream-2)",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1200,
-            margin: "0 auto",
-            padding: "16px 24px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <Link
-            href="/"
-            style={{
-              fontFamily: "var(--lp-font-serif)",
-              fontWeight: 800,
-              fontSize: 22,
-              letterSpacing: "-0.01em",
-              color: "var(--lp-ink)",
-            }}
-          >
-            Entré
-          </Link>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <span
-              style={{
-                fontSize: 14,
-                color: "var(--lp-ink-2)",
-              }}
-            >
-              {user.name}
-            </span>
-            <button
-              type="button"
-              onClick={handleSignOut}
-              disabled={signingOut}
-              className="lp-btn lp-btn-ghost"
-              style={{ height: 36, padding: "0 14px", fontSize: 13 }}
-            >
-              {signingOut ? "…" : "ログアウト"}
-            </button>
+    <AppShell userName={user.name} userSubtitle="○○大学 4年">
+      <div className="mx-auto max-w-[1100px] px-5 py-6 md:px-8 md:py-8">
+        {/* Greeting + bowing mascot (看板) */}
+        <header className="mb-5 flex flex-col gap-3 md:mb-6 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3 animate-[entre-fade-in_0.6s_both]">
+            <Mascot mood="bow" size={56} />
+            <div>
+              <p
+                className="font-hand text-[22px] text-sage md:text-2xl"
+                style={{ transform: "rotate(-1.5deg)", display: "inline-block" }}
+              >
+                Welcome back,
+              </p>
+              <h1 className="font-serif text-2xl font-extrabold tracking-tight md:text-[28px]">
+                {firstName}
+                <span className="ml-1 text-sm font-medium text-ink-2 md:text-base">
+                  さん、今日もお疲れさまです 🌱
+                </span>
+              </h1>
+            </div>
           </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-br from-cream-2 to-sage-wash px-3.5 py-1.5 text-[11px] font-bold">
+              <span style={{ animation: "entre-wiggle 2s infinite" }}>🔥</span>
+              連続 7日
+            </div>
+            <SignOutButton />
+          </div>
+        </header>
+
+        {/* Stats — API 集計 */}
+        <section className="mb-5 md:mb-6">
+          <DashboardStats />
+        </section>
+
+        {/* Quest + Status */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.4fr_1fr]">
+          {/* Today's quest */}
+          <Reveal delay={150}>
+            <div className="rounded-xl border border-line bg-surface p-5">
+              <div className="mb-3 flex items-baseline justify-between">
+                <h2 className="text-[13px] font-extrabold">📌 今日のクエスト</h2>
+                <Link href="/task" className="text-[10px] font-bold text-sage">
+                  すべて見る →
+                </Link>
+              </div>
+              <div className="mb-3.5 h-1.5 overflow-hidden rounded-sm bg-line">
+                <div
+                  className="h-full rounded-sm bg-gradient-to-r from-sage-mid to-sage transition-all duration-1000"
+                  style={{ width: "25%" }}
+                />
+              </div>
+
+              <ul>
+                {QUESTS.map((r, i) => (
+                  <li
+                    key={r.e}
+                    className={`flex items-center gap-3 py-2.5 ${
+                      i ? "border-t border-dashed border-line" : ""
+                    } ${r.done ? "opacity-50" : ""}`}
+                  >
+                    <span
+                      className={`grid h-[18px] w-[18px] place-items-center rounded-full text-[10px] text-white ${
+                        r.done ? "border-[1.5px] border-sage bg-sage" : "border-[1.5px] border-line bg-transparent"
+                      }`}
+                    >
+                      {r.done ? "✓" : ""}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className={`text-xs font-semibold ${r.done ? "line-through" : ""}`}>{r.e}</div>
+                      <div className="mt-0.5 text-[10px] text-ink-3">{r.s}</div>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-md px-2 py-0.5 font-mono text-[10px] font-bold text-white ${r.co}`}
+                    >
+                      {r.t}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Reveal>
+
+          {/* Status pie — API 集計 */}
+          <Reveal delay={250}>
+            <div className="rounded-xl border border-line bg-surface p-5">
+              <h2 className="mb-3 text-[13px] font-extrabold">選考ステータス</h2>
+              <StatusBreakdown />
+            </div>
+          </Reveal>
         </div>
-      </header>
 
-      {/* メイン */}
-      <main
-        style={{
-          maxWidth: 1100,
-          margin: "0 auto",
-          padding: "64px 24px 120px",
-        }}
-      >
-        {/* ウェルカム */}
-        <section style={{ marginBottom: 56 }}>
-          <p
-            className="lp-hand"
-            style={{
-              fontSize: 28,
-              color: "var(--lp-sage-2)",
-              marginBottom: 4,
-            }}
-          >
-            おかえり、
-          </p>
-          <h1
-            className="lp-serif"
-            style={{
-              fontSize: 44,
-              fontWeight: 800,
-              letterSpacing: "-0.02em",
-              lineHeight: 1.2,
-              marginBottom: 12,
-            }}
-          >
-            {user.name} さん
-          </h1>
-          <p style={{ fontSize: 15, color: "var(--lp-ink-2)" }}>
-            散らかった就活、ぜんぶこの1枚に集めていきましょう。
-          </p>
-        </section>
-
-        {/* 選考リスト（空状態） */}
-        <section
-          className="lp-card"
-          style={{
-            background: "var(--lp-surface)",
-            borderRadius: 20,
-            border: "1px solid var(--lp-line)",
-            padding: "48px 32px",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              margin: "0 auto 20px",
-              borderRadius: 16,
-              background: "var(--lp-sage-tint)",
-              display: "grid",
-              placeItems: "center",
-              fontSize: 28,
-            }}
-            aria-hidden
-          >
-            🦌
+        {/* Mascot encouragement */}
+        <Reveal delay={350}>
+          <div className="mt-4 flex flex-col items-start gap-4 rounded-xl border-[1.5px] border-line bg-gradient-to-br from-cream-2 to-sage-wash p-5 md:flex-row md:items-center md:p-6">
+            <div style={{ animation: "entre-float 3s infinite" }}>
+              <Mascot size={64} mood="cheering" />
+            </div>
+            <div className="flex-1">
+              <p className="font-hand text-[18px] text-sage">あと少しですね！</p>
+              <p className="mt-0.5 font-serif text-base font-extrabold">
+                面接5社、内定まであと一歩。
+              </p>
+              <p className="mt-1 text-[11px] text-ink-2">
+                今日のクエスト、お疲れさまです。明日の○○商事の一次面接、応援しています！
+              </p>
+            </div>
+            <Link
+              href="/roadmap"
+              className="rounded-lg bg-sage px-3.5 py-2 text-[11px] font-bold text-white transition-transform hover:-translate-y-0.5"
+            >
+              ロードマップ →
+            </Link>
           </div>
-          <h2
-            className="lp-serif"
-            style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}
-          >
-            まだ選考がありません
-          </h2>
-          <p
-            style={{
-              fontSize: 14,
-              color: "var(--lp-ink-2)",
-              marginBottom: 24,
-              maxWidth: 420,
-              marginLeft: "auto",
-              marginRight: "auto",
-            }}
-          >
-            応募した企業やエントリーを1件ずつ追加していきましょう。ここから先は順次機能を追加します。
-          </p>
-          <button
-            type="button"
-            className="lp-btn lp-btn-sage"
-            disabled
-            style={{ opacity: 0.6, cursor: "not-allowed" }}
-          >
-            + 選考を追加（開発中）
-          </button>
-        </section>
-
-        {/* 今後追加予定 */}
-        <section style={{ marginTop: 56 }}>
-          <h3
-            className="lp-serif"
-            style={{
-              fontSize: 18,
-              fontWeight: 700,
-              marginBottom: 20,
-              color: "var(--lp-ink-2)",
-            }}
-          >
-            これから追加する機能
-          </h3>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 16,
-            }}
-          >
-            <UpcomingCard
-              tint="var(--lp-s-entry)"
-              ink="var(--lp-s-entry-ink)"
-              title="選考の一元管理"
-              body="マイナビ・リクナビ・ワンキャリ、全部ここに。"
-            />
-            <UpcomingCard
-              tint="var(--lp-s-interview)"
-              ink="var(--lp-s-interview-ink)"
-              title="AI メール取り込み"
-              body="選考メールを貼るだけで日時を抽出。"
-            />
-            <UpcomingCard
-              tint="var(--lp-s-doc)"
-              ink="var(--lp-s-doc-ink)"
-              title="タスクとリマインド"
-              body="締切や面接を忘れないように通知。"
-            />
-            <UpcomingCard
-              tint="var(--lp-s-offer)"
-              ink="var(--lp-s-offer-ink)"
-              title="Google カレンダー連携"
-              body="登録した日程を自動でカレンダーへ。"
-            />
-          </div>
-        </section>
-      </main>
-    </div>
+        </Reveal>
+      </div>
+    </AppShell>
   );
 }
 
-function UpcomingCard({
-  tint,
-  ink,
-  title,
-  body,
-}: {
-  tint: string;
-  ink: string;
-  title: string;
-  body: string;
-}) {
+function SignOutButton() {
+  const router = useRouter();
   return (
-    <div
-      style={{
-        background: "var(--lp-surface)",
-        border: "1px solid var(--lp-line)",
-        borderRadius: 16,
-        padding: 20,
+    <button
+      type="button"
+      onClick={async () => {
+        await signOut();
+        router.push("/login");
       }}
+      className="rounded-md border border-line bg-surface px-3 py-1.5 text-[11px] font-semibold text-ink-2 transition-colors hover:bg-line-2"
     >
-      <div
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
-          background: tint,
-          color: ink,
-          display: "grid",
-          placeItems: "center",
-          fontSize: 14,
-          fontWeight: 700,
-          marginBottom: 12,
-        }}
-        aria-hidden
-      >
-        ✦
-      </div>
-      <h4 style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>{title}</h4>
-      <p style={{ fontSize: 13, color: "var(--lp-ink-2)", lineHeight: 1.6 }}>{body}</p>
-    </div>
+      ログアウト
+    </button>
   );
 }

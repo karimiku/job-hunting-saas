@@ -33,6 +33,9 @@ type PasswordCredentialID uuid.UUID
 // ExternalIdentityID は外部認証連携情報を一意に識別するための ID 型。
 type ExternalIdentityID uuid.UUID
 
+// InboxClipID は Chrome 拡張等で保存された求人ページクリップを一意に識別するための ID 型。
+type InboxClipID uuid.UUID
+
 // --- Constructors ---
 
 // NewUserID は新しい UserID を生成する。
@@ -58,6 +61,9 @@ func NewPasswordCredentialID() PasswordCredentialID { return PasswordCredentialI
 
 // NewExternalIdentityID は新しい ExternalIdentityID を生成する。
 func NewExternalIdentityID() ExternalIdentityID { return ExternalIdentityID(uuid.New()) }
+
+// NewInboxClipID は新しい InboxClipID を生成する。
+func NewInboxClipID() InboxClipID { return InboxClipID(uuid.New()) }
 
 // --- String ---
 
@@ -85,6 +91,9 @@ func (id PasswordCredentialID) String() string { return uuid.UUID(id).String() }
 // String は ExternalIdentityID を文字列表現で返す。
 func (id ExternalIdentityID) String() string { return uuid.UUID(id).String() }
 
+// String は InboxClipID を文字列表現で返す。
+func (id InboxClipID) String() string { return uuid.UUID(id).String() }
+
 // --- IsZero: IDが未設定（ゼロ値）かどうかを判定する ---
 
 // IsZero は UserID がゼロ値 (未設定) かを返す。
@@ -110,3 +119,6 @@ func (id PasswordCredentialID) IsZero() bool { return uuid.UUID(id) == uuid.Nil 
 
 // IsZero は ExternalIdentityID がゼロ値 (未設定) かを返す。
 func (id ExternalIdentityID) IsZero() bool { return uuid.UUID(id) == uuid.Nil }
+
+// IsZero は InboxClipID がゼロ値 (未設定) かを返す。
+func (id InboxClipID) IsZero() bool { return uuid.UUID(id) == uuid.Nil }

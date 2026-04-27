@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #FBF8F1;
+  --color-cream-2: #F6EFD8;
+  --color-surface: #FFFFFF;
+  --color-ink: #2B2A26;
+  --color-ink-2: #5C5A52;
+  --color-ink-3: #8F8D82;
+  --color-line: #E6E1D3;
+
+  --color-sage: #4F6E58;
+  --color-sage-mid: #6B8A72;
+  --color-sage-soft: #E5ECDE;
+  --color-sage-wash: #F0F3E8;
+
+  --color-stage-entry: #C9CBB4;
+  --color-stage-doc: #A8C0DA;
+  --color-stage-es: #D4BA82;
+  --color-stage-interview: #E9B9B0;
+  --color-stage-offer: #9BB58A;
+
+  --color-pink: #E9B9B0;
+  --color-amber: #D4BA82;
+
+  --font-sans: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --font-serif: "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  @keyframes confetti {
+    0% { opacity: 1; transform: translate(0, 0) rotate(0deg); }
+    100% { opacity: 0; transform: translate(var(--cx, 40px), var(--cy, 80px)) rotate(var(--cr, 360deg)); }
+  }
+}
+
+@layer base {
+  html, body { margin: 0; padding: 0; }
+  body {
+    width: 360px;
+    height: 440px;
+    font-family: var(--font-sans);
+    color: var(--color-ink);
+    background: var(--color-cream);
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "palt" 1;
+  }
+}
