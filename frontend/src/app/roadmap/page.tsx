@@ -1,25 +1,20 @@
-"use client";
+// Server Component。entries を SSR で取得し RoadmapView に渡す。
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useUser } from "@/lib/use-user";
+import { redirect } from "next/navigation";
+import { getCurrentUserServer } from "@/lib/auth-server";
+import { listEntriesServer } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { RoadmapView } from "@/components/entre/RoadmapView";
 
-export default function RoadmapPage() {
-  const router = useRouter();
-  const state = useUser();
-
-  useEffect(() => {
-    if (state.status === "guest") router.replace("/login");
-  }, [state.status, router]);
-
-  if (state.status !== "authenticated") {
-    return <div className="min-h-screen bg-cream" />;
-  }
+export default async function RoadmapPage() {
+  const [user, entries] = await Promise.all([
+    getCurrentUserServer(),
+    listEntriesServer().catch(() => [] as never[]),
+  ]);
+  if (!user) redirect("/login");
 
   return (
-    <AppShell userName={state.user.name} userSubtitle="○○大学 4年">
+    <AppShell userName={user.name} userSubtitle="○○大学 4年">
       <div className="mx-auto max-w-[1100px] px-5 py-7 md:px-9 md:py-9">
         <header className="mb-6 md:mb-7">
           <p
@@ -35,7 +30,7 @@ export default function RoadmapPage() {
             内定までの道のりを、一緒に歩いていきましょう。
           </p>
         </header>
-        <RoadmapView />
+        <RoadmapView entries={entries} />
       </div>
     </AppShell>
   );

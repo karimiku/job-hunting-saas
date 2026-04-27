@@ -1,11 +1,11 @@
-"use client";
+// Server Component。/auth/me を SSR で取得し、表示。
+// ログアウトボタンだけ Client (SignOutButton)。
 
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { signOut } from "@/lib/auth";
-import { useUser } from "@/lib/use-user";
+import { redirect } from "next/navigation";
+import { getCurrentUserServer } from "@/lib/auth-server";
 import { AppShell } from "@/components/entre/AppShell";
 import { Mascot } from "@/components/entre/Mascot";
+import { SignOutButton } from "@/components/entre/SignOutButton";
 
 const BADGES = [
   { emoji: "🌱", label: "はじめの一歩", earned: true },
@@ -15,19 +15,9 @@ const BADGES = [
   { emoji: "🎉", label: "初内定", earned: false },
 ];
 
-export default function ProfilePage() {
-  const router = useRouter();
-  const state = useUser();
-
-  useEffect(() => {
-    if (state.status === "guest") router.replace("/login");
-  }, [state.status, router]);
-
-  if (state.status !== "authenticated") {
-    return <div className="min-h-screen bg-cream" />;
-  }
-
-  const user = state.user;
+export default async function ProfilePage() {
+  const user = await getCurrentUserServer();
+  if (!user) redirect("/login");
 
   return (
     <AppShell userName={user.name} userSubtitle="○○大学 4年">
@@ -71,16 +61,7 @@ export default function ProfilePage() {
             <SettingsRow label="連携カレンダー" value="未設定" />
             <SettingsRow label="Chrome拡張" value="インストール済" />
           </ul>
-          <button
-            type="button"
-            onClick={async () => {
-              await signOut();
-              router.push("/login");
-            }}
-            className="mt-4 w-full rounded-lg border border-line bg-surface py-2.5 text-[12px] font-bold text-ink-2 transition-colors hover:bg-line-2"
-          >
-            ログアウト
-          </button>
+          <SignOutButton className="mt-4 w-full rounded-lg border border-line bg-surface py-2.5 text-[12px] font-bold text-ink-2 transition-colors hover:bg-line-2" />
         </section>
       </div>
     </AppShell>
