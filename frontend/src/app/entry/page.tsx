@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import Link from "next/link";
 import { useUser } from "@/lib/use-user";
 import { AppShell } from "@/components/entre/AppShell";
 import { EntryListView } from "@/components/entre/EntryListView";
@@ -25,12 +26,12 @@ export default function EntryListPage() {
           <h1 className="font-serif text-2xl font-extrabold tracking-tight">
             Entry
           </h1>
-          <button
-            type="button"
+          <Link
+            href="/entry/new"
             className="rounded-lg bg-sage px-3 py-1.5 text-[11px] font-bold text-white transition-transform hover:-translate-y-0.5"
           >
             ＋ 追加
-          </button>
+          </Link>
         </header>
 
         <EntryListView />

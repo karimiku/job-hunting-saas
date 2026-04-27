@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useUser } from "@/lib/use-user";
@@ -26,12 +27,12 @@ export default function KanbanPage() {
             <h1 className="font-serif text-2xl font-extrabold tracking-tight">選考カンバン</h1>
             <p className="mt-0.5 text-[11px] text-ink-3">ステータスごとに整理</p>
           </div>
-          <button
-            type="button"
+          <Link
+            href="/entry/new"
             className="rounded-lg bg-sage px-3 py-1.5 text-[11px] font-bold text-white transition-transform hover:-translate-y-0.5"
           >
             ＋ エントリー
-          </button>
+          </Link>
         </header>
 
         <KanbanBoard />
