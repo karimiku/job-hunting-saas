@@ -268,6 +268,16 @@ type ExternalIdentity struct {
 	CreatedAt pgtype.Timestamptz
 }
 
+type InboxClip struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	Url        string
+	Title      string
+	Source     string
+	Guess      string
+	CapturedAt pgtype.Timestamptz
+}
+
 type PasswordCredential struct {
 	ID           uuid.UUID
 	UserID       uuid.UUID

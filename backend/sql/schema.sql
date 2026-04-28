@@ -101,6 +101,16 @@ CREATE TABLE password_credentials (
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE inbox_clips (
+    id          UUID        PRIMARY KEY,
+    user_id     UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    url         TEXT        NOT NULL,
+    title       TEXT        NOT NULL,
+    source      TEXT        NOT NULL,
+    guess       TEXT        NOT NULL DEFAULT '',
+    captured_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ============================================================
 -- インデックス
 -- ============================================================
@@ -122,3 +132,6 @@ CREATE INDEX idx_tasks_due_date ON tasks(due_date)
 CREATE INDEX idx_stage_histories_entry_id ON stage_histories(entry_id);
 
 CREATE INDEX idx_company_aliases_user_company ON company_aliases(user_id, company_id);
+
+-- Inbox 一覧表示用: ユーザの直近クリップから降順で取得
+CREATE INDEX idx_inbox_clips_user_captured_at ON inbox_clips(user_id, captured_at DESC);
