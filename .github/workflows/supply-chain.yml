@@ -71,7 +71,7 @@ jobs:
             --output=osv-results.sarif
             ./
         continue-on-error: ${{ github.event_name == 'pull_request' }}
-      - uses: github/codeql-action/upload-sarif@4e828ff8d448a8a6e532957b1811f387a63867e8 # v3.29.4
+      - uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
         if: always() && hashFiles('osv-results.sarif') != ''
         with:
           sarif_file: osv-results.sarif
