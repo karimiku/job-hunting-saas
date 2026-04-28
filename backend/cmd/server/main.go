@@ -68,15 +68,8 @@ func run() error {
 		stageHistoryRepo = postgres.NewStageHistoryRepository(pool)
 		userRepo = postgres.NewUserRepository(pool)
 		extIDRepo = postgres.NewExternalIdentityRepository(pool)
-		// Inbox の Postgres 実装が未着手のため in-memory を採用するが、Postgres モードで
-		// 黙って in-memory が動くと再起動でクリップ消失する事故になる。明示的な opt-in を要求。
-		if os.Getenv("INBOX_ALLOW_INMEMORY") != "true" {
-			return errors.New("INBOX_ALLOW_INMEMORY=true is required when DATABASE_URL is set " +
-				"because the Inbox repository is not yet persisted to PostgreSQL and clips will be " +
-				"lost on every restart; set the flag to acknowledge this")
-		}
-		inboxClipRepo = inmemory.NewInboxClipRepository()
-		log.Println("using PostgreSQL repositories (Inbox clips: in-memory only — INBOX_ALLOW_INMEMORY=true)")
+		inboxClipRepo = postgres.NewInboxClipRepository(pool)
+		log.Println("using PostgreSQL repositories")
 	} else {
 		// DATABASE_URL 未設定 = 開発・ローカルテストモード。auth middleware も配線できないため
 		// 全エンドポイントが認証なしで通る。これを誤って本番起動しないよう明示フラグを要求。

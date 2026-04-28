@@ -11,9 +11,6 @@ services:
       - .env
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-job_hunting_dev}?sslmode=disable
-      # PR #58: dev compose は Postgres を立ち上げるが Inbox 永続化が未実装 (Issue #59)。
-      # cmd/server/main.go が明示 ack を要求するためここで true を渡す。本番では設定しない。
-      INBOX_ALLOW_INMEMORY: "true"
     depends_on:
       db:
         condition: service_healthy

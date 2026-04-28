@@ -11,20 +11,24 @@ import (
 )
 
 type Querier interface {
+	CreateInboxClip(ctx context.Context, arg CreateInboxClipParams) error
 	CreateStageHistory(ctx context.Context, arg CreateStageHistoryParams) error
 	DeleteCompany(ctx context.Context, arg DeleteCompanyParams) (int64, error)
 	DeleteEntry(ctx context.Context, arg DeleteEntryParams) (int64, error)
+	DeleteInboxClip(ctx context.Context, arg DeleteInboxClipParams) (int64, error)
 	DeleteTask(ctx context.Context, arg DeleteTaskParams) (int64, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) (int64, error)
 	FindCompanyByID(ctx context.Context, arg FindCompanyByIDParams) (Company, error)
 	FindEntryByID(ctx context.Context, arg FindEntryByIDParams) (Entry, error)
 	FindExternalIdentityByProviderAndSubject(ctx context.Context, arg FindExternalIdentityByProviderAndSubjectParams) (ExternalIdentity, error)
+	FindInboxClipByID(ctx context.Context, arg FindInboxClipByIDParams) (InboxClip, error)
 	FindTaskByID(ctx context.Context, arg FindTaskByIDParams) (Task, error)
 	FindUserByEmail(ctx context.Context, email string) (User, error)
 	FindUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	InsertExternalIdentity(ctx context.Context, arg InsertExternalIdentityParams) error
 	ListCompaniesByUserID(ctx context.Context, userID uuid.UUID) ([]Company, error)
 	ListEntriesByUserID(ctx context.Context, arg ListEntriesByUserIDParams) ([]Entry, error)
+	ListInboxClipsByUserID(ctx context.Context, userID uuid.UUID) ([]InboxClip, error)
 	ListStageHistoriesByEntryID(ctx context.Context, entryID uuid.UUID) ([]StageHistory, error)
 	ListTasksByEntryID(ctx context.Context, arg ListTasksByEntryIDParams) ([]Task, error)
 	ListTasksByUserIDWithDueBefore(ctx context.Context, arg ListTasksByUserIDWithDueBeforeParams) ([]Task, error)

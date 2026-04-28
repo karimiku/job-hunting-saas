@@ -48,6 +48,7 @@ func initTestDB() (*pgxpool.Pool, error) {
 	}
 
 	dropSQL := `
+		DROP TABLE IF EXISTS inbox_clips CASCADE;
 		DROP TABLE IF EXISTS password_credentials CASCADE;
 		DROP TABLE IF EXISTS external_identities CASCADE;
 		DROP TABLE IF EXISTS company_aliases CASCADE;
