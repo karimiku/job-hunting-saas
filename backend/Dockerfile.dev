@@ -1,4 +1,4 @@
-FROM golang:1.25
+FROM golang:1.25.9
 
 # Air は再現性のためバージョンピン（latest 追随すると CI で突然壊れる事がある）
 RUN go install github.com/air-verse/air@v1.65.1
