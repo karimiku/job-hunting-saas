@@ -22,34 +22,39 @@
         pkgs = import nixpkgs {
           inherit system;
         };
+        node = pkgs.nodejs_24;
+        pnpm = pkgs.writeShellScriptBin "pnpm" ''
+          exec ${node}/bin/corepack pnpm "$@"
+        '';
       in
       {
         devShells.default = pkgs.mkShell {
-          packages = with pkgs; [
-            go_1_25
-            gopls
-            gotools
-            sqlc
-            oapi-codegen
+          packages = [
+            # Keep runtime/tool versions aligned with project declarations:
+            # Go follows backend/go.mod, and pnpm follows packageManager via Corepack.
+            pkgs.go_1_25
+            pkgs.gopls
+            pkgs.gotools
+            pkgs.sqlc
+            pkgs.oapi-codegen
 
-            nodejs_24
+            node
             pnpm
 
-            docker-client
-            docker-compose
-            postgresql_16
-            gnumake
-            curl
-            jq
-            lsof
+            pkgs.docker-client
+            pkgs.docker-compose
+            pkgs.postgresql_16
+            pkgs.gnumake
+            pkgs.curl
+            pkgs.jq
+            pkgs.lsof
           ];
 
           shellHook = ''
-            export GOTOOLCHAIN=local
             echo "job-hunting-saas dev shell"
             echo "Go:   $(go version)"
             echo "Node: $(node --version)"
-            echo "pnpm: $(pnpm --version)"
+            echo "pnpm: managed by Corepack from package.json"
           '';
         };
       }
