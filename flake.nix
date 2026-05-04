@@ -51,6 +51,7 @@
           ];
 
           shellHook = ''
+            export GOTOOLCHAIN=auto
             echo "job-hunting-saas dev shell"
             echo "Go:   $(go version)"
             echo "Node: $(node --version)"
