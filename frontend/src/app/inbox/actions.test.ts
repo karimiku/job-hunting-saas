@@ -130,8 +130,13 @@ describe("deleteInboxClipAction", () => {
   });
 
   it("DELETE 失敗時はエラーメッセージを返す", async () => {
-    serverFetch.mockRejectedValue(new ApiError(500, "boom"));
+    serverFetch.mockImplementationOnce(async () => {
+      throw new ApiError(500, "boom");
+    });
+    serverFetch.mockResolvedValue(undefined);
     const result = await deleteInboxClipAction({}, form({ clipId: "clip1" }));
     expect(result.error).toBeTruthy();
+    // vitest 4.1.5 が spy の reject 結果を unhandled 誤検知するため resolve で締める。
+    await serverFetch("/__settle__");
   });
 });
