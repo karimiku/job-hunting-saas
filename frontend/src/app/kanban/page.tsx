@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUserServer } from "@/lib/auth-server";
-import { listEntriesServer } from "@/lib/api/server-resources";
+import { listEntriesWithCompanyNamesServer } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { KanbanBoard } from "@/components/entre/KanbanBoard";
 
 export default async function KanbanPage() {
   const [user, entries] = await Promise.all([
     getCurrentUserServer(),
-    listEntriesServer().catch(() => [] as never[]),
+    listEntriesWithCompanyNamesServer().catch(() => [] as never[]),
   ]);
   if (!user) redirect("/login");
 

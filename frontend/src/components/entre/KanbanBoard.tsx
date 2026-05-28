@@ -13,7 +13,12 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { updateEntry, type EntryResponse } from "@/lib/api/entries";
+import {
+  updateEntry,
+  companyDisplayName,
+  companyInitial,
+  type EntryResponse,
+} from "@/lib/api/entries";
 
 const COLUMNS = [
   { kind: "application", label: "エントリー", color: "var(--color-stage-entry)" },
@@ -227,12 +232,14 @@ function CardContent({ entry }: { entry: EntryResponse }) {
     <>
       <div className="mb-1.5 flex items-center gap-2">
         <div className="grid h-6 w-6 place-items-center rounded-md bg-sage-wash font-serif text-xs font-extrabold text-sage">
-          {entry.source.slice(0, 1)}
+          {companyInitial(entry)}
         </div>
-        <div className="truncate text-[10px] font-bold">{entry.source}</div>
+        <div className="truncate text-[10px] font-bold">{companyDisplayName(entry)}</div>
       </div>
-      <div className="flex justify-between text-[9px] text-ink-3">
-        <span>{entry.route}</span>
+      <div className="flex justify-between gap-2 text-[9px] text-ink-3">
+        <span className="truncate">
+          {entry.route} · {entry.source}
+        </span>
         <span aria-hidden>⇆</span>
       </div>
     </>

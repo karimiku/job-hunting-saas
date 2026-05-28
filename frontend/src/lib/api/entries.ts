@@ -4,6 +4,8 @@ export { ApiError } from "./client";
 export interface EntryResponse {
   id: string;
   companyId: string;
+  /** 会社名。backend レスポンスには無く、server-resources で companyId から join して埋める。 */
+  companyName?: string;
   route: string;
   source: string;
   status: string;
@@ -12,6 +14,23 @@ export interface EntryResponse {
   memo: string;
   createdAt: string;
   updatedAt: string;
+}
+
+const NO_COMPANY_LABEL = "（会社名未設定）";
+
+/** 会社名の主表示。join できなかった場合はフォールバック文言を返す。 */
+export function companyDisplayName(
+  entry: Pick<EntryResponse, "companyName">,
+): string {
+  return entry.companyName?.trim() || NO_COMPANY_LABEL;
+}
+
+/** アバター等に使う頭文字。会社名 → source の順でフォールバックする。 */
+export function companyInitial(
+  entry: Pick<EntryResponse, "companyName" | "source">,
+): string {
+  const base = entry.companyName?.trim() || entry.source?.trim() || "?";
+  return base.slice(0, 1).toUpperCase();
 }
 
 export interface ListEntriesParams {

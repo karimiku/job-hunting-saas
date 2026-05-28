@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUserServer } from "@/lib/auth-server";
 import {
   getEntryServer,
+  getCompanyNameServer,
   listTasksByEntryServer,
 } from "@/lib/api/server-resources";
 import { ApiError } from "@/lib/api/client-types";
@@ -22,13 +23,18 @@ export default async function EntryDetailPage({ params }: Props) {
 
   // entry + tasks は独立なので並列 fetch。
   // 取得失敗 (404 等) は EntryDetailView に渡す initial=null として扱い、UI 側でエラー表示。
-  const [entry, tasks] = await Promise.all([
+  const [entryRaw, tasks] = await Promise.all([
     getEntryServer(entryId).catch((e) => {
       if (e instanceof ApiError) return null;
       throw e;
     }),
     listTasksByEntryServer(entryId).catch(() => []),
   ]);
+
+  // entry が取れたら会社名を join する（取得失敗時は UI 側でフォールバック）。
+  const entry = entryRaw
+    ? { ...entryRaw, companyName: await getCompanyNameServer(entryRaw.companyId) }
+    : null;
 
   return (
     <AppShell userName={user.name} userSubtitle="○○大学 4年">
