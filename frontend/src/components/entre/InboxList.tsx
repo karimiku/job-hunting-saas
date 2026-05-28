@@ -3,6 +3,7 @@
 
 import { cache } from "react";
 import { Mascot } from "./Mascot";
+import { InboxClipConvert } from "./InboxClipConvert";
 import type { InboxClipResponse } from "@/lib/api/inboxClips";
 
 // React.cache で 1 リクエスト内 memoize。Date.now() 自体は impure だが、cache() で
@@ -19,22 +20,25 @@ export function InboxList({ clips }: { clips: InboxClipResponse[] }) {
       {clips.map((c) => (
         <li
           key={c.id}
-          className="flex cursor-pointer items-start gap-3 rounded-xl border border-line bg-surface p-3.5 transition-colors hover:border-sage"
+          className="flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-3.5 transition-colors hover:border-sage"
         >
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-sage-wash text-base">
-            ✉
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[12px] font-bold">{c.title}</div>
-            <div className="mt-0.5 truncate font-mono text-[10px] text-ink-3">
-              {c.url}
+          <div className="flex items-start gap-3">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-sage-wash text-base">
+              ✉
             </div>
-            <div className="mt-1 flex items-center gap-2 text-[10px] text-ink-2">
-              <span className="rounded-sm bg-cream-2 px-1.5 py-0.5 font-bold">{c.source}</span>
-              <span>{formatRelative(c.capturedAt, renderedAt)}</span>
-              {c.guess && <span className="text-sage">→ {c.guess}</span>}
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[12px] font-bold">{c.title}</div>
+              <div className="mt-0.5 truncate font-mono text-[10px] text-ink-3">
+                {c.url}
+              </div>
+              <div className="mt-1 flex items-center gap-2 text-[10px] text-ink-2">
+                <span className="rounded-sm bg-cream-2 px-1.5 py-0.5 font-bold">{c.source}</span>
+                <span>{formatRelative(c.capturedAt, renderedAt)}</span>
+                {c.guess && <span className="text-sage">→ {c.guess}</span>}
+              </div>
             </div>
           </div>
+          <InboxClipConvert clip={c} />
         </li>
       ))}
     </ul>
