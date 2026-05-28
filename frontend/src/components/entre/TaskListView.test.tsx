@@ -21,8 +21,7 @@ vi.mock("@/app/task/actions", () => ({
     setTaskStatusAction(taskId, status),
 }));
 
-// Confetti をモックして、毎レンダーの trigger 値を記録する。
-// 「Server Action 成功後にだけ祝福する」挙動 (trigger>0) を検証するため。
+// Confetti の trigger 値を記録し、発火有無を検証する。
 const { confettiSpy } = vi.hoisted(() => ({ confettiSpy: vi.fn() }));
 vi.mock("./Confetti", () => ({
   Confetti: ({ trigger }: { trigger: number }) => {
@@ -31,7 +30,6 @@ vi.mock("./Confetti", () => ({
   },
 }));
 
-// confetti が一度でも発火 (trigger>0) したか。
 const confettiFired = () =>
   confettiSpy.mock.calls.some(([t]) => (t as number) > 0);
 
@@ -89,7 +87,6 @@ describe("TaskListView", () => {
         screen.getByRole("button", { name: "タスク未完了に戻す" }),
       ).toHaveAttribute("aria-pressed", "true"),
     );
-    // Server Action 成功後に紙吹雪が発火する
     await waitFor(() => expect(confettiFired()).toBe(true));
   });
 
@@ -117,7 +114,6 @@ describe("TaskListView", () => {
     expect(
       screen.getByRole("button", { name: "タスク完了にする" }),
     ).toHaveAttribute("aria-pressed", "false");
-    // 失敗時は紙吹雪を出さない (祝福→エラーの壊れた UX を防ぐ)
     expect(confettiFired()).toBe(false);
   });
 });

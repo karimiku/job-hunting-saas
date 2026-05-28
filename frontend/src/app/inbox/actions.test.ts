@@ -136,9 +136,7 @@ describe("deleteInboxClipAction", () => {
     serverFetch.mockResolvedValue(undefined);
     const result = await deleteInboxClipAction({}, form({ clipId: "clip1" }));
     expect(result.error).toBeTruthy();
-    // action は reject を catch 済みだが、vitest 4.1.5 は spy の「最後の結果が reject」を
-    // 後続テストのタイミングで unhandled rejection として誤検知することがある。
-    // resolve する呼び出しで締めて、最後の結果を fulfilled にしておく。
+    // vitest 4.1.5 が spy の reject 結果を unhandled 誤検知するため resolve で締める。
     await serverFetch("/__settle__");
   });
 });

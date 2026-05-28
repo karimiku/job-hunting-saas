@@ -1,9 +1,6 @@
 "use client";
 
-// Server から initialTasks を受け取る Client Component。
-// データ取得は Server Component 側で完結し、ここは表示とトグル操作 (UI interactivity) のみ担う。
-// チェックボックスのトグルは setTaskStatusAction (Server Action) を呼び、完了時に紙吹雪を出して
-// router.refresh() で SSR を再評価する (楽観更新は startTransition 中の見た目だけに留める)。
+// initialTasks を SSR で受け取り、表示とトグル操作のみ担う Client Component。
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -47,7 +44,6 @@ export function TaskListView({ initialTasks }: Props) {
     startTransition(async () => {
       const result = await setTaskStatusAction(task.id, next);
       if (!result.ok) {
-        // 失敗時は楽観更新を巻き戻す。紙吹雪はまだ出していないので戻す必要はない。
         setOptimistic((prev) => {
           const next = { ...prev };
           delete next[task.id];
@@ -56,9 +52,9 @@ export function TaskListView({ initialTasks }: Props) {
         setError(result.error ?? "タスクの更新に失敗しました");
         return;
       }
-      // Server Action 成功後にだけ祝福する (失敗時に祝福→エラーになるのを防ぐ)。
+      // 成功後にだけ祝福する (失敗→ロールバック時に祝福が出るのを防ぐ)。
       if (next === "done") setConfetti((n) => n + 1);
-      router.refresh(); // SSR を再評価して最新の tasks を取得
+      router.refresh();
     });
   };
 

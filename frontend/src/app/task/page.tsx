@@ -15,16 +15,13 @@ export default async function TaskPage() {
   const user = await getCurrentUserServer();
   if (!user) redirect("/login");
 
-  // backend に全タスク一覧 API が無いため、entries (会社名 join 済み) を引いてから
-  // entry ごとの tasks を集約する。取得失敗時は空一覧で表示 (UI 側で空状態を出す)。
+  // backend に全タスク一覧 API が無いため entries → entry ごとの tasks を集約する。
   const entries = await listEntriesWithCompanyNamesServer().catch(() => []);
   const [tasks, clips] = await Promise.all([
     listAllTasksServer(entries).catch(() => []),
     listInboxClipsServer().catch(() => []),
   ]);
 
-  // 既に取得済みの entries / tasks を再利用してサイドバーのバッジ数を組み立てる
-  // (getNavCountsServer を呼ぶと entries/tasks を二重取得するため、ここでは手元の値から作る)。
   const navCounts = {
     entry: entries.length,
     task: tasks.filter((t) => t.status === "todo").length,
