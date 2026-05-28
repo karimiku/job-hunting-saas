@@ -3,7 +3,10 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUserServer } from "@/lib/auth-server";
-import { listEntriesWithCompanyNamesServer } from "@/lib/api/server-resources";
+import {
+  listEntriesWithCompanyNamesServer,
+  getNavCountsServer,
+} from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { EntryListView } from "@/components/entre/EntryListView";
 
@@ -11,10 +14,13 @@ export default async function EntryListPage() {
   const user = await getCurrentUserServer();
   if (!user) redirect("/login");
 
-  const entries = await listEntriesWithCompanyNamesServer();
+  const [entries, navCounts] = await Promise.all([
+    listEntriesWithCompanyNamesServer(),
+    getNavCountsServer(),
+  ]);
 
   return (
-    <AppShell userName={user.name} userSubtitle="○○大学 4年">
+    <AppShell userName={user.name} userSubtitle="○○大学 4年" navCounts={navCounts}>
       <div className="mx-auto max-w-[900px] px-5 py-6 md:px-8 md:py-7">
         <header className="mb-4 flex items-baseline justify-between">
           <h1 className="font-serif text-2xl font-extrabold tracking-tight">
