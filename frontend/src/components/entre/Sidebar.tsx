@@ -4,27 +4,44 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Mascot } from "./Mascot";
 
+/** サイドバーのバッジに表示する実カウント。Server Component で集計して props で渡す。 */
+export interface NavCounts {
+  entry: number;
+  task: number;
+  inbox: number;
+}
+
 interface NavItem {
   k: string;
   l: string;
   i: string;
   href: string;
-  count?: number;
+  /** どの NavCounts キーをバッジに出すか。未指定ならバッジ無し。 */
+  countKey?: keyof NavCounts;
   dev?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { k: "home", l: "ホーム", i: "⌂", href: "/dashboard" },
-  { k: "entry", l: "Entry", i: "▤", href: "/entry", count: 24 },
+  { k: "entry", l: "Entry", i: "▤", href: "/entry", countKey: "entry" },
   { k: "kanban", l: "カンバン", i: "⊞", href: "/kanban" },
   { k: "roadmap", l: "就活ロードマップ", i: "⤴", href: "/roadmap" },
-  { k: "task", l: "Task", i: "✓", href: "/task", count: 9 },
-  { k: "inbox", l: "Inbox", i: "✉", href: "/inbox", count: 2 },
+  { k: "task", l: "Task", i: "✓", href: "/task", countKey: "task" },
+  { k: "inbox", l: "Inbox", i: "✉", href: "/inbox", countKey: "inbox" },
   { k: "profile", l: "プロフィール", i: "◉", href: "/profile" },
   { k: "es", l: "ESエディタ", i: "✎", href: "/es", dev: true },
 ];
 
-export function Sidebar({ userName = "ゲスト", userSubtitle = "" }: { userName?: string; userSubtitle?: string }) {
+export function Sidebar({
+  userName = "ゲスト",
+  userSubtitle = "",
+  navCounts,
+}: {
+  userName?: string;
+  userSubtitle?: string;
+  /** Server Component から渡される実カウント。未指定の画面ではバッジを出さない。 */
+  navCounts?: NavCounts;
+}) {
   const pathname = usePathname();
 
   return (
@@ -43,6 +60,8 @@ export function Sidebar({ userName = "ゲスト", userSubtitle = "" }: { userNam
           const active =
             (it.href === "/dashboard" && pathname === "/dashboard") ||
             (it.href !== "/dashboard" && pathname?.startsWith(it.href));
+          const count =
+            it.countKey && navCounts ? navCounts[it.countKey] : undefined;
           return (
             <Link
               key={it.k}
@@ -56,13 +75,14 @@ export function Sidebar({ userName = "ゲスト", userSubtitle = "" }: { userNam
             >
               <span className="w-[18px] text-center text-sm">{it.i}</span>
               <span className="flex-1">{it.l}</span>
-              {it.count !== undefined && (
+              {count !== undefined && (
                 <span
+                  data-testid={`nav-count-${it.k}`}
                   className={`rounded-md px-1.5 py-px text-[9px] font-bold ${
                     active ? "bg-white/20 text-white" : "bg-sage-soft text-sage"
                   }`}
                 >
-                  {it.count}
+                  {count}
                 </span>
               )}
               {it.dev && (

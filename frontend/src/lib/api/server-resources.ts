@@ -75,3 +75,50 @@ export async function listTasksByEntryServer(
   );
   return res.tasks;
 }
+
+// 1人のユーザーの全タスクを集約する。タスクは entry 単位の API しか無いため、
+// 渡された entry ごとに /tasks を引いて concat する (会社名も join 済みで返す)。
+// 個別の entry でタスク取得に失敗してもその entry をスキップして全体は返す。
+export interface TaskWithEntry extends TaskResponse {
+  /** タスクが属する entry の会社名 (join 済み、未設定なら undefined)。 */
+  companyName?: string;
+}
+
+export async function listAllTasksServer(
+  entries: Pick<EntryResponse, "id" | "companyName">[],
+): Promise<TaskWithEntry[]> {
+  const perEntry = await Promise.all(
+    entries.map(async (entry) => {
+      try {
+        const tasks = await listTasksByEntryServer(entry.id);
+        return tasks.map((t) => ({ ...t, companyName: entry.companyName }));
+      } catch {
+        return [] as TaskWithEntry[];
+      }
+    }),
+  );
+  return perEntry.flat();
+}
+
+export interface NavCounts {
+  entry: number;
+  task: number;
+  inbox: number;
+}
+
+// サイドバーのバッジ用カウント。Entry / Inbox は一覧件数、Task は未完了タスク件数。
+// どれか1つの取得に失敗しても 0 にフォールバックしてサイドバー描画は止めない。
+export async function getNavCountsServer(): Promise<NavCounts> {
+  const [entries, clips] = await Promise.all([
+    listEntriesServer().catch(() => [] as EntryResponse[]),
+    listInboxClipsServer().catch(() => [] as InboxClipResponse[]),
+  ]);
+  const tasks = await listAllTasksServer(entries).catch(
+    () => [] as TaskWithEntry[],
+  );
+  return {
+    entry: entries.length,
+    task: tasks.filter((t) => t.status === "todo").length,
+    inbox: clips.length,
+  };
+}
