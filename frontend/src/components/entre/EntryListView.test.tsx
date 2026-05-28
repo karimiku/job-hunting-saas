@@ -35,4 +35,15 @@ describe("EntryListView", () => {
     render(<EntryListView entries={[]} />);
     expect(screen.getByText(/まだエントリーがありません/)).toBeInTheDocument();
   });
+
+  it("会社名を主表示し、source も維持する", () => {
+    render(<EntryListView entries={[E({ companyName: "テスト商事", source: "リクナビ" })]} />);
+    expect(screen.getByText("テスト商事")).toBeInTheDocument();
+    expect(screen.getByText("リクナビ")).toBeInTheDocument();
+  });
+
+  it("会社名が取得できないときはフォールバック表示する", () => {
+    render(<EntryListView entries={[E({ companyName: undefined })]} />);
+    expect(screen.getByText("（会社名未設定）")).toBeInTheDocument();
+  });
 });

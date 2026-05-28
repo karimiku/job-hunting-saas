@@ -60,4 +60,18 @@ describe("EntryDetailView", () => {
     render(<EntryDetailView initialEntry={null} initialTasks={[]} />);
     expect(screen.getByRole("alert")).toBeInTheDocument();
   });
+
+  it("会社名をヘッダの見出しに表示する", () => {
+    render(
+      <EntryDetailView initialEntry={sample({ companyName: "テスト商事" })} initialTasks={[]} />,
+    );
+    expect(screen.getByRole("heading", { name: "テスト商事" })).toBeInTheDocument();
+  });
+
+  it("会社名が取得できないときはフォールバック見出しを表示する", () => {
+    render(
+      <EntryDetailView initialEntry={sample({ companyName: undefined })} initialTasks={[]} />,
+    );
+    expect(screen.getByRole("heading", { name: "（会社名未設定）" })).toBeInTheDocument();
+  });
 });

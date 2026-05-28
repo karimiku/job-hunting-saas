@@ -48,4 +48,13 @@ describe("KanbanBoard", () => {
     );
     expect(screen.getByTestId("column-count-interview")).toHaveTextContent("2");
   });
+
+  it("カードに会社名を主表示する", () => {
+    render(
+      <KanbanBoard
+        initialEntries={[{ ...e("application", "リクナビ"), companyName: "テスト商事" }]}
+      />,
+    );
+    expect(screen.getByText("テスト商事")).toBeInTheDocument();
+  });
 });
