@@ -9,7 +9,11 @@ vi.mock("@/lib/api/server", () => ({ serverFetch }));
 // revalidatePath はリクエストコンテキスト外だと throw するので no-op に。
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
-import { convertInboxClipAction, type ConvertClipFormState } from "./actions";
+import {
+  convertInboxClipAction,
+  deleteInboxClipAction,
+  type ConvertClipFormState,
+} from "./actions";
 
 const INITIAL: ConvertClipFormState = {};
 
@@ -106,5 +110,28 @@ describe("convertInboxClipAction", () => {
     const { result } = await callAndCapture(fd);
     expect(result?.error).toContain("会社名");
     expect(serverFetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleteInboxClipAction", () => {
+  beforeEach(() => serverFetch.mockReset());
+
+  it("clip を DELETE して空 state を返す", async () => {
+    serverFetch.mockResolvedValue(undefined);
+    const result = await deleteInboxClipAction({}, form({ clipId: "clip1" }));
+    expect(result.error).toBeUndefined();
+    expect(callSignatures()).toContain("DELETE /api/v1/inbox/clips/clip1");
+  });
+
+  it("clipId が空なら API を呼ばずエラーを返す", async () => {
+    const result = await deleteInboxClipAction({}, form({ clipId: "  " }));
+    expect(result.error).toBeTruthy();
+    expect(serverFetch).not.toHaveBeenCalled();
+  });
+
+  it("DELETE 失敗時はエラーメッセージを返す", async () => {
+    serverFetch.mockRejectedValue(new ApiError(500, "boom"));
+    const result = await deleteInboxClipAction({}, form({ clipId: "clip1" }));
+    expect(result.error).toBeTruthy();
   });
 });

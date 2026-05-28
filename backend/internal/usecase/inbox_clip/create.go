@@ -3,6 +3,7 @@ package inboxclip
 
 import (
 	"context"
+	"errors"
 
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
@@ -34,6 +35,10 @@ func NewCreate(repo repository.InboxClipRepository) *Create {
 }
 
 // Execute は値オブジェクトを生成してから InboxClip を保存する。
+//
+// 重複URLの最低限対応 (#98): 同一ユーザーが同じ URL のクリップを既に保存している場合は、
+// 新規作成せず既存クリップをそのまま返す（冪等）。これにより拡張からの多重保存で
+// Inbox がノイズで溢れるのを防ぐ。完全な重複統合は P1 のスコープ外。
 func (uc *Create) Execute(ctx context.Context, input CreateInput) (*CreateOutput, error) {
 	url, err := value.NewURL(input.URL)
 	if err != nil {
@@ -43,6 +48,14 @@ func (uc *Create) Execute(ctx context.Context, input CreateInput) (*CreateOutput
 	if err != nil {
 		return nil, err
 	}
+
+	// 既存の同一 URL クリップがあれば、それを返して新規作成をスキップする。
+	if existing, err := uc.repo.FindByUserIDAndURL(ctx, input.UserID, url); err == nil {
+		return &CreateOutput{Clip: existing}, nil
+	} else if !errors.Is(err, repository.ErrNotFound) {
+		return nil, err
+	}
+
 	clip := entity.NewInboxClip(input.UserID, url, input.Title, source, input.Guess)
 	if err := uc.repo.Create(ctx, clip); err != nil {
 		return nil, err

@@ -84,6 +84,34 @@ func (q *Queries) FindInboxClipByID(ctx context.Context, arg FindInboxClipByIDPa
 	return i, err
 }
 
+const findInboxClipByUserIDAndURL = `-- name: FindInboxClipByUserIDAndURL :one
+SELECT id, user_id, url, title, source, guess, captured_at
+FROM inbox_clips
+WHERE user_id = $1 AND url = $2
+ORDER BY captured_at DESC
+LIMIT 1
+`
+
+type FindInboxClipByUserIDAndURLParams struct {
+	UserID uuid.UUID
+	Url    string
+}
+
+func (q *Queries) FindInboxClipByUserIDAndURL(ctx context.Context, arg FindInboxClipByUserIDAndURLParams) (InboxClip, error) {
+	row := q.db.QueryRow(ctx, findInboxClipByUserIDAndURL, arg.UserID, arg.Url)
+	var i InboxClip
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Url,
+		&i.Title,
+		&i.Source,
+		&i.Guess,
+		&i.CapturedAt,
+	)
+	return i, err
+}
+
 const listInboxClipsByUserID = `-- name: ListInboxClipsByUserID :many
 SELECT id, user_id, url, title, source, guess, captured_at
 FROM inbox_clips

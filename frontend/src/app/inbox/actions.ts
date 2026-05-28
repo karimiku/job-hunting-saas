@@ -115,3 +115,32 @@ export async function convertInboxClipAction(
   revalidatePath("/kanban");
   redirect(`/entry/${entry.id}`);
 }
+
+export interface DeleteClipFormState {
+  error?: string;
+}
+
+// Server Action — Inbox clip を削除し、/inbox を再検証する (#98)。
+// 所有権チェックは backend (DELETE /api/v1/inbox/clips/{clipId} が userID で絞り込む) に委ねる。
+export async function deleteInboxClipAction(
+  _prev: DeleteClipFormState,
+  formData: FormData,
+): Promise<DeleteClipFormState> {
+  const clipId = readField(formData, "clipId").trim();
+  if (!clipId) {
+    return { error: "クリップの指定が不正です" };
+  }
+
+  try {
+    await serverFetch<void>(`/api/v1/inbox/clips/${clipId}`, {
+      method: "DELETE",
+    });
+  } catch (err) {
+    return {
+      error: err instanceof ApiError ? err.message : "クリップの削除に失敗しました",
+    };
+  }
+
+  revalidatePath("/inbox");
+  return {};
+}

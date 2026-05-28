@@ -4,6 +4,7 @@
 import { cache } from "react";
 import { Mascot } from "./Mascot";
 import { InboxClipConvert } from "./InboxClipConvert";
+import { InboxClipDelete } from "./InboxClipDelete";
 import type { InboxClipResponse } from "@/lib/api/inboxClips";
 
 // React.cache で 1 リクエスト内 memoize。Date.now() 自体は impure だが、cache() で
@@ -38,7 +39,12 @@ export function InboxList({ clips }: { clips: InboxClipResponse[] }) {
               </div>
             </div>
           </div>
-          <InboxClipConvert clip={c} />
+          <div className="flex items-end justify-between gap-2">
+            <InboxClipDelete clip={c} />
+            <div className="min-w-0 flex-1">
+              <InboxClipConvert clip={c} />
+            </div>
+          </div>
         </li>
       ))}
     </ul>

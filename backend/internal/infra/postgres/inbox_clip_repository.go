@@ -55,6 +55,21 @@ func (r *InboxClipRepository) FindByID(ctx context.Context, userID entity.UserID
 	return reconstructInboxClip(row)
 }
 
+// FindByUserIDAndURL は userID 所有かつ同一 URL のクリップを返す。存在しなければ repository.ErrNotFound を返す。
+func (r *InboxClipRepository) FindByUserIDAndURL(ctx context.Context, userID entity.UserID, url value.URL) (*entity.InboxClip, error) {
+	row, err := r.q.FindInboxClipByUserIDAndURL(ctx, sqlc.FindInboxClipByUserIDAndURLParams{
+		UserID: uuid.UUID(userID),
+		Url:    url.String(),
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, repository.ErrNotFound
+		}
+		return nil, fmt.Errorf("postgres: FindInboxClipByUserIDAndURL: %w", err)
+	}
+	return reconstructInboxClip(row)
+}
+
 // ListByUserID は userID 所有のクリップを保存日時の新しい順で返す。
 func (r *InboxClipRepository) ListByUserID(ctx context.Context, userID entity.UserID) ([]*entity.InboxClip, error) {
 	rows, err := r.q.ListInboxClipsByUserID(ctx, uuid.UUID(userID))
