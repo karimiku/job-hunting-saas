@@ -1,13 +1,61 @@
 import { useEffect, useState } from "react";
 import { Mascot } from "../components/Mascot";
 import { Confetti } from "../components/Confetti";
-import { createInboxClip } from "../lib/api";
+import { ApiRequestError, WEB_BASE, createInboxClip } from "../lib/api";
 
 interface DetectedPage {
   source: string;
   companyGuess: string;
   title: string;
   url: string;
+}
+
+// 保存失敗時の表示。message は必須、recovery があれば回復ボタンを出す。
+interface ErrorState {
+  message: string;
+  recovery?: { label: string; onClick: () => void };
+}
+
+function openWebLogin() {
+  const url = `${WEB_BASE}/login`;
+  if (typeof chrome !== "undefined" && chrome.tabs?.create) {
+    void chrome.tabs.create({ url });
+  } else {
+    window.open(url, "_blank", "noopener");
+  }
+}
+
+// 保存エラーをユーザー向けメッセージ + 回復導線に変換する。
+function toErrorState(e: unknown): ErrorState {
+  const kind = e instanceof ApiRequestError ? e.kind : "client";
+  switch (kind) {
+    case "unauthorized":
+      return {
+        message:
+          "Entré にログインしていません。Web アプリでログインしてから、もう一度保存してください。",
+        recovery: { label: "Web でログインする", onClick: openWebLogin },
+      };
+    case "forbidden":
+      return {
+        message:
+          "アクセスが拒否されました。一度ログアウト／再ログインするか、拡張の許可設定を管理者に確認してください。",
+        recovery: { label: "Web を開く", onClick: openWebLogin },
+      };
+    case "network":
+      return {
+        message:
+          "サーバーに接続できませんでした。ネット接続と、Entré サーバー／拡張の許可ドメイン設定を確認してください。",
+      };
+    case "server":
+      return {
+        message:
+          "サーバーでエラーが発生しました。少し時間をおいて、もう一度お試しください。",
+      };
+    default:
+      return {
+        message: "保存に失敗しました。もう一度お試しください。",
+      };
+  }
 }
 
 interface ScrapedPage {
@@ -33,7 +81,7 @@ export function Popup() {
   const [companyGuess, setCompanyGuess] = useState("");
   const [saving, setSaving] = useState(false);
   const [confetti, setConfetti] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorState | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -62,8 +110,9 @@ export function Popup() {
       setSaving(false);
       window.setTimeout(() => window.close(), 1500);
     } catch (e) {
+      // 失敗時は popup を閉じず、回復導線つきのエラーを表示する。
       setSaving(false);
-      setError(e instanceof Error ? e.message : "保存に失敗しました");
+      setError(toErrorState(e));
     }
   };
 
@@ -87,9 +136,21 @@ export function Popup() {
         )}
 
         {error && (
-          <p className="mt-2 rounded-md bg-pink/40 px-2.5 py-1.5 text-[10px] font-semibold text-ink">
-            {error}
-          </p>
+          <div
+            role="alert"
+            className="mt-2 rounded-md bg-pink/40 px-2.5 py-2 text-[10px] font-semibold text-ink"
+          >
+            <p className="leading-relaxed">{error.message}</p>
+            {error.recovery && (
+              <button
+                type="button"
+                onClick={error.recovery.onClick}
+                className="mt-1.5 rounded-md bg-sage px-2.5 py-1 text-[10px] font-bold text-white transition-transform hover:-translate-y-0.5"
+              >
+                {error.recovery.label}
+              </button>
+            )}
+          </div>
         )}
       </div>
 
