@@ -1,6 +1,6 @@
 # Entré Chrome Extension
 
-マイナビ・リクナビ・ONE CAREER・OfferBox から1クリックで Entré にエントリーを保存する Chrome 拡張。
+マイナビ・リクナビ・ONE CAREER・OfferBox などから1クリックで Entré の Inbox にページを保存する Chrome 拡張。
 
 ## 開発
 
@@ -20,10 +20,10 @@ pnpm build    # 本番ビルド → dist/
 
 ## 使い方
 
-1. 対応サイト (マイナビ等) で気になる求人ページを開く
+1. 気になる求人ページを開く
 2. ツールバーの Entré アイコンをクリック → ポップアップが開く
-3. 検出された会社名・ステータス・メモを確認
-4. 「＋ Entré に保存」 → バックエンドに保存（要ログイン状態）
+3. 検出された企業名候補を確認
+4. 「＋ Inbox に保存」 → Webアプリの Inbox に保存（要ログイン状態）
 
 ## アーキテクチャ
 
@@ -56,5 +56,6 @@ Session Cookie の `SameSite` 属性は現状 `Lax` のため、host_permissions
 - [ ] AI 抽出 — 現状は DOM の h1 / og:title をそのまま読んでいる。サーバー側で
   ページ HTML から会社名・職種・締切を抽出する API に切り替える
 - [ ] 重複検出 — 同じ URL を保存しようとしたら既存エントリーを表示する
-- [ ] Inbox 連携 — 検出済みだが保存していないクリップを Inbox に溜める
+- [x] Inbox 連携 — 検出済みページを Inbox に保存する
+- [ ] Inbox 整理 — 保存したクリップから Entry を作成・紐付ける
 - [ ] ストア公開準備 — privacy policy, store listing 画像など
