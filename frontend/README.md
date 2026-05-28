@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Entré Frontend
 
-## Getting Started
+Next.js 16（App Router / SSR / Server Actions）の Web フロントエンド。Firebase で Google ログインし、Entry / Kanban / Inbox / Task / Dashboard を提供する。backend が OpenAPI で公開する型に合わせて API を呼ぶ。
 
-First, run the development server:
+## セットアップ
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm dev        # 開発サーバー (http://localhost:3000)
+pnpm build      # 本番ビルド
+pnpm start      # 本番サーバー
+pnpm test       # vitest
+pnpm lint       # ESLint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 環境変数 (`frontend/.env.local`)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+backend への接続先と Firebase Web SDK の設定が必要。`.env.local` は `.gitignore` 済みなのでコミットしない。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| 変数 | 用途 | 例 |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_BASE_URL` | backend API のベース URL | `http://localhost:8080` |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase Web API キー | — |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase 認証ドメイン | `your-project.firebaseapp.com` |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase プロジェクト ID | `your-project-id` |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Storage バケット | `your-project.appspot.com` |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Messaging Sender ID | — |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase App ID | — |
 
-## Learn More
+値は Firebase Console の「プロジェクトの設定 → マイアプリ（Web アプリ）」から取得する。`NEXT_PUBLIC_` 接頭辞の変数はクライアントバンドルに埋め込まれる前提の公開値（Firebase Web SDK のキーは公開設計）。
 
-To learn more about Next.js, take a look at the following resources:
+## 認証フロー
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. `/login` で Google ログイン（Firebase Web SDK）
+2. 取得した ID トークンを backend `POST /auth/session` に送り、httpOnly セッション Cookie を発行
+3. 以降の SSR / Server Action は Cookie を backend に転送して API を呼ぶ（`src/lib/api/server.ts`）
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+backend 側の Firebase / CORS / Cookie 設定とセットで動く。横断的な手順はルート [README.md](../README.md) の「β環境セットアップ」を参照。
 
-## Deploy on Vercel
+## ディレクトリ
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+src/
+├── app/                 # App Router（pages / layouts / server actions）
+├── components/entre/     # アプリ UI（EntryListView, KanbanBoard, InboxList 等）
+├── components/landing/   # LP
+└── lib/api/              # API クライアント（client.ts: Client用 / server.ts: SSR用）
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## テスト
+
+- ユニット/コンポーネント: `pnpm test`（vitest + Testing Library + MSW）
+- E2E: `pnpm test:e2e`（Playwright）
