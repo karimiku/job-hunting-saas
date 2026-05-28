@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TaskListView } from "./TaskListView";
-import type { TaskWithContext } from "@/lib/api/server-resources";
+import type { TaskWithEntry } from "@/lib/api/server-resources";
 
 // Server Action は next/headers を読むのでここでは mock し、呼び出し引数だけ検証する。
 interface ActionResult {
@@ -21,7 +21,21 @@ vi.mock("@/app/task/actions", () => ({
     setTaskStatusAction(taskId, status),
 }));
 
-const task = (overrides: Partial<TaskWithContext> = {}): TaskWithContext => ({
+// Confetti をモックして、毎レンダーの trigger 値を記録する。
+// 「Server Action 成功後にだけ祝福する」挙動 (trigger>0) を検証するため。
+const { confettiSpy } = vi.hoisted(() => ({ confettiSpy: vi.fn() }));
+vi.mock("./Confetti", () => ({
+  Confetti: ({ trigger }: { trigger: number }) => {
+    confettiSpy(trigger);
+    return null;
+  },
+}));
+
+// confetti が一度でも発火 (trigger>0) したか。
+const confettiFired = () =>
+  confettiSpy.mock.calls.some(([t]) => (t as number) > 0);
+
+const task = (overrides: Partial<TaskWithEntry> = {}): TaskWithEntry => ({
   id: "t1",
   entryId: "e1",
   title: "ES提出",
@@ -38,6 +52,7 @@ const task = (overrides: Partial<TaskWithContext> = {}): TaskWithContext => ({
 describe("TaskListView", () => {
   beforeEach(() => {
     setTaskStatusAction.mockClear();
+    confettiSpy.mockClear();
     setTaskStatusAction.mockImplementation(
       async (_taskId: string, status: "todo" | "done") => ({ ok: true, status }),
     );
@@ -60,7 +75,7 @@ describe("TaskListView", () => {
     expect(screen.getByText("期日なし")).toBeInTheDocument();
   });
 
-  it("未完了タスクをトグルすると status=done で Server Action を呼ぶ", async () => {
+  it("未完了タスクをトグルすると status=done で Server Action を呼び、成功後に祝福する", async () => {
     render(<TaskListView initialTasks={[task({ status: "todo" })]} />);
     const toggle = screen.getByRole("button", { name: "タスク完了にする" });
     await userEvent.click(toggle);
@@ -74,6 +89,8 @@ describe("TaskListView", () => {
         screen.getByRole("button", { name: "タスク未完了に戻す" }),
       ).toHaveAttribute("aria-pressed", "true"),
     );
+    // Server Action 成功後に紙吹雪が発火する
+    await waitFor(() => expect(confettiFired()).toBe(true));
   });
 
   it("完了タスクをトグルすると status=todo で Server Action を呼ぶ", async () => {
@@ -86,7 +103,7 @@ describe("TaskListView", () => {
     );
   });
 
-  it("Server Action が失敗したら楽観更新を巻き戻しエラーを表示する", async () => {
+  it("Server Action が失敗したら楽観更新を巻き戻しエラーを表示し、祝福しない", async () => {
     setTaskStatusAction.mockImplementation(async () => ({
       ok: false,
       error: "タスクの更新に失敗しました",
@@ -100,5 +117,7 @@ describe("TaskListView", () => {
     expect(
       screen.getByRole("button", { name: "タスク完了にする" }),
     ).toHaveAttribute("aria-pressed", "false");
+    // 失敗時は紙吹雪を出さない (祝福→エラーの壊れた UX を防ぐ)
+    expect(confettiFired()).toBe(false);
   });
 });

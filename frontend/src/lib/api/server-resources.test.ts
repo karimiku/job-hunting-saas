@@ -13,24 +13,8 @@ beforeEach(() => {
 });
 
 describe("listAllTasksServer", () => {
-  it("entries を引き、各 entry の tasks を会社名付きで集約する", async () => {
+  it("渡された entry ごとに tasks を引き、会社名付きで集約する", async () => {
     serverFetch.mockImplementation(async (path: string) => {
-      if (path === "/api/v1/entries") {
-        return {
-          entries: [
-            { id: "e1", companyId: "c1", source: "リクナビ" },
-            { id: "e2", companyId: "c2", source: "マイナビ" },
-          ],
-        };
-      }
-      if (path === "/api/v1/companies") {
-        return {
-          companies: [
-            { id: "c1", name: "○○商事" },
-            { id: "c2", name: "△△株式会社" },
-          ],
-        };
-      }
       if (path === "/api/v1/entries/e1/tasks") {
         return {
           tasks: [
@@ -48,7 +32,10 @@ describe("listAllTasksServer", () => {
       throw new Error(`unexpected path: ${path}`);
     });
 
-    const tasks = await listAllTasksServer();
+    const tasks = await listAllTasksServer([
+      { id: "e1", companyName: "○○商事" },
+      { id: "e2", companyName: "△△株式会社" },
+    ]);
 
     expect(tasks).toHaveLength(2);
     expect(tasks.find((t) => t.id === "t1")?.companyName).toBe("○○商事");
@@ -57,12 +44,6 @@ describe("listAllTasksServer", () => {
 
   it("個別 entry の tasks 取得に失敗しても取れたぶんだけ返す", async () => {
     serverFetch.mockImplementation(async (path: string) => {
-      if (path === "/api/v1/entries") {
-        return { entries: [{ id: "e1", companyId: "c1", source: "x" }, { id: "e2", companyId: "c2", source: "y" }] };
-      }
-      if (path === "/api/v1/companies") {
-        return { companies: [{ id: "c1", name: "A社" }, { id: "c2", name: "B社" }] };
-      }
       if (path === "/api/v1/entries/e1/tasks") {
         return {
           tasks: [
@@ -74,19 +55,17 @@ describe("listAllTasksServer", () => {
       throw new Error("boom");
     });
 
-    const tasks = await listAllTasksServer();
+    const tasks = await listAllTasksServer([
+      { id: "e1", companyName: "A社" },
+      { id: "e2", companyName: "B社" },
+    ]);
     expect(tasks).toHaveLength(1);
     expect(tasks[0].id).toBe("t1");
   });
 
-  it("タスクが1件も無ければ空配列を返す", async () => {
-    serverFetch.mockImplementation(async (path: string) => {
-      if (path === "/api/v1/entries") return { entries: [] };
-      if (path === "/api/v1/companies") return { companies: [] };
-      throw new Error(`unexpected path: ${path}`);
-    });
-
-    const tasks = await listAllTasksServer();
+  it("entry が無ければ tasks API を呼ばず空配列を返す", async () => {
+    const tasks = await listAllTasksServer([]);
     expect(tasks).toEqual([]);
+    expect(serverFetch).not.toHaveBeenCalled();
   });
 });

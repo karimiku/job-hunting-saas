@@ -8,11 +8,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setTaskStatusAction } from "@/app/task/actions";
-import type { TaskWithContext } from "@/lib/api/server-resources";
+import type { TaskWithEntry } from "@/lib/api/server-resources";
 import { Confetti } from "./Confetti";
 
 interface Props {
-  initialTasks: TaskWithContext[];
+  initialTasks: TaskWithEntry[];
 }
 
 // type ごとのバッジ色。deadline = 締切で目立つ色、schedule = 予定で落ち着いた色。
@@ -39,16 +39,15 @@ export function TaskListView({ initialTasks }: Props) {
     {},
   );
 
-  const toggle = (task: TaskWithContext) => {
+  const toggle = (task: TaskWithEntry) => {
     const next = task.status === "done" ? "todo" : "done";
     setError(null);
     setOptimistic((prev) => ({ ...prev, [task.id]: next }));
-    if (next === "done") setConfetti((n) => n + 1);
 
     startTransition(async () => {
       const result = await setTaskStatusAction(task.id, next);
       if (!result.ok) {
-        // 失敗時は楽観更新を巻き戻す。
+        // 失敗時は楽観更新を巻き戻す。紙吹雪はまだ出していないので戻す必要はない。
         setOptimistic((prev) => {
           const next = { ...prev };
           delete next[task.id];
@@ -57,6 +56,8 @@ export function TaskListView({ initialTasks }: Props) {
         setError(result.error ?? "タスクの更新に失敗しました");
         return;
       }
+      // Server Action 成功後にだけ祝福する (失敗時に祝福→エラーになるのを防ぐ)。
+      if (next === "done") setConfetti((n) => n + 1);
       router.refresh(); // SSR を再評価して最新の tasks を取得
     });
   };

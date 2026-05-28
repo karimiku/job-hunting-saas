@@ -76,33 +76,49 @@ export async function listTasksByEntryServer(
   return res.tasks;
 }
 
-// タスクに、所属 entry の会社名・選考情報を添えたビュー用の型。
-// backend には全タスク一覧 API が無いため、ここで entry ごとの tasks を集約して組み立てる。
-export interface TaskWithContext extends TaskResponse {
+// 1人のユーザーの全タスクを集約する。タスクは entry 単位の API しか無いため、
+// 渡された entry ごとに /tasks を引いて concat する (会社名も join 済みで返す)。
+// 個別の entry でタスク取得に失敗してもその entry をスキップして全体は返す。
+export interface TaskWithEntry extends TaskResponse {
+  /** タスクが属する entry の会社名 (join 済み、未設定なら undefined)。 */
   companyName?: string;
 }
 
-// ユーザーの全タスクを横断取得する。
-// backend に「全タスク一覧」エンドポイントが無いため、
-//   1. entries 一覧 (会社名 join 済み) を1回引く
-//   2. entry ごとに tasks を取得 (Promise.all で並列化)
-// の2段構えで集約する。entry 数ぶんのリクエストになるので、
-// 件数が増えたら backend に GET /api/v1/tasks 集約エンドポイントを足すのが望ましい (follow-up)。
-// 個別 entry の tasks 取得失敗は握りつぶし、取れたぶんだけ返す。
-export async function listAllTasksServer(): Promise<TaskWithContext[]> {
-  const entries = await listEntriesWithCompanyNamesServer();
-
+export async function listAllTasksServer(
+  entries: Pick<EntryResponse, "id" | "companyName">[],
+): Promise<TaskWithEntry[]> {
   const perEntry = await Promise.all(
     entries.map(async (entry) => {
-      const tasks = await listTasksByEntryServer(entry.id).catch(
-        () => [] as TaskResponse[],
-      );
-      return tasks.map((task) => ({
-        ...task,
-        companyName: entry.companyName,
-      }));
+      try {
+        const tasks = await listTasksByEntryServer(entry.id);
+        return tasks.map((t) => ({ ...t, companyName: entry.companyName }));
+      } catch {
+        return [] as TaskWithEntry[];
+      }
     }),
   );
-
   return perEntry.flat();
+}
+
+export interface NavCounts {
+  entry: number;
+  task: number;
+  inbox: number;
+}
+
+// サイドバーのバッジ用カウント。Entry / Inbox は一覧件数、Task は未完了タスク件数。
+// どれか1つの取得に失敗しても 0 にフォールバックしてサイドバー描画は止めない。
+export async function getNavCountsServer(): Promise<NavCounts> {
+  const [entries, clips] = await Promise.all([
+    listEntriesServer().catch(() => [] as EntryResponse[]),
+    listInboxClipsServer().catch(() => [] as InboxClipResponse[]),
+  ]);
+  const tasks = await listAllTasksServer(entries).catch(
+    () => [] as TaskWithEntry[],
+  );
+  return {
+    entry: entries.length,
+    task: tasks.filter((t) => t.status === "todo").length,
+    inbox: clips.length,
+  };
 }

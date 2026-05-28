@@ -7,6 +7,7 @@ import (
 
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
+	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
 
 // InboxClipRepository はメモリ上に保存するクリップ用リポジトリ。テスト・開発用。
@@ -39,6 +40,26 @@ func (r *InboxClipRepository) FindByID(_ context.Context, userID entity.UserID, 
 		return nil, repository.ErrNotFound
 	}
 	return clip, nil
+}
+
+// FindByUserIDAndURL は userID 所有かつ同一 URL のクリップを返す。なければ ErrNotFound。
+// 同一 URL が複数あり得る場合は保存日時の新しいものを返す（重複抑止の参照用なので任意の 1 件で十分）。
+func (r *InboxClipRepository) FindByUserIDAndURL(_ context.Context, userID entity.UserID, url value.URL) (*entity.InboxClip, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var found *entity.InboxClip
+	for _, c := range r.clipsByID {
+		if c.UserID() != userID || !c.URL().Equals(url) {
+			continue
+		}
+		if found == nil || c.CapturedAt().After(found.CapturedAt()) {
+			found = c
+		}
+	}
+	if found == nil {
+		return nil, repository.ErrNotFound
+	}
+	return found, nil
 }
 
 // ListByUserID は userID 所有のクリップを保存日時の新しい順で返す。
