@@ -7,6 +7,13 @@ SELECT id, user_id, url, title, source, guess, captured_at
 FROM inbox_clips
 WHERE user_id = $1 AND id = $2;
 
+-- name: FindInboxClipByUserIDAndURL :one
+SELECT id, user_id, url, title, source, guess, captured_at
+FROM inbox_clips
+WHERE user_id = $1 AND url = $2
+ORDER BY captured_at DESC
+LIMIT 1;
+
 -- name: ListInboxClipsByUserID :many
 SELECT id, user_id, url, title, source, guess, captured_at
 FROM inbox_clips

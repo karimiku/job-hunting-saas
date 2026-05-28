@@ -22,6 +22,7 @@ type Querier interface {
 	FindEntryByID(ctx context.Context, arg FindEntryByIDParams) (Entry, error)
 	FindExternalIdentityByProviderAndSubject(ctx context.Context, arg FindExternalIdentityByProviderAndSubjectParams) (ExternalIdentity, error)
 	FindInboxClipByID(ctx context.Context, arg FindInboxClipByIDParams) (InboxClip, error)
+	FindInboxClipByUserIDAndURL(ctx context.Context, arg FindInboxClipByUserIDAndURLParams) (InboxClip, error)
 	FindTaskByID(ctx context.Context, arg FindTaskByIDParams) (Task, error)
 	FindUserByEmail(ctx context.Context, email string) (User, error)
 	FindUserByID(ctx context.Context, id uuid.UUID) (User, error)
