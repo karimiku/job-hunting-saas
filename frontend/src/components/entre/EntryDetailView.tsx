@@ -6,7 +6,12 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { updateEntry, type EntryResponse } from "@/lib/api/entries";
+import {
+  updateEntry,
+  companyDisplayName,
+  companyInitial,
+  type EntryResponse,
+} from "@/lib/api/entries";
 import type { TaskResponse } from "@/lib/api/tasks";
 import { Mascot } from "./Mascot";
 import { Confetti } from "./Confetti";
@@ -70,11 +75,15 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
       {/* Header */}
       <div className="mb-4 flex items-center gap-3">
         <div className="grid h-14 w-14 place-items-center rounded-xl bg-sage-wash font-serif text-2xl font-extrabold text-sage">
-          {e.source.slice(0, 1)}
+          {companyInitial(e)}
         </div>
-        <div className="flex-1">
-          <h1 className="font-serif text-lg font-extrabold tracking-tight">{e.source}</h1>
-          <p className="mt-0.5 text-[10px] text-ink-3">{e.route}</p>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate font-serif text-lg font-extrabold tracking-tight">
+            {companyDisplayName(e)}
+          </h1>
+          <p className="mt-0.5 text-[10px] text-ink-3">
+            {e.source} · {e.route}
+          </p>
         </div>
         {isOffer && (
           <div

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUserServer } from "@/lib/auth-server";
-import { listEntriesServer } from "@/lib/api/server-resources";
+import { listEntriesWithCompanyNamesServer } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { EntryListView } from "@/components/entre/EntryListView";
 
@@ -11,7 +11,7 @@ export default async function EntryListPage() {
   const user = await getCurrentUserServer();
   if (!user) redirect("/login");
 
-  const entries = await listEntriesServer();
+  const entries = await listEntriesWithCompanyNamesServer();
 
   return (
     <AppShell userName={user.name} userSubtitle="○○大学 4年">

@@ -2,7 +2,11 @@
 // データは props で渡される (page.tsx 側で SSR 取得済み)。
 
 import Link from "next/link";
-import type { EntryResponse } from "@/lib/api/entries";
+import {
+  companyDisplayName,
+  companyInitial,
+  type EntryResponse,
+} from "@/lib/api/entries";
 
 const STAGE_BG: Record<string, string> = {
   application: "var(--color-stage-entry)",
@@ -31,10 +35,10 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
         >
           <Link href={`/entry/${e.id}`} className="flex flex-1 items-center gap-2.5">
             <div className="grid h-9 w-9 place-items-center rounded-[10px] bg-sage-wash font-serif text-lg font-extrabold text-sage">
-              {e.companyId.slice(0, 1).toUpperCase()}
+              {companyInitial(e)}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-[12px] font-bold">{e.source}</div>
+              <div className="truncate text-[12px] font-bold">{companyDisplayName(e)}</div>
               <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-ink-3">
                 <span
                   className="rounded-sm px-1.5 py-0.5 text-[8px] font-bold text-white"
@@ -43,6 +47,8 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
                   {e.stageLabel}
                 </span>
                 <span>{e.route}</span>
+                <span aria-hidden>·</span>
+                <span className="truncate">{e.source}</span>
               </div>
               {e.memo && <div className="mt-1 text-[10px] text-ink-2">{e.memo}</div>}
             </div>
