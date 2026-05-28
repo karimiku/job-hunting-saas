@@ -6,6 +6,7 @@ interface ScrapedJob {
   source: string;
   companyName: string;
   jobTitle: string;
+  url: string;
   detectedAt: string;
 }
 
@@ -66,6 +67,7 @@ function detectCurrentPage(): ScrapedJob | null {
     source: partial.source ?? "",
     companyName: partial.companyName,
     jobTitle: partial.jobTitle ?? "",
+    url: window.location.href,
     detectedAt: new Date().toISOString(),
   };
 }
