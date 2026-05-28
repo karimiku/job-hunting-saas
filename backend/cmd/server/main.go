@@ -112,8 +112,13 @@ func run() error {
 		// Firebase SDK 型を handler / middleware に漏らさないため、adapter で DTO に変換する。
 		sessionCreator := fbinfra.NewSessionCreator(fb.Auth)
 		sessionVerifier := fbinfra.NewSessionVerifier(fb.Auth)
+		cookieSameSite, err := parseCookieSameSite(os.Getenv("COOKIE_SAME_SITE"))
+		if err != nil {
+			return err
+		}
 		authHandler = handler.NewAuthHandler(sessionCreator, authenticateUC, userRepo, handler.AuthConfig{
-			CookieSecure: os.Getenv("COOKIE_SECURE") == "true",
+			CookieSecure:   os.Getenv("COOKIE_SECURE") == "true",
+			CookieSameSite: cookieSameSite,
 		})
 		authMiddleware = middleware.NewAuth(sessionVerifier, extIDRepo)
 		log.Println("firebase auth wired")
@@ -212,12 +217,25 @@ func run() error {
 	return nil
 }
 
+func parseCookieSameSite(raw string) (http.SameSite, error) {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "", "lax":
+		return http.SameSiteLaxMode, nil
+	case "strict":
+		return http.SameSiteStrictMode, nil
+	case "none":
+		return http.SameSiteNoneMode, nil
+	default:
+		return 0, fmt.Errorf("invalid COOKIE_SAME_SITE %q (want lax, strict, or none)", raw)
+	}
+}
+
 // corsMiddleware はフロントエンドとの Cookie 付き通信を許可する最小 CORS 実装。
 // 受け取るのはカンマ区切りの allowlist。空なら http://localhost:3000 のみ。
 //
 // Chrome 拡張から呼びたい場合は `chrome-extension://<extension-id>` を allowlist に追加する。
-// なお Cookie が SameSite=Lax である限り、拡張 origin への credentials 付き fetch には
-// Cookie が乗らない点には注意 (本番では Cookie の SameSite=None;Secure 化が別途必要)。
+// 拡張 origin から Cookie を送る本番 HTTPS 環境では COOKIE_SAME_SITE=none と
+// COOKIE_SECURE=true をセットする。
 func corsMiddleware(allowedOriginsRaw string) func(http.Handler) http.Handler {
 	if allowedOriginsRaw == "" {
 		allowedOriginsRaw = "http://localhost:3000"
