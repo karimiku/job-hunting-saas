@@ -82,6 +82,19 @@ docker compose up
 curl http://localhost:8080/health
 ```
 
+### 認証 / Chrome拡張向け Cookie 設定
+
+認証ありで起動する場合は `DATABASE_URL` に加えて Firebase 設定が必要。
+Chrome拡張から認証付きで API を呼ぶ本番 HTTPS 環境では、拡張の origin を
+`CORS_ALLOWED_ORIGINS` に追加し、Cookie を cross-site fetch に送れる設定にする。
+
+```bash
+FIREBASE_PROJECT_ID=your-project-id
+CORS_ALLOWED_ORIGINS=https://your-web-app.example,chrome-extension://<extension-id>
+COOKIE_SECURE=true
+COOKIE_SAME_SITE=none
+```
+
 ### テスト実行
 
 ```bash
