@@ -1,0 +1,6 @@
+# pnpm 10+ では依存パッケージの postinstall スクリプト実行は明示的な許可制（onlyBuiltDependencies）。
+# esbuild（vite の依存）はネイティブバイナリ検証のため build script を要求するので明示的に許可する。
+# これがないと `pnpm build`（tsc -b && vite build）が ERR_PNPM_IGNORED_BUILDS: esbuild で壊れる。
+# https://pnpm.io/settings#onlybuiltdependencies
+onlyBuiltDependencies:
+  - esbuild
