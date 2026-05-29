@@ -25,14 +25,28 @@ Confirmed working:
 - Core backend CRUD exists for Company, Entry, Task, StageHistory, InboxClip.
 - Chrome extension popup can save to the Inbox API.
 
+Quality pass completed in the current branch:
+
+- Chrome extension save success now keeps the popup open and points users to Web Inbox.
+- Chrome extension extraction now uses JSON-LD, site-specific DOM selectors, meta title, and page title fallbacks instead of only the first heading.
+- Inbox clip conversion copy explains that Company + Entry are created and Entry/Kanban/Task become available.
+- Inbox clip conversion can now reuse an existing Company candidate instead of always creating a duplicate Company.
+- Entry, Kanban, Task, Inbox, Profile, Dashboard, and Sidebar no longer rely on fake student profile/streak copy in the core app shell.
+- Empty states now point to the next concrete action instead of ending at a blank list.
+- Kanban stage update failures surface a visible error instead of silently rolling back.
+- Task page can now create deadline/schedule tasks directly by selecting an Entry.
+- Task page now sorts tasks by actionable order and can delete tasks without leaving the page.
+- Entry detail can now create, complete, and delete tasks in the company context.
+
 Known gaps:
 
-- Inbox clips cannot yet be converted into Entries from the web UI.
-- Entry-facing UI often shows `source` or `companyId` instead of company name.
-- Dashboard, Sidebar counts, and Task page still contain hardcoded/demo data.
-- Extension failure states are too raw for beta users.
+- Authenticated browser E2E still does not cover the full extension-save-to-entry-management flow.
+- Profile settings are read-only and still lack notification/calendar persistence.
+- Task editing still requires deeper per-task controls; Task creation/completion/deletion now works from Task page and Entry detail.
+- New-company Entry creation still creates Company then Entry via two API calls; backend transaction/dedicated conversion endpoint remains issue #62.
+- Extension extraction is still client-side heuristic extraction and can miss company names on unsupported page layouts.
 - Local/beta environment setup is under-documented.
-- There is no single beta E2E proving extension-save-to-entry-management.
+- There is no single automated beta E2E proving extension-save-to-entry-management.
 
 ## Scope Boundaries
 

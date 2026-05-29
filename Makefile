@@ -26,8 +26,9 @@ up-be: ## バックエンドだけ docker で起動
 up-d: ## バックエンドだけ docker バックグラウンド起動
 	cd backend && docker compose up -d
 
-down: ## docker compose down（ローカル pnpm dev は対象外）
+down: ## docker compose down + フロント dev (port 3000) も停止
 	cd backend && docker compose down
+	-@lsof -ti:3000 | xargs kill 2>/dev/null || true
 
 down-v: ## volumes 含めて全消し（DB も消える）
 	cd backend && docker compose down -v
