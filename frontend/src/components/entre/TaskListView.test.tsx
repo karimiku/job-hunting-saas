@@ -17,8 +17,10 @@ const setTaskStatusAction = vi.fn(
     status: "todo" | "done",
   ): Promise<ActionResult> => ({ ok: true, status }),
 );
-const deleteTaskAction = vi.fn(async () => ({ ok: true }));
-const createTaskFromTaskPageAction = vi.fn(async () => ({ ok: true }));
+const deleteTaskAction = vi.fn(async (_taskId: string) => ({ ok: true }));
+const createTaskFromTaskPageAction = vi.fn(
+  async (_prev: unknown, _formData: FormData) => ({ ok: true }),
+);
 vi.mock("@/app/task/actions", () => ({
   createTaskFromTaskPageAction: (_prev: unknown, formData: FormData) =>
     createTaskFromTaskPageAction(_prev, formData),
