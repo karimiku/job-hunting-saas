@@ -3,19 +3,24 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUserServer } from "@/lib/auth-server";
-import { listEntriesWithCompanyNamesServer } from "@/lib/api/server-resources";
+import {
+  getNavCountsServer,
+  listEntriesWithCompanyNamesServer,
+} from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { KanbanBoard } from "@/components/entre/KanbanBoard";
+import { Plus } from "lucide-react";
 
 export default async function KanbanPage() {
-  const [user, entries] = await Promise.all([
+  const [user, entries, navCounts] = await Promise.all([
     getCurrentUserServer(),
     listEntriesWithCompanyNamesServer().catch(() => [] as never[]),
+    getNavCountsServer(),
   ]);
   if (!user) redirect("/login");
 
   return (
-    <AppShell userName={user.name} userSubtitle="○○大学 4年">
+    <AppShell userName={user.name} userSubtitle={user.email} navCounts={navCounts}>
       <div className="mx-auto max-w-[1400px] px-5 py-6 md:px-8 md:py-7">
         <header className="mb-5 flex items-baseline justify-between">
           <div>
@@ -24,9 +29,10 @@ export default async function KanbanPage() {
           </div>
           <Link
             href="/entry/new"
-            className="rounded-lg bg-sage px-3 py-1.5 text-[11px] font-bold text-white transition-transform hover:-translate-y-0.5"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-sage px-3 py-1.5 text-[11px] font-bold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/40"
           >
-            ＋ エントリー
+            <Plus size={13} aria-hidden />
+            エントリー
           </Link>
         </header>
 

@@ -12,7 +12,7 @@ export default async function NewEntryPage() {
   if (!user) redirect("/login");
 
   return (
-    <AppShell userName={user.name} userSubtitle="○○大学 4年">
+    <AppShell userName={user.name} userSubtitle={user.email}>
       <div className="mx-auto max-w-[640px] px-5 py-6 md:px-8 md:py-7">
         <Link
           href="/entry"

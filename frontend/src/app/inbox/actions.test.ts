@@ -105,6 +105,31 @@ describe("convertInboxClipAction", () => {
     expect(calls.some((c) => c.startsWith("DELETE /api/v1/inbox/clips/"))).toBe(false);
   });
 
+  it("既存会社IDがある場合は company を新規作成せず entry を作成する", async () => {
+    serverFetch.mockImplementation(async (path?: string, init?: RequestInit) => {
+      if (path === "/api/v1/companies/co1" && !init?.method) return companyResp;
+      if (path === "/api/v1/entries" && init?.method === "POST") return entryResp;
+      return undefined;
+    });
+
+    const fd = form({
+      clipId: "clip1",
+      existingCompanyId: "co1",
+      companyName: "テスト商事",
+      route: "本選考",
+      source: "マイナビ",
+      memo: "memo",
+    });
+
+    const { thrown } = await callAndCapture(fd);
+    expect((thrown as { digest?: string } | undefined)?.digest).toContain("/entry/en1");
+
+    const calls = callSignatures();
+    expect(calls).toContain("GET /api/v1/companies/co1");
+    expect(calls).toContain("POST /api/v1/entries");
+    expect(calls).not.toContain("POST /api/v1/companies");
+  });
+
   it("会社名が空ならエラーを返し、API を呼ばない", async () => {
     const fd = form({ clipId: "clip1", companyName: "   ", route: "本選考", source: "マイナビ", memo: "" });
     const { result } = await callAndCapture(fd);

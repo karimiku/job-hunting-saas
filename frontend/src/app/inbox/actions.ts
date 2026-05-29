@@ -15,6 +15,7 @@ export interface ConvertClipFormState {
   error?: string;
   values?: {
     companyName: string;
+    existingCompanyId: string;
     route: string;
     source: string;
     memo: string;
@@ -33,6 +34,7 @@ export async function convertInboxClipAction(
   formData: FormData,
 ): Promise<ConvertClipFormState> {
   const clipId = readField(formData, "clipId").trim();
+  const existingCompanyId = readField(formData, "existingCompanyId").trim();
   const companyName = readField(formData, "companyName").trim();
   const routeRaw = readField(formData, "route", "本選考");
   const source = readField(formData, "source").trim();
@@ -40,7 +42,7 @@ export async function convertInboxClipAction(
 
   // enum で受けた値だけ受理 (form の改ざん対策)。source は backend が自由入力を許すのでそのまま。
   const route = (ROUTES as readonly string[]).includes(routeRaw) ? routeRaw : "本選考";
-  const values = { companyName, route, source, memo };
+  const values = { companyName, existingCompanyId, route, source, memo };
 
   if (!clipId) {
     return { error: "クリップの指定が不正です", values };
@@ -52,18 +54,38 @@ export async function convertInboxClipAction(
     return { error: "ソースは必須です", values };
   }
 
-  // 1. Company 作成
+  // 1. 既存 Company を使うか、新しい Company を作成する。
+  //    Inbox 変換では同じ会社を何度も作ると Entry/Kanban が読みにくくなるため、
+  //    フォームから渡された既存会社 ID を優先する。
   let company: CompanyResponse;
-  try {
-    company = await serverFetch<CompanyResponse>("/api/v1/companies", {
-      method: "POST",
-      body: JSON.stringify({ name: companyName }),
-    });
-  } catch (err) {
-    return {
-      error: err instanceof ApiError ? err.message : "会社の作成に失敗しました",
-      values,
-    };
+  let createdCompany = false;
+  if (existingCompanyId) {
+    try {
+      company = await serverFetch<CompanyResponse>(
+        `/api/v1/companies/${existingCompanyId}`,
+      );
+    } catch (err) {
+      return {
+        error:
+          err instanceof ApiError
+            ? err.message
+            : "既存会社の取得に失敗しました",
+        values,
+      };
+    }
+  } else {
+    try {
+      company = await serverFetch<CompanyResponse>("/api/v1/companies", {
+        method: "POST",
+        body: JSON.stringify({ name: companyName }),
+      });
+      createdCompany = true;
+    } catch (err) {
+      return {
+        error: err instanceof ApiError ? err.message : "会社の作成に失敗しました",
+        values,
+      };
+    }
   }
 
   // 2. Entry 作成。失敗したら orphan company を best-effort で削除し、clip は残す。
@@ -79,18 +101,20 @@ export async function convertInboxClipAction(
       }),
     });
   } catch (err) {
-    try {
-      await serverFetch<void>(`/api/v1/companies/${company.id}`, {
-        method: "DELETE",
-      });
-    } catch {
-      return {
-        error:
-          "エントリーの保存に失敗しました。会社「" +
-          company.name +
-          "」だけ作成された状態です。/entry から確認してください。",
-        values,
-      };
+    if (createdCompany) {
+      try {
+        await serverFetch<void>(`/api/v1/companies/${company.id}`, {
+          method: "DELETE",
+        });
+      } catch {
+        return {
+          error:
+            "エントリーの保存に失敗しました。会社「" +
+            company.name +
+            "」だけ作成された状態です。/entry から確認してください。",
+          values,
+        };
+      }
     }
     return {
       error: err instanceof ApiError ? err.message : "エントリーの保存に失敗しました",

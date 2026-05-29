@@ -2,6 +2,7 @@
 // データは props で渡される (page.tsx 側で SSR 取得済み)。
 
 import Link from "next/link";
+import { Inbox, Plus } from "lucide-react";
 import {
   companyDisplayName,
   companyInitial,
@@ -20,8 +21,27 @@ const STAGE_BG: Record<string, string> = {
 export function EntryListView({ entries }: { entries: EntryResponse[] }) {
   if (entries.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-line bg-surface p-6 text-center text-[12px] text-ink-2">
-        まだエントリーがありません。＋ボタンから1件追加しましょう。
+      <div className="rounded-xl border border-dashed border-line bg-surface p-8 text-center">
+        <p className="font-serif text-base font-extrabold">まだ Entry がありません</p>
+        <p className="mx-auto mt-1 max-w-[420px] text-[11px] leading-relaxed text-ink-2">
+          Chrome拡張で保存した求人は Inbox から Entry にできます。直接追加することもできます。
+        </p>
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <Link
+            href="/inbox"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-sage bg-sage-wash px-3 py-1.5 text-[11px] font-bold text-sage transition-colors hover:bg-sage hover:text-white"
+          >
+            <Inbox size={13} aria-hidden />
+            Inboxを見る
+          </Link>
+          <Link
+            href="/entry/new"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+          >
+            <Plus size={13} aria-hidden />
+            手動で追加
+          </Link>
+        </div>
       </div>
     );
   }

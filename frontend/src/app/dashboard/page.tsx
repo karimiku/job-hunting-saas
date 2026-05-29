@@ -14,12 +14,9 @@ import { Reveal } from "@/components/entre/Reveal";
 import { DashboardStats, summarizeEntries } from "@/components/entre/DashboardStats";
 import { DashboardQuests } from "@/components/entre/DashboardQuests";
 import { DashboardEncouragement } from "@/components/entre/DashboardEncouragement";
+import { DashboardNextAction } from "@/components/entre/DashboardNextAction";
 import { StatusBreakdown } from "@/components/entre/StatusBreakdown";
 import { SignOutButton } from "@/components/entre/SignOutButton";
-
-// 連続ログイン日数を保持するバックエンドがまだ無いため、暫定の固定値。
-// 実データ化は β スコープ外（issue #93 参照）。本物の計測基盤ができ次第差し替える。
-const STREAK_DAYS_PLACEHOLDER = 7;
 
 export default async function DashboardPage() {
   // user は独立、entries/navCounts も独立なので並列取得 (cookies() は内部で memoize される)
@@ -38,7 +35,7 @@ export default async function DashboardPage() {
   const openTasks = tasks.filter((t) => t.status === "todo").length;
 
   return (
-    <AppShell userName={user.name} userSubtitle="○○大学 4年" navCounts={navCounts}>
+    <AppShell userName={user.name} userSubtitle={user.email} navCounts={navCounts}>
       <div className="mx-auto max-w-[1100px] px-5 py-6 md:px-8 md:py-8">
         {/* Greeting + bowing mascot (看板) */}
         <header className="mb-5 flex flex-col gap-3 md:mb-6 md:flex-row md:items-center md:justify-between">
@@ -54,16 +51,15 @@ export default async function DashboardPage() {
               <h1 className="font-serif text-2xl font-extrabold tracking-tight md:text-[28px]">
                 {firstName}
                 <span className="ml-1 text-sm font-medium text-ink-2 md:text-base">
-                  さん、今日もお疲れさまです 🌱
+                  さん、今日の就活状況です
                 </span>
               </h1>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-br from-cream-2 to-sage-wash px-3.5 py-1.5 text-[11px] font-bold">
-              <span style={{ animation: "entre-wiggle 2s infinite" }}>🔥</span>
-              連続 {STREAK_DAYS_PLACEHOLDER}日
+            <div className="rounded-full bg-sage-wash px-3.5 py-1.5 text-[11px] font-bold text-sage">
+              未完了Task {openTasks}件
             </div>
             <SignOutButton />
           </div>
@@ -73,6 +69,14 @@ export default async function DashboardPage() {
         <section className="mb-5 md:mb-6">
           <DashboardStats entries={entries} />
         </section>
+
+        <Reveal delay={100}>
+          <DashboardNextAction
+            inboxCount={navCounts.inbox}
+            entryCount={entries.length}
+            openTaskCount={openTasks}
+          />
+        </Reveal>
 
         {/* Quest + Status */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.4fr_1fr]">

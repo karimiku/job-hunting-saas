@@ -33,7 +33,7 @@ describe("EntryListView", () => {
 
   it("0件のとき空状態を表示する", () => {
     render(<EntryListView entries={[]} />);
-    expect(screen.getByText(/まだエントリーがありません/)).toBeInTheDocument();
+    expect(screen.getByText(/まだ Entry がありません/)).toBeInTheDocument();
   });
 
   it("会社名を主表示し、source も維持する", () => {

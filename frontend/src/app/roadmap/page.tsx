@@ -14,7 +14,7 @@ export default async function RoadmapPage() {
   if (!user) redirect("/login");
 
   return (
-    <AppShell userName={user.name} userSubtitle="○○大学 4年">
+    <AppShell userName={user.name} userSubtitle={user.email}>
       <div className="mx-auto max-w-[1100px] px-5 py-7 md:px-9 md:py-9">
         <header className="mb-6 md:mb-7">
           <p

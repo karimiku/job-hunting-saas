@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { AlertCircle, Plus } from "lucide-react";
 import {
   DndContext,
   DragEndEvent,
@@ -50,6 +52,7 @@ export function KanbanBoard({ initialEntries }: Props) {
   // entryId → 楽観的に上書きされた stageKind。API 成功で消し、失敗で消してロールバック。
   const [overrides, setOverrides] = useState<Record<string, string>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   // 同一カード連続移動の race 対策: entryId ごとに最新リクエスト ID を採番。
   // 自分が最新でないリクエストは override clear / refresh をスキップする。
   const requestIdsRef = useRef<Map<string, number>>(new Map());
@@ -95,6 +98,7 @@ export function KanbanBoard({ initialEntries }: Props) {
     requestIdsRef.current.set(entryId, requestId);
 
     // 楽観的反映
+    setError(null);
     setOverrides((prev) => ({ ...prev, [entryId]: targetKind }));
 
     try {
@@ -115,6 +119,7 @@ export function KanbanBoard({ initialEntries }: Props) {
     } catch {
       // 失敗 — 自分が最新のリクエストのときだけロールバックする。
       if (requestIdsRef.current.get(entryId) === requestId) {
+        setError("選考フェーズの更新に失敗しました。通信状態を確認して、もう一度動かしてください。");
         setOverrides((prev) => {
           const next = { ...prev };
           delete next[entryId];
@@ -126,6 +131,40 @@ export function KanbanBoard({ initialEntries }: Props) {
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      {initialEntries.length === 0 && (
+        <div className="mb-3 rounded-xl border border-dashed border-line bg-surface p-6 text-center">
+          <p className="font-serif text-base font-extrabold">カンバンに表示する Entry がありません</p>
+          <p className="mx-auto mt-1 max-w-[460px] text-[11px] leading-relaxed text-ink-2">
+            Inbox の保存クリップを Entry にするか、手動で Entry を追加すると選考フェーズごとに並びます。
+          </p>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <Link
+              href="/inbox"
+              className="rounded-lg border border-sage bg-sage-wash px-3 py-1.5 text-[11px] font-bold text-sage transition-colors hover:bg-sage hover:text-white"
+            >
+              Inboxを見る
+            </Link>
+            <Link
+              href="/entry/new"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+            >
+              <Plus size={13} aria-hidden />
+              Entryを追加
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <p
+          role="alert"
+          className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-pink/40 px-3 py-2 text-[11px] font-semibold text-ink"
+        >
+          <AlertCircle size={13} aria-hidden />
+          {error}
+        </p>
+      )}
+
       <div className="grid gap-2.5 md:grid-cols-5 grid-cols-[repeat(5,minmax(220px,1fr))] overflow-x-auto pb-2">
         {COLUMNS.map((col) => (
           <KanbanColumn key={col.kind} col={col} cards={byKind.get(col.kind) ?? []} activeId={activeId} />
@@ -173,7 +212,7 @@ function KanbanColumn({
         ))}
         {cards.length === 0 && (
           <li className="rounded-md border border-dashed border-line p-2 text-center text-[9px] text-ink-3">
-            ここに置く
+            このフェーズは0件
           </li>
         )}
       </ul>

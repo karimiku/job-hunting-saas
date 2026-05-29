@@ -18,6 +18,15 @@ interface ErrorState {
 
 function openWebLogin() {
   const url = `${WEB_BASE}/login`;
+  openUrl(url);
+}
+
+function openWebInbox() {
+  const url = `${WEB_BASE}/inbox`;
+  openUrl(url);
+}
+
+function openUrl(url: string) {
   if (typeof chrome !== "undefined" && chrome.tabs?.create) {
     void chrome.tabs.create({ url });
   } else {
@@ -82,6 +91,7 @@ export function Popup() {
   const [saving, setSaving] = useState(false);
   const [confetti, setConfetti] = useState(0);
   const [error, setError] = useState<ErrorState | null>(null);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -98,6 +108,7 @@ export function Popup() {
   const handleSave = async () => {
     if (!page || saving) return;
     setError(null);
+    setSaved(false);
     setSaving(true);
     try {
       await createInboxClip({
@@ -108,7 +119,7 @@ export function Popup() {
       });
       setConfetti((n) => n + 1);
       setSaving(false);
-      window.setTimeout(() => window.close(), 1500);
+      setSaved(true);
     } catch (e) {
       // 失敗時は popup を閉じず、回復導線つきのエラーを表示する。
       setSaving(false);
@@ -127,11 +138,35 @@ export function Popup() {
 
       {/* Body */}
       <div className="flex-1 overflow-auto p-3.5">
+        {saved && (
+          <div className="mb-2 rounded-lg border border-sage bg-sage-wash p-3">
+            <div className="flex items-start gap-2">
+              <Mascot size={34} mood="happy" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[12px] font-black text-sage">Inbox に保存しました</p>
+                <p className="mt-0.5 text-[10px] leading-relaxed text-ink-2">
+                  Web の Inbox で会社名を確認すると、Entry・Kanban・Task で管理できます。
+                </p>
+                <button
+                  type="button"
+                  onClick={openWebInbox}
+                  className="mt-2 rounded-md bg-sage px-2.5 py-1 text-[10px] font-bold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/40"
+                >
+                  Web Inbox を開く
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {page ? (
           <DetectedCard page={page} guess={companyGuess} onGuessChange={setCompanyGuess} />
         ) : (
-          <div className="rounded-[10px] border border-line bg-surface p-4 text-center text-[11px] text-ink-3">
-            このページは保存できません
+          <div className="rounded-[10px] border border-line bg-surface p-4 text-center">
+            <div className="font-serif text-[14px] font-extrabold">保存できるページが見つかりません</div>
+            <p className="mt-1 text-[10px] leading-relaxed text-ink-3">
+              http/https の求人ページで開き直してから、もう一度 Entré を開いてください。
+            </p>
           </div>
         )}
 
@@ -166,10 +201,10 @@ export function Popup() {
         <button
           type="button"
           onClick={handleSave}
-          disabled={!page || saving}
+          disabled={!page || saving || saved}
           className="flex-[2] rounded-lg bg-sage px-2.5 py-2 text-[11px] font-bold text-white transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-60"
         >
-          {saving ? "保存中..." : confetti ? "✓ 保存しました！" : "＋ Inbox に保存"}
+          {saving ? "保存中..." : saved ? "保存済み" : "Inbox に保存"}
         </button>
       </footer>
 
@@ -190,7 +225,10 @@ function DetectedCard({
   return (
     <div className="rounded-[10px] border border-line bg-surface p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="text-[9px] text-ink-3">検出されたページ</div>
+        <div>
+          <div className="text-[9px] text-ink-3">検出されたページ</div>
+          <div className="text-[10px] font-bold text-ink-2">保存前に会社名を確認</div>
+        </div>
         <span className="rounded-sm bg-cream-2 px-1.5 py-0.5 text-[9px] font-bold text-ink-2">
           {page.source}
         </span>
@@ -204,8 +242,11 @@ function DetectedCard({
         value={guess}
         onChange={(e) => onGuessChange(e.target.value)}
         placeholder="未入力"
-        className="mb-2 block h-9 w-full rounded-lg border border-line bg-cream px-2.5 font-sans text-[12px] font-bold text-ink outline-none focus:border-sage"
+        className="mb-1 block h-9 w-full rounded-lg border border-line bg-cream px-2.5 font-sans text-[12px] font-bold text-ink outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
       />
+      <p className="mb-2 text-[9px] leading-relaxed text-ink-3">
+        ここで直した会社名候補が Web Inbox の Entry 作成フォームに入ります。
+      </p>
 
       <div className="mb-1 text-[10px] font-bold text-ink-2">ページ名</div>
       <div className="line-clamp-2 text-[11px] leading-snug text-ink-2">{page.title}</div>
