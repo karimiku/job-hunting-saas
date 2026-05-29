@@ -24,7 +24,7 @@ func setupCompanyAliasHandler() (*CompanyAliasHandler, *inmemory.CompanyReposito
 	h := NewCompanyAliasHandler(
 		companyaliasuc.NewCreate(aliasRepo, companyRepo),
 		companyaliasuc.NewGet(aliasRepo),
-		companyaliasuc.NewList(aliasRepo),
+		companyaliasuc.NewList(aliasRepo, companyRepo),
 		companyaliasuc.NewDelete(aliasRepo),
 	)
 	return h, companyRepo, aliasRepo
@@ -140,6 +140,54 @@ func TestListCompanyAliases_Success(t *testing.T) {
 	}
 	if len(resp.Aliases) != 2 {
 		t.Errorf("len = %d, want 2", len(resp.Aliases))
+	}
+}
+
+func TestListCompanyAliases_CompanyNotFound(t *testing.T) {
+	h, _, _ := setupCompanyAliasHandler()
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req = req.WithContext(middleware.SetUserID(req.Context(), entity.NewUserID()))
+	w := httptest.NewRecorder()
+
+	h.ListCompanyAliases(w, req, openapi.CompanyId(uuid.New()))
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404, body = %s", w.Code, w.Body.String())
+	}
+}
+
+func TestCreateCompanyAlias_OtherUserCompany(t *testing.T) {
+	h, companyRepo, _ := setupCompanyAliasHandler()
+	owner := entity.NewUserID()
+	company := seedCompanyForAlias(t, companyRepo, owner)
+
+	body, _ := json.Marshal(openapi.CreateCompanyAliasRequest{Alias: "トヨタ"})
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
+	req = req.WithContext(middleware.SetUserID(req.Context(), entity.NewUserID())) // 別ユーザー
+	w := httptest.NewRecorder()
+
+	h.CreateCompanyAlias(w, req, openapi.CompanyId(uuid.UUID(company.ID())))
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404, body = %s", w.Code, w.Body.String())
+	}
+}
+
+func TestListCompanyAliases_OtherUserCompany(t *testing.T) {
+	h, companyRepo, aliasRepo := setupCompanyAliasHandler()
+	owner := entity.NewUserID()
+	company := seedCompanyForAlias(t, companyRepo, owner)
+	seedAlias(t, aliasRepo, owner, company.ID(), "トヨタ")
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req = req.WithContext(middleware.SetUserID(req.Context(), entity.NewUserID())) // 別ユーザー
+	w := httptest.NewRecorder()
+
+	h.ListCompanyAliases(w, req, openapi.CompanyId(uuid.UUID(company.ID())))
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404, body = %s", w.Code, w.Body.String())
 	}
 }
 

@@ -139,7 +139,7 @@ func run() error {
 	companyAliasHandler := handler.NewCompanyAliasHandler(
 		companyaliasuc.NewCreate(companyAliasRepo, companyRepo),
 		companyaliasuc.NewGet(companyAliasRepo),
-		companyaliasuc.NewList(companyAliasRepo),
+		companyaliasuc.NewList(companyAliasRepo, companyRepo),
 		companyaliasuc.NewDelete(companyAliasRepo),
 	)
 
