@@ -6,11 +6,16 @@ import (
 	"strings"
 )
 
+// URLMaxLength は url の最大バイト長。一般的なブラウザ/サーバが扱える上限に合わせている。
+const URLMaxLength = 2048
+
 // ErrURLEmpty は url が空文字のときに返されるエラー。
 // ErrURLInvalid は url の形式が不正なときに返されるエラー。
+// ErrURLTooLong は url が上限長を超えたときに返されるエラー。
 var (
 	ErrURLEmpty   = errors.New("url must not be empty")
 	ErrURLInvalid = errors.New("url format is invalid")
+	ErrURLTooLong = errors.New("url is too long")
 )
 
 // URL はHTTPS URLを表す値オブジェクト。
@@ -26,6 +31,9 @@ func NewURL(raw string) (URL, error) {
 	}
 	if raw != strings.TrimSpace(raw) {
 		return URL{}, ErrURLInvalid
+	}
+	if len(raw) > URLMaxLength {
+		return URL{}, ErrURLTooLong
 	}
 	if !strings.HasPrefix(raw, "https://") {
 		return URL{}, ErrURLInvalid

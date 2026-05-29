@@ -4,10 +4,25 @@ package inboxclip
 import (
 	"context"
 	"errors"
+	"unicode/utf8"
 
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
+)
+
+// TitleMaxLength / GuessMaxLength は title / guess の最大文字数（rune 数）。
+// title・guess は値オブジェクト化されていない素の文字列のため、ここで上限を検証する。
+const (
+	TitleMaxLength = 512
+	GuessMaxLength = 256
+)
+
+// ErrTitleTooLong は title が上限長を超えたときに返されるエラー。
+// ErrGuessTooLong は guess が上限長を超えたときに返されるエラー。
+var (
+	ErrTitleTooLong = errors.New("title is too long")
+	ErrGuessTooLong = errors.New("guess is too long")
 )
 
 // CreateInput は InboxClip 作成への入力。
@@ -40,6 +55,13 @@ func NewCreate(repo repository.InboxClipRepository) *Create {
 // 新規作成せず既存クリップをそのまま返す（冪等）。これにより拡張からの多重保存で
 // Inbox がノイズで溢れるのを防ぐ。完全な重複統合は P1 のスコープ外。
 func (uc *Create) Execute(ctx context.Context, input CreateInput) (*CreateOutput, error) {
+	if utf8.RuneCountInString(input.Title) > TitleMaxLength {
+		return nil, ErrTitleTooLong
+	}
+	if utf8.RuneCountInString(input.Guess) > GuessMaxLength {
+		return nil, ErrGuessTooLong
+	}
+
 	url, err := value.NewURL(input.URL)
 	if err != nil {
 		return nil, err

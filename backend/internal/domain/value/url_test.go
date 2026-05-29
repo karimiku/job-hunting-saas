@@ -2,6 +2,7 @@ package value
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -34,6 +35,10 @@ func TestNewURL(t *testing.T) {
 		{"no host with path", "https:///path", ErrURLInvalid},
 		{"space in host", "https://exa mple.com", ErrURLInvalid},
 		{"uppercase scheme", "HTTPS://example.com", ErrURLInvalid},
+
+		// 長さ境界値
+		{"max length ok", "https://example.com/" + strings.Repeat("a", URLMaxLength-len("https://example.com/")), nil},
+		{"too long", "https://example.com/" + strings.Repeat("a", URLMaxLength), ErrURLTooLong},
 	}
 
 	for _, tt := range tests {
