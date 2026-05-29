@@ -6,6 +6,7 @@ import "github.com/karimiku/job-hunting-saas/internal/gen/openapi"
 // ドメインごとのHandlerを埋め込みで合成し、単一のServerInterfaceとして振る舞う。
 type Handler struct {
 	*CompanyHandler
+	*CompanyAliasHandler
 	*EntryHandler
 	*TaskHandler
 	*StageHistoryHandler

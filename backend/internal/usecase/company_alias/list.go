@@ -20,16 +20,21 @@ type ListOutput struct {
 
 // List は企業に紐づく別名一覧を取得するUseCase。
 type List struct {
-	aliasRepo repository.CompanyAliasRepository
+	aliasRepo   repository.CompanyAliasRepository
+	companyRepo repository.CompanyRepository
 }
 
 // NewList は CompanyAliasList ユースケースを生成する。
-func NewList(aliasRepo repository.CompanyAliasRepository) *List {
-	return &List{aliasRepo: aliasRepo}
+func NewList(aliasRepo repository.CompanyAliasRepository, companyRepo repository.CompanyRepository) *List {
+	return &List{aliasRepo: aliasRepo, companyRepo: companyRepo}
 }
 
-// Execute はユーザー・企業に紐づく別名一覧を検索して返す。
+// Execute はCompanyIDの存在・所有を検証し、紐づく別名一覧を検索して返す。
 func (uc *List) Execute(ctx context.Context, input ListInput) (*ListOutput, error) {
+	if _, err := uc.companyRepo.FindByID(ctx, input.UserID, input.CompanyID); err != nil {
+		return nil, err
+	}
+
 	aliases, err := uc.aliasRepo.ListByCompanyID(ctx, input.UserID, input.CompanyID)
 	if err != nil {
 		return nil, err

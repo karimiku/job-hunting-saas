@@ -21,6 +21,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/infra/postgres"
 	"github.com/karimiku/job-hunting-saas/internal/middleware"
 	companyuc "github.com/karimiku/job-hunting-saas/internal/usecase/company"
+	companyaliasuc "github.com/karimiku/job-hunting-saas/internal/usecase/company_alias"
 	entryuc "github.com/karimiku/job-hunting-saas/internal/usecase/entry"
 	inboxclipuc "github.com/karimiku/job-hunting-saas/internal/usecase/inbox_clip"
 	stagehistoryuc "github.com/karimiku/job-hunting-saas/internal/usecase/stage_history"
@@ -47,6 +48,7 @@ func run() error {
 
 	var (
 		companyRepo      repository.CompanyRepository
+		companyAliasRepo repository.CompanyAliasRepository
 		entryRepo        repository.EntryRepository
 		taskRepo         repository.TaskRepository
 		stageHistoryRepo repository.StageHistoryRepository
@@ -63,6 +65,7 @@ func run() error {
 		defer pool.Close()
 
 		companyRepo = postgres.NewCompanyRepository(pool)
+		companyAliasRepo = postgres.NewCompanyAliasRepository(pool)
 		entryRepo = postgres.NewEntryRepository(pool)
 		taskRepo = postgres.NewTaskRepository(pool)
 		stageHistoryRepo = postgres.NewStageHistoryRepository(pool)
@@ -83,6 +86,7 @@ func run() error {
 		inMemoryEntryRepo := inmemory.NewEntryRepository()
 
 		companyRepo = inMemoryCompanyRepo
+		companyAliasRepo = inmemory.NewCompanyAliasRepository()
 		entryRepo = inMemoryEntryRepo
 		taskRepo = inmemory.NewTaskRepository(inMemoryEntryRepo)
 		stageHistoryRepo = inmemory.NewStageHistoryRepository()
@@ -132,6 +136,13 @@ func run() error {
 		companyuc.NewDelete(companyRepo),
 	)
 
+	companyAliasHandler := handler.NewCompanyAliasHandler(
+		companyaliasuc.NewCreate(companyAliasRepo, companyRepo),
+		companyaliasuc.NewGet(companyAliasRepo),
+		companyaliasuc.NewList(companyAliasRepo, companyRepo),
+		companyaliasuc.NewDelete(companyAliasRepo),
+	)
+
 	entryHandler := handler.NewEntryHandler(
 		entryuc.NewCreate(entryRepo, companyRepo),
 		entryuc.NewGet(entryRepo),
@@ -161,6 +172,7 @@ func run() error {
 
 	h := &handler.Handler{
 		CompanyHandler:      companyHandler,
+		CompanyAliasHandler: companyAliasHandler,
 		EntryHandler:        entryHandler,
 		TaskHandler:         taskHandler,
 		StageHistoryHandler: stageHistoryHandler,
