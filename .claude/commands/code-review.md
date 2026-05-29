@@ -1,7 +1,7 @@
 ---
-allowed-tools: Read, Bash, Grep, Glob, Agent, AskUserQuestion, mcp__codex__codex
+allowed-tools: Read, Bash, Grep, Glob, Agent, AskUserQuestion
 argument-hint: [file-path] | [commit-hash] | --full
-description: PR投稿前のコード品質レビュー（Go + Clean Architecture + DDD）
+description: セキュリティ・パフォーマンス・アーキテクチャ観点の包括的コードレビュー（Claude × Codex 議論型）
 ---
 
 # Code Quality Review
@@ -82,83 +82,104 @@ Go + Clean Architecture + DDD のプロジェクト。
 提案: 修正案（コードスニペット付き）
 ```
 
-### 7. マルチエージェント検証（最大3ラウンド）
+### 7. Claude × Codex 並行レビュー＆議論
 
-【必須】【推奨】の指摘について、Codex MCPとサブエージェントが最大3ラウンド議論して妥当性を検証する。
+Claude と Codex が**独立して**レビューし、結果を突き合わせて**対等に議論**する。
 
-#### 7a. ラウンド1: サブエージェントによる反証検証
+#### 7a. Codex CLI動作確認
 
-Agent tool（subagent_type: general-purpose）で【必須】【推奨】の指摘を並列検証。**反証する立場**で検証を依頼:
-
-```
-このコードレビュー指摘の妥当性を、Go・Clean Architecture・DDDのベストプラクティスに基づいて反証する立場で検証してください:
-
-【プロジェクト構成】Go + Clean Architecture + DDD
-- domain層: entity（エンティティ）、value（値オブジェクト）、repository（インターフェース）
-- usecase層: ユースケースごとに1ファイル（Create/Get/List/Update/Delete）
-- handler層: oapi-codegen ServerInterface実装、adapter層
-- infra層: repository実装（InMemory / PostgreSQL）
-
-【指摘内容】{コメント全文}
-【対象コード】{コードとコンテキスト}
-
-検証結果を「✅妥当 / ⚠️要修正 / ❌false positive」で回答。
-具体的な理由、Goの公式ドキュメントやEffective Goからの根拠、修正案も記載。
+```bash
+codex exec --full-auto --sandbox read-only --cd /Users/kamiriku/my_projects/job-hunting-saas "Hello, this is a test. Please respond with 'Test successful'."
 ```
 
-#### 7b. ラウンド1: Codex MCPによる検証
+- ✅ 成功 → 7bに進む
+- ❌ 失敗 → 最大3回リトライ。3回失敗したらAskUserQuestionで「Codex CLIが応答しません。待機しますか？」と確認。**Codex検証を自己判断でスキップすることは禁止。**
 
-Codex MCPに指摘とサブエージェントの検証結果を渡し、シニアGoエンジニアの視点で検証:
+#### 7b. Codex独立レビュー
 
+Codex に**Claudeの指摘を見せずに**独立でレビューさせる:
+
+```bash
+codex exec --full-auto --sandbox read-only --cd /Users/kamiriku/my_projects/job-hunting-saas "あなたはシニアGoエンジニアです。以下のファイルをコードレビューしてください。確認や質問は不要です。
+
+【対象ファイル】{レビュー対象ファイルのパス一覧}
+
+以下の観点でレビューし、指摘を出してください:
+- アーキテクチャ（Clean Architecture依存方向、レイヤー責務、DIP）
+- DDD（エンティティカプセル化、値オブジェクト不変条件、ドメインロジックリーク）
+- セキュリティ（認証・認可、SQLインジェクション、バリデーション）
+- パフォーマンス（N+1クエリ、メモリアロケーション）
+- バグ・ロジックエラー（エラーハンドリング、nil参照、race condition）
+- コード品質（命名、dead code、インターフェース設計）
+
+各指摘のフォーマット:
+[ラベル] 【重要度】 タイトル
+ファイル: パス L行番号
+問題: 説明
+提案: 修正案
+
+重要度: 【必須】(セキュリティ/バグ/設計違反) / 【推奨】(改善推奨) / 【提案】(あれば良い)"
 ```
-以下のコードレビュー指摘と反証意見の妥当性を、シニアGoエンジニアの視点で検証してください：
 
-【プロジェクト構成】Go + Clean Architecture + DDD
+#### 7c. 指摘の突き合わせ
+
+Claude指摘リストとCodex指摘リストを比較し、3カテゴリに分類:
+
+- **合意**: 両方が同じ箇所・同じ趣旨で指摘 → そのまま採用
+- **片方のみ**: 一方だけが出した指摘 → 7dで議論
+- **矛盾**: 同じ箇所で異なる見解 → 7dで議論
+
+#### 7d. 議論（納得いくまで）
+
+「片方のみ」「矛盾」の指摘について、Codex と往復で議論する。1ラウンドにつき1回のCodex呼び出し。
+
+```bash
+codex exec --full-auto --sandbox read-only --cd /Users/kamiriku/my_projects/job-hunting-saas "以下のコードレビューについて議論しましょう。確認や質問は不要です。具体的に回答してください。
+
 【対象ファイル】{パス}
 【対象コード】{コードスニペット}
-【レビューコメント案】{指摘内容}
-【サブエージェントの反証意見】{サブエージェントの検証結果}
 
-【確認観点】
-1. 指摘内容はGoのベストプラクティス（Effective Go, Go Proverbs）に照らして正確か
-2. Clean Architecture / DDDの原則に沿っているか
-3. サブエージェントの反証は妥当か
-4. 重要度の判定は適切か
-5. より良い代替案はないか
+【Claudeの見解】
+{Claudeの指摘または「この箇所は問題なしと判断」}
 
-検証結果を「✅妥当 / ⚠️要修正 / ❌false positive」で回答。理由と修正案も記載。
-サブエージェントの意見に同意/反対する場合はその理由も明記。
+【Codexの見解】
+{Codexの指摘または「この箇所は問題なしと判断」}
+
+あなたの立場を維持するか、相手の見解に同意するか、判断してください。
+- 自分の見解を維持する場合: 具体的な根拠を示してください
+- 相手に同意する場合: なぜ同意するか説明してください
+- 新しい代替案がある場合: 提示してください
+
+回答フォーマット:
+【判定】維持 / 同意 / 代替案あり
+【理由】...
+【最終的な指摘案】（同意または代替案の場合）..."
 ```
 
-#### 7c. ラウンド2-3（必要な場合のみ）
+議論の終了条件:
+- **合意に達した** → 合意内容を最終指摘として採用
+- **3ラウンド経過しても合意しない** → 両方の見解を併記してユーザーに判断を委ねる
 
-ラウンド1でサブエージェントとCodexの結論が異なる場合、最大2回追加ラウンドを実施:
+#### 7e. サブエージェント最終チェック
 
-- サブエージェントにCodexの意見を渡して再検証を依頼
-- Codexにサブエージェントの再検証結果を渡して最終判定を依頼
-- 各ラウンドで相手の意見を引用し、具体的に同意/反論する
+議論で確定した【必須】【推奨】の指摘について、Agent tool（subagent_type: general-purpose）で最終チェック。第三者の視点で妥当性を確認:
 
-議論が収束しない場合は、安全側（指摘を残す方向）で判定する。
-
-#### 7d. 結果統合
-
-全ラウンドの議論を踏まえて最終判定:
-
-- 両者合意 ✅ → 採用（高信頼）
-- 議論の末に合意 → 採用（議論経緯を付記）
-- 片方 ⚠️ → 指摘内容を改訂（改訂理由を付記）
-- 両方 ❌ → 指摘を削除
-- 収束せず → 安全側で採用し、議論の要約を付記
+```
+Claude と Codex が議論して合意した以下のコードレビュー指摘を、第三者の視点で最終チェックしてください:
+- 指摘: {合意した指摘内容}
+- 対象コード: {コードとコンテキスト}
+- 議論経緯: {簡潔な議論サマリー}
+見落としや論理的な穴がないか確認し、「✅承認 / ⚠️懸念あり」で回答。懸念がある場合は具体的に指摘。
+```
 
 ### 8. 最終レポート
 
-検証済みの全指摘を重要度別に分類して報告:
+全指摘を重要度別に分類して報告:
 
-- 各指摘にサブエージェント/Codexの検証結果と議論経緯を付記
+- 各指摘に「合意」「議論の末採用」「ユーザー判断待ち」のステータスを付記
+- Codex独自の指摘で採用されたものも明記
 - 良い点も1-3個挙げる
 
-署名:
-- Codex検証済み: `🤖 Reviewed by Claude Code (Opus 4.6) ✅ Validated by Codex & Sub-agent (max 3 rounds)`
-- Codex未検証: `🤖 Reviewed by Claude Code (Opus 4.6) ✅ Validated by Sub-agent`
+署名: `🤖 Reviewed by Claude Code (Opus 4.6) × Codex CLI — 独立レビュー＆議論済み`
 
 全て日本語で記述（コード・ファイルパスは英語のまま）
