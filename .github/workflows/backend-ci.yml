@@ -104,9 +104,55 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: backend/go.sum
+      # Install must always succeed; an install failure is a real CI failure, not a vulnerability.
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
+      # In -json mode govulncheck exits 0 on a successful run regardless of whether
+      # vulnerabilities were found, and exits non-zero only on an execution error
+      # (compile error, bad flags, etc.). This lets us treat those two cases separately:
+      # an execution error always fails the job; vulnerability findings are reported
+      # afterwards and are only non-blocking on pull_request.
       - name: Run govulncheck
         working-directory: backend
+        run: govulncheck -json ./... > govulncheck.json
+      - name: Evaluate govulncheck findings
+        working-directory: backend
+        env:
+          IS_PR: ${{ github.event_name == 'pull_request' }}
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
-          govulncheck ./...
-        continue-on-error: ${{ github.event_name == 'pull_request' }}
+          # A "finding" whose trace reaches a specific function is a vulnerability that is
+          # actually called (matching govulncheck's default text-mode "affected" report).
+          # Findings without a called function are informational and ignored here.
+          # govulncheck -json emits a stream of concatenated (pretty-printed) JSON objects,
+          # so we decode them sequentially with raw_decode instead of line-by-line.
+          called=$(python3 - <<'PY'
+          import json
+          with open("govulncheck.json") as f:
+              data = f.read()
+          dec = json.JSONDecoder()
+          idx, n, called = 0, len(data), False
+          while idx < n:
+              while idx < n and data[idx].isspace():
+                  idx += 1
+              if idx >= n:
+                  break
+              obj, idx = dec.raw_decode(data, idx)
+              finding = obj.get("finding")
+              if finding and any(frame.get("function") for frame in finding.get("trace", [])):
+                  called = True
+          print("true" if called else "false")
+          PY
+          )
+          if [ "$called" = "true" ]; then
+            echo "::group::govulncheck JSON output"
+            cat govulncheck.json
+            echo "::endgroup::"
+            if [ "$IS_PR" = "true" ]; then
+              echo "::warning::govulncheck found vulnerabilities that are called by this module. Non-blocking on pull requests; please review before merge."
+            else
+              echo "::error::govulncheck found vulnerabilities that are called by this module."
+              exit 1
+            fi
+          else
+            echo "No called vulnerabilities found by govulncheck."
+          fi
