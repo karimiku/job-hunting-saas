@@ -110,6 +110,93 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/v1/companies/{companyId}/aliases:
+    parameters:
+      - $ref: "#/components/parameters/CompanyId"
+    post:
+      operationId: createCompanyAlias
+      summary: 企業の別名を新規登録する
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCompanyAliasRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyAliasResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: listCompanyAliases
+      summary: 企業の別名一覧を取得する
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  aliases:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CompanyAliasResponse"
+                required:
+                  - aliases
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/aliases/{aliasId}:
+    parameters:
+      - $ref: "#/components/parameters/AliasId"
+    get:
+      operationId: getCompanyAlias
+      summary: 企業の別名を取得する
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyAliasResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteCompanyAlias
+      summary: 企業の別名を削除する
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/v1/entries:
     post:
       operationId: createEntry
@@ -459,6 +546,13 @@ components:
       schema:
         type: string
         format: uuid
+    AliasId:
+      name: aliasId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
 
   schemas:
     CreateCompanyRequest:
@@ -501,6 +595,34 @@ components:
         - memo
         - createdAt
         - updatedAt
+
+    CreateCompanyAliasRequest:
+      type: object
+      properties:
+        alias:
+          type: string
+      required:
+        - alias
+
+    CompanyAliasResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        companyId:
+          type: string
+          format: uuid
+        alias:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - companyId
+        - alias
+        - createdAt
 
     CreateEntryRequest:
       type: object
