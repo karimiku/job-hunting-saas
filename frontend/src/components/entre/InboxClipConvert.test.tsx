@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { InboxClipConvert } from "./InboxClipConvert";
 import type { InboxClipResponse } from "@/lib/api/inboxClips";
+import type { CompanyResponse } from "@/lib/api/companies";
 
 // Server Action はここでは検証しない（next/headers を読み込ませない）。
 vi.mock("@/app/inbox/actions", () => ({
@@ -18,18 +19,28 @@ const clip: InboxClipResponse = {
   capturedAt: "2026-04-26T00:00:00Z",
 };
 
+const companies: CompanyResponse[] = [
+  {
+    id: "co1",
+    name: "株式会社○○商事",
+    memo: "",
+    createdAt: "2026-04-01T00:00:00Z",
+    updatedAt: "2026-04-01T00:00:00Z",
+  },
+];
+
 describe("InboxClipConvert", () => {
-  it("初期状態では Entry化ボタンだけ表示しフォームは閉じている", () => {
-    render(<InboxClipConvert clip={clip} />);
-    expect(screen.getByRole("button", { name: /Entry化/ })).toBeInTheDocument();
+  it("初期状態では管理開始ボタンだけ表示しフォームは閉じている", () => {
+    render(<InboxClipConvert clip={clip} companies={[]} />);
+    expect(screen.getByRole("button", { name: /Entryとして管理/ })).toBeInTheDocument();
     expect(screen.queryByLabelText(/会社名/)).not.toBeInTheDocument();
   });
 
-  it("Entry化を押すとフォームが開き、clip の値が初期値になる", async () => {
+  it("管理開始ボタンを押すとフォームが開き、clip の値が初期値になる", async () => {
     const user = userEvent.setup();
-    render(<InboxClipConvert clip={clip} />);
+    render(<InboxClipConvert clip={clip} companies={[]} />);
 
-    await user.click(screen.getByRole("button", { name: /Entry化/ }));
+    await user.click(screen.getByRole("button", { name: /Entryとして管理/ }));
 
     expect(screen.getByLabelText(/会社名/)).toHaveValue("○○商事");
     expect(screen.getByLabelText(/ソース/)).toHaveValue("マイナビ");
@@ -48,8 +59,23 @@ describe("InboxClipConvert", () => {
 
   it("guess が空でも開ける（会社名は空初期値）", async () => {
     const user = userEvent.setup();
-    render(<InboxClipConvert clip={{ ...clip, guess: "" }} />);
-    await user.click(screen.getByRole("button", { name: /Entry化/ }));
+    render(<InboxClipConvert clip={{ ...clip, guess: "" }} companies={[]} />);
+    await user.click(screen.getByRole("button", { name: /Entryとして管理/ }));
     expect(screen.getByLabelText(/会社名/)).toHaveValue("");
+  });
+
+  it("既存会社候補があると選択済みで表示し hidden に companyId を入れる", async () => {
+    const user = userEvent.setup();
+    render(<InboxClipConvert clip={clip} companies={companies} />);
+
+    await user.click(screen.getByRole("button", { name: /Entryとして管理/ }));
+
+    expect(screen.getByText("既存会社の候補")).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /株式会社○○商事/ })).toBeChecked();
+
+    const existingCompanyInput = document.querySelector<HTMLInputElement>(
+      'input[name="existingCompanyId"]',
+    );
+    expect(existingCompanyInput?.value).toBe("co1");
   });
 });

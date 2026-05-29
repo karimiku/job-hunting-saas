@@ -94,9 +94,18 @@ export function DashboardQuests({ tasks }: { tasks: TaskWithEntry[] }) {
       </div>
 
       {quests.length === 0 ? (
-        <p data-testid="quest-empty" className="py-6 text-center text-[11px] text-ink-3">
-          未完了のタスクはありません。お疲れさまです 🌱
-        </p>
+        <div data-testid="quest-empty" className="py-6 text-center">
+          <p className="text-[12px] font-bold text-ink-2">タスクはまだありません</p>
+          <p className="mt-1 text-[11px] text-ink-3">
+            Entry 詳細から締切や予定を追加すると、優先順に表示されます。
+          </p>
+          <Link
+            href="/entry"
+            className="mt-3 inline-flex rounded-lg border border-line bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+          >
+            Entryを確認
+          </Link>
+        </div>
       ) : (
         <ul>
           {quests.map((r, i) => (
