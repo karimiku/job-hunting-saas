@@ -696,12 +696,16 @@ components:
       properties:
         url:
           type: string
+          maxLength: 2048
         title:
           type: string
+          maxLength: 512
         source:
           type: string
+          maxLength: 128
         guess:
           type: string
+          maxLength: 256
       required:
         - url
         - title
