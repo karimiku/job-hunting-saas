@@ -130,7 +130,12 @@ export function KanbanBoard({ initialEntries }: Props) {
   }
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext
+      id="entre-kanban"
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
       {initialEntries.length === 0 && (
         <div className="mb-3 rounded-xl border border-dashed border-line bg-surface p-6 text-center">
           <p className="font-serif text-base font-extrabold">カンバンに表示する Entry がありません</p>

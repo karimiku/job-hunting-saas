@@ -4,7 +4,7 @@
 
 ## 自動 E2E（Playwright）
 
-`frontend/e2e/` の Playwright スイートが、認証なしで検証できる範囲を自動でカバーする。
+`frontend/e2e/` の Playwright スイートが、Firebase / PostgreSQL なしで検証できる範囲を自動でカバーする。`pnpm test:e2e` は Playwright 用の軽量 mock API を起動し、SSR / Server Action を含む主要導線をブラウザ操作で確認する。
 
 ```bash
 cd frontend
@@ -13,9 +13,10 @@ pnpm test:e2e
 ```
 
 - `auth-guards.spec.ts` — `/inbox` `/entry` `/kanban` `/task` などの認証必須ページが未ログインで `/login` にリダイレクトされる
+- `beta-core-flow.spec.ts` — mock API に保存済み clip を投入し、`/inbox` で Entry 化 → `/entry` `/kanban` 表示 → `/task` 追加・完了までを desktop / mobile で確認する
 - `landing.spec.ts` / `onboarding.spec.ts` — LP・オンボーディングの表示
 
-`pnpm dev`（frontend のみ）で起動するため、backend と Firebase 認証を要する保存→Entry 化フローは自動 E2E には含まれない（SSR / Server Action はブラウザ側のネットワークモックが効かないため）。その部分は下記の手動サインオフで確認する。
+Chrome 拡張本体・Firebase Google ログイン・PostgreSQL 永続化は実環境依存のため、自動 E2E では代替しない。その部分は下記の手動サインオフで確認する。
 
 ## 手動サインオフ
 
