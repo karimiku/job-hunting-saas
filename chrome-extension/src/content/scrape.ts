@@ -101,6 +101,19 @@ function detectFromOfferBox(): Partial<ScrapedJob> | null {
   };
 }
 
+function detectFromGenericSource(source: string): Partial<ScrapedJob> | null {
+  return {
+    source,
+    companyName: pickCompanyName([
+      ...jsonLdCompanyNames(),
+      textFromSelectors(GENERIC_COMPANY_SELECTORS),
+      companyNameFromTitle(document.title),
+      companyNameFromTitle(metaContent('meta[property="og:title"]')),
+    ]),
+    jobTitle: pickTitle(),
+  };
+}
+
 function pickTitle(): string {
   return (
     cleanTitle(textFromSelectors(GENERIC_TITLE_SELECTORS)) ||
@@ -238,6 +251,11 @@ function detectCurrentPage(): ScrapedJob | null {
   else if (hostMatches(host, "rikunabi.com")) partial = detectFromRikunabi();
   else if (hostMatches(host, "onecareer.jp")) partial = detectFromOneCareer();
   else if (hostMatches(host, "offerbox.jp")) partial = detectFromOfferBox();
+  else if (hostMatches(host, "i-web.jpn.com")) partial = detectFromGenericSource("i-web");
+  else if (hostMatches(host, "supporterz.jp")) partial = detectFromGenericSource("サポーターズ");
+  else if (hostMatches(host, "wantedly.com")) partial = detectFromGenericSource("Wantedly");
+  else if (hostMatches(host, "hrmos.co")) partial = detectFromGenericSource("HRMOS");
+  else if (hostMatches(host, "green-japan.com")) partial = detectFromGenericSource("Green");
 
   if (!partial?.companyName) return null;
 

@@ -26,6 +26,16 @@ function openWebInbox() {
   openUrl(url);
 }
 
+function openWebDashboard() {
+  const url = `${WEB_BASE}/dashboard`;
+  openUrl(url);
+}
+
+function openWebEntries() {
+  const url = `${WEB_BASE}/entry`;
+  openUrl(url);
+}
+
 function openUrl(url: string) {
   if (typeof chrome !== "undefined" && chrome.tabs?.create) {
     void chrome.tabs.create({ url });
@@ -83,7 +93,14 @@ const SOURCES: Record<string, string> = {
   "rikunabi.com": "リクナビ",
   "onecareer.jp": "ONE CAREER",
   "offerbox.jp": "OfferBox",
+  "i-web.jpn.com": "i-web",
+  "supporterz.jp": "サポーターズ",
+  "wantedly.com": "Wantedly",
+  "hrmos.co": "HRMOS",
+  "green-japan.com": "Green",
 };
+
+const AUTO_OPEN_INBOX_KEY = "entre.autoOpenInbox";
 
 export function Popup() {
   const [page, setPage] = useState<DetectedPage | null>(null);
@@ -92,6 +109,7 @@ export function Popup() {
   const [confetti, setConfetti] = useState(0);
   const [error, setError] = useState<ErrorState | null>(null);
   const [saved, setSaved] = useState(false);
+  const [autoOpenInbox, setAutoOpenInbox] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -104,6 +122,20 @@ export function Popup() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof chrome === "undefined" || !chrome.storage?.local) return;
+    chrome.storage.local.get(AUTO_OPEN_INBOX_KEY, (items) => {
+      setAutoOpenInbox(Boolean(items[AUTO_OPEN_INBOX_KEY]));
+    });
+  }, []);
+
+  const handleAutoOpenInboxChange = (checked: boolean) => {
+    setAutoOpenInbox(checked);
+    if (typeof chrome !== "undefined" && chrome.storage?.local) {
+      void chrome.storage.local.set({ [AUTO_OPEN_INBOX_KEY]: checked });
+    }
+  };
 
   const handleSave = async () => {
     if (!page || saving) return;
@@ -120,6 +152,7 @@ export function Popup() {
       setConfetti((n) => n + 1);
       setSaving(false);
       setSaved(true);
+      if (autoOpenInbox) openWebInbox();
     } catch (e) {
       // 失敗時は popup を閉じず、回復導線つきのエラーを表示する。
       setSaving(false);
@@ -138,6 +171,30 @@ export function Popup() {
 
       {/* Body */}
       <div className="flex-1 overflow-auto p-3.5">
+        <div className="mb-2 grid grid-cols-3 gap-1.5">
+          <button
+            type="button"
+            onClick={openWebDashboard}
+            className="rounded-md border border-line bg-surface px-2 py-1.5 text-[10px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+          >
+            Dashboard
+          </button>
+          <button
+            type="button"
+            onClick={openWebInbox}
+            className="rounded-md border border-line bg-surface px-2 py-1.5 text-[10px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+          >
+            Inbox
+          </button>
+          <button
+            type="button"
+            onClick={openWebEntries}
+            className="rounded-md border border-line bg-surface px-2 py-1.5 text-[10px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+          >
+            Entry
+          </button>
+        </div>
+
         {saved && (
           <div className="mb-2 rounded-lg border border-sage bg-sage-wash p-3">
             <div className="flex items-start gap-2">
@@ -187,6 +244,16 @@ export function Popup() {
             )}
           </div>
         )}
+
+        <label className="mt-2 flex cursor-pointer items-center justify-between gap-2 rounded-md border border-line bg-surface px-2.5 py-2">
+          <span className="text-[10px] font-bold text-ink-2">保存後に Web Inbox を開く</span>
+          <input
+            type="checkbox"
+            checked={autoOpenInbox}
+            onChange={(event) => handleAutoOpenInboxChange(event.target.checked)}
+            className="h-3.5 w-3.5 accent-sage"
+          />
+        </label>
       </div>
 
       {/* Footer */}
