@@ -33,6 +33,7 @@ func TestCreate_Success(t *testing.T) {
 		CompanyID: entity.NewCompanyID(),
 		Route:     "本選考",
 		Source:    "リクナビ",
+		SourceURL: "https://job.rikunabi.com/2027/company/r123/",
 		Memo:      "メモ内容",
 	})
 
@@ -48,11 +49,32 @@ func TestCreate_Success(t *testing.T) {
 	if out.Entry.Source().String() != "リクナビ" {
 		t.Errorf("Source = %q, want %q", out.Entry.Source().String(), "リクナビ")
 	}
+	if out.Entry.SourceURL() == nil || out.Entry.SourceURL().String() != "https://job.rikunabi.com/2027/company/r123/" {
+		t.Fatalf("SourceURL = %v, want saved URL", out.Entry.SourceURL())
+	}
 	if out.Entry.Memo() != "メモ内容" {
 		t.Errorf("Memo = %q, want %q", out.Entry.Memo(), "メモ内容")
 	}
 	if !saveCalled {
 		t.Error("Save should be called")
+	}
+}
+
+func TestCreate_InvalidSourceURL(t *testing.T) {
+	uc := NewCreate(&mockEntryRepo{}, companyFound())
+	_, err := uc.Execute(context.Background(), CreateInput{
+		UserID:    entity.NewUserID(),
+		CompanyID: entity.NewCompanyID(),
+		Route:     "本選考",
+		Source:    "リクナビ",
+		SourceURL: "http://example.com/job",
+	})
+
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !errors.Is(err, value.ErrURLInvalid) {
+		t.Errorf("error = %v, want ErrURLInvalid", err)
 	}
 }
 

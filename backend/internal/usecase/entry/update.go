@@ -13,6 +13,7 @@ type UpdateInput struct {
 	UserID     entity.UserID
 	EntryID    entity.EntryID
 	Source     string
+	SourceURL  string
 	Status     string
 	StageKind  string
 	StageLabel string
@@ -41,6 +42,15 @@ func (uc *Update) Execute(ctx context.Context, input UpdateInput) (*UpdateOutput
 		return nil, err
 	}
 
+	var sourceURL *value.URL
+	if input.SourceURL != "" {
+		parsed, err := value.NewURL(input.SourceURL)
+		if err != nil {
+			return nil, err
+		}
+		sourceURL = &parsed
+	}
+
 	status, err := value.NewEntryStatus(input.Status)
 	if err != nil {
 		return nil, err
@@ -62,6 +72,7 @@ func (uc *Update) Execute(ctx context.Context, input UpdateInput) (*UpdateOutput
 	}
 
 	e.UpdateSource(source)
+	e.UpdateSourceURL(sourceURL)
 	e.UpdateStatus(status)
 	e.UpdateStage(stage)
 	e.UpdateMemo(input.Memo)

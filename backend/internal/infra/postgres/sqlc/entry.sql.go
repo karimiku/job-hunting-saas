@@ -31,7 +31,7 @@ func (q *Queries) DeleteEntry(ctx context.Context, arg DeleteEntryParams) (int64
 }
 
 const findEntryByID = `-- name: FindEntryByID :one
-SELECT id, user_id, company_id, route, source, status, stage_kind, stage_label, memo, created_at, updated_at
+SELECT id, user_id, company_id, route, source, source_url, status, stage_kind, stage_label, memo, created_at, updated_at
 FROM entries
 WHERE user_id = $1 AND id = $2
 `
@@ -50,6 +50,7 @@ func (q *Queries) FindEntryByID(ctx context.Context, arg FindEntryByIDParams) (E
 		&i.CompanyID,
 		&i.Route,
 		&i.Source,
+		&i.SourceUrl,
 		&i.Status,
 		&i.StageKind,
 		&i.StageLabel,
@@ -61,7 +62,7 @@ func (q *Queries) FindEntryByID(ctx context.Context, arg FindEntryByIDParams) (E
 }
 
 const listEntriesByUserID = `-- name: ListEntriesByUserID :many
-SELECT id, user_id, company_id, route, source, status, stage_kind, stage_label, memo, created_at, updated_at
+SELECT id, user_id, company_id, route, source, source_url, status, stage_kind, stage_label, memo, created_at, updated_at
 FROM entries
 WHERE user_id = $1
   AND ($2::entry_status IS NULL OR status = $2)
@@ -97,6 +98,7 @@ func (q *Queries) ListEntriesByUserID(ctx context.Context, arg ListEntriesByUser
 			&i.CompanyID,
 			&i.Route,
 			&i.Source,
+			&i.SourceUrl,
 			&i.Status,
 			&i.StageKind,
 			&i.StageLabel,
@@ -115,11 +117,12 @@ func (q *Queries) ListEntriesByUserID(ctx context.Context, arg ListEntriesByUser
 }
 
 const upsertEntry = `-- name: UpsertEntry :exec
-INSERT INTO entries (id, user_id, company_id, route, source, status, stage_kind, stage_label, memo, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+INSERT INTO entries (id, user_id, company_id, route, source, source_url, status, stage_kind, stage_label, memo, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 ON CONFLICT (id) DO UPDATE SET
     route       = EXCLUDED.route,
     source      = EXCLUDED.source,
+    source_url  = EXCLUDED.source_url,
     status      = EXCLUDED.status,
     stage_kind  = EXCLUDED.stage_kind,
     stage_label = EXCLUDED.stage_label,
@@ -133,6 +136,7 @@ type UpsertEntryParams struct {
 	CompanyID  uuid.UUID
 	Route      string
 	Source     string
+	SourceUrl  string
 	Status     EntryStatus
 	StageKind  StageKind
 	StageLabel string
@@ -148,6 +152,7 @@ func (q *Queries) UpsertEntry(ctx context.Context, arg UpsertEntryParams) error 
 		arg.CompanyID,
 		arg.Route,
 		arg.Source,
+		arg.SourceUrl,
 		arg.Status,
 		arg.StageKind,
 		arg.StageLabel,

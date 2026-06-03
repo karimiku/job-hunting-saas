@@ -254,6 +254,7 @@ type CreateEntryRequest struct {
 	Memo      *string            `json:"memo,omitempty"`
 	Route     string             `json:"route"`
 	Source    string             `json:"source"`
+	SourceUrl *string            `json:"sourceUrl,omitempty"`
 }
 
 // CreateInboxClipRequest defines model for CreateInboxClipRequest.
@@ -293,6 +294,7 @@ type EntryResponse struct {
 	Memo       string             `json:"memo"`
 	Route      string             `json:"route"`
 	Source     string             `json:"source"`
+	SourceUrl  *string            `json:"sourceUrl,omitempty"`
 	StageKind  string             `json:"stageKind"`
 	StageLabel string             `json:"stageLabel"`
 	Status     string             `json:"status"`
@@ -348,6 +350,7 @@ type UpdateCompanyRequest struct {
 type UpdateEntryRequest struct {
 	Memo       *string                      `json:"memo,omitempty"`
 	Source     *string                      `json:"source,omitempty"`
+	SourceUrl  *string                      `json:"sourceUrl,omitempty"`
 	StageKind  *UpdateEntryRequestStageKind `json:"stageKind,omitempty"`
 	StageLabel *string                      `json:"stageLabel,omitempty"`
 	Status     *UpdateEntryRequestStatus    `json:"status,omitempty"`

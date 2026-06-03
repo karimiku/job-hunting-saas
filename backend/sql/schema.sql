@@ -46,6 +46,7 @@ CREATE TABLE entries (
     company_id  UUID         NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     route       TEXT         NOT NULL,
     source      TEXT         NOT NULL,
+    source_url  TEXT         NOT NULL DEFAULT '',
     status      entry_status NOT NULL DEFAULT 'in_progress',
     stage_kind  stage_kind   NOT NULL DEFAULT 'application',
     stage_label TEXT         NOT NULL DEFAULT '',

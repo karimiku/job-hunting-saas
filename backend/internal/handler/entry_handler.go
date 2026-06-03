@@ -49,12 +49,17 @@ func (h *EntryHandler) CreateEntry(w http.ResponseWriter, r *http.Request) {
 	if req.Memo != nil {
 		memo = *req.Memo
 	}
+	sourceURL := ""
+	if req.SourceUrl != nil {
+		sourceURL = *req.SourceUrl
+	}
 
 	created, err := h.createUseCase.Execute(r.Context(), entryuc.CreateInput{
 		UserID:    middleware.GetUserID(r.Context()),
 		CompanyID: entity.CompanyID(req.CompanyId),
 		Route:     req.Route,
 		Source:    req.Source,
+		SourceURL: sourceURL,
 		Memo:      memo,
 	})
 	if err != nil {
@@ -141,6 +146,14 @@ func (h *EntryHandler) UpdateEntry(w http.ResponseWriter, r *http.Request, entry
 		resolvedSource = *req.Source
 	}
 
+	resolvedSourceURL := ""
+	if existing.Entry.SourceURL() != nil {
+		resolvedSourceURL = existing.Entry.SourceURL().String()
+	}
+	if req.SourceUrl != nil {
+		resolvedSourceURL = *req.SourceUrl
+	}
+
 	resolvedStatus := existing.Entry.Status().String()
 	if req.Status != nil {
 		resolvedStatus = string(*req.Status)
@@ -165,6 +178,7 @@ func (h *EntryHandler) UpdateEntry(w http.ResponseWriter, r *http.Request, entry
 		UserID:     userID,
 		EntryID:    entryID,
 		Source:     resolvedSource,
+		SourceURL:  resolvedSourceURL,
 		Status:     resolvedStatus,
 		StageKind:  resolvedStageKind,
 		StageLabel: resolvedStageLabel,
@@ -194,7 +208,7 @@ func (h *EntryHandler) DeleteEntry(w http.ResponseWriter, r *http.Request, entry
 
 // toEntryResponse はドメインエンティティをAPI応答用のDTOに変換する。
 func toEntryResponse(entry *entity.Entry) openapi.EntryResponse {
-	return openapi.EntryResponse{
+	resp := openapi.EntryResponse{
 		Id:         uuid.UUID(entry.ID()),
 		CompanyId:  uuid.UUID(entry.CompanyID()),
 		Route:      entry.Route().String(),
@@ -206,4 +220,9 @@ func toEntryResponse(entry *entity.Entry) openapi.EntryResponse {
 		CreatedAt:  entry.CreatedAt(),
 		UpdatedAt:  entry.UpdatedAt(),
 	}
+	if entry.SourceURL() != nil {
+		sourceURL := entry.SourceURL().String()
+		resp.SourceUrl = &sourceURL
+	}
+	return resp
 }
