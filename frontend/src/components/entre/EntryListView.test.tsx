@@ -42,6 +42,22 @@ describe("EntryListView", () => {
     expect(screen.getByText("リクナビ")).toBeInTheDocument();
   });
 
+  it("応募元URLがあるEntryは元ページへのリンクを表示する", () => {
+    render(
+      <EntryListView
+        entries={[
+          E({
+            companyName: "テスト商事",
+            sourceUrl: "https://job.rikunabi.com/2027/company/r123/",
+          }),
+        ]}
+      />,
+    );
+    expect(
+      screen.getByRole("link", { name: "テスト商事 の応募元ページを開く" }),
+    ).toHaveAttribute("href", "https://job.rikunabi.com/2027/company/r123/");
+  });
+
   it("会社名が取得できないときはフォールバック表示する", () => {
     render(<EntryListView entries={[E({ companyName: undefined })]} />);
     expect(screen.getByText("（会社名未設定）")).toBeInTheDocument();

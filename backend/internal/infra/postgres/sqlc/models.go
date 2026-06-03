@@ -252,6 +252,7 @@ type Entry struct {
 	CompanyID  uuid.UUID
 	Route      string
 	Source     string
+	SourceUrl  string
 	Status     EntryStatus
 	StageKind  StageKind
 	StageLabel string

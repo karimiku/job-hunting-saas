@@ -634,6 +634,9 @@ components:
           type: string
         source:
           type: string
+        sourceUrl:
+          type: string
+          format: uri
         memo:
           type: string
       required:
@@ -646,6 +649,9 @@ components:
       properties:
         source:
           type: string
+        sourceUrl:
+          type: string
+          format: uri
         status:
           type: string
           enum: [in_progress, offered, accepted, rejected, withdrawn]
@@ -670,6 +676,9 @@ components:
           type: string
         source:
           type: string
+        sourceUrl:
+          type: string
+          format: uri
         status:
           type: string
         stageKind:

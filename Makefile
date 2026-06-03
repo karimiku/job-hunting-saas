@@ -1,5 +1,5 @@
 .PHONY: help up down logs dev-fe health \
-        test test-be build build-be build-fe \
+        test test-be test-fe test-fe-e2e test-ext build build-be build-fe \
         lint lint-be lint-fe fmt fmt-be \
         gen gen-api gen-sql \
         install install-fe install-be \
@@ -44,10 +44,19 @@ health: ## API /health を叩く
 # ============================================================
 # テスト・ビルド
 # ============================================================
-test: test-be ## すべてのテスト（今はバックのみ）
+test: test-be test-fe test-fe-e2e test-ext ## すべてのテスト・リリースゲート
 
 test-be: ## Go ユニットテスト
 	cd backend && go test ./...
+
+test-fe: ## Frontend ユニット / コンポーネントテスト
+	cd frontend && pnpm test
+
+test-fe-e2e: ## Frontend Playwright E2E
+	cd frontend && pnpm test:e2e
+
+test-ext: ## Chrome拡張のビルドゲート（テスト runner 未導入）
+	cd chrome-extension && pnpm build
 
 build: build-be build-fe ## 両方ビルド
 

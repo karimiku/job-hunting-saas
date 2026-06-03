@@ -82,6 +82,18 @@ describe("EntryDetailView", () => {
     expect(screen.getByRole("heading", { name: "テスト商事" })).toBeInTheDocument();
   });
 
+  it("応募元URLを詳細ヘッダから開ける", () => {
+    render(
+      <EntryDetailView
+        initialEntry={sample({ sourceUrl: "https://job.rikunabi.com/2027/company/r123/" })}
+        initialTasks={[]}
+      />,
+    );
+    expect(
+      screen.getByRole("link", { name: "https://job.rikunabi.com/2027/company/r123/" }),
+    ).toHaveAttribute("href", "https://job.rikunabi.com/2027/company/r123/");
+  });
+
   it("会社名が取得できないときはフォールバック見出しを表示する", () => {
     render(
       <EntryDetailView initialEntry={sample({ companyName: undefined })} initialTasks={[]} />,

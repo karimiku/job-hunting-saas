@@ -14,6 +14,7 @@ type Entry struct {
 	companyID CompanyID
 	route     value.Route
 	source    value.Source
+	sourceURL *value.URL
 	status    value.EntryStatus
 	stage     value.Stage
 	memo      string
@@ -47,7 +48,7 @@ func NewEntry(userID UserID, companyID CompanyID, route value.Route, source valu
 func ReconstructEntry(
 	id EntryID, userID UserID, companyID CompanyID,
 	route value.Route, source value.Source, status value.EntryStatus,
-	stage value.Stage, memo string, createdAt, updatedAt time.Time,
+	sourceURL *value.URL, stage value.Stage, memo string, createdAt, updatedAt time.Time,
 ) *Entry {
 	return &Entry{
 		id:        id,
@@ -55,6 +56,7 @@ func ReconstructEntry(
 		companyID: companyID,
 		route:     route,
 		source:    source,
+		sourceURL: sourceURL,
 		status:    status,
 		stage:     stage,
 		memo:      memo,
@@ -78,6 +80,9 @@ func (e *Entry) Route() value.Route { return e.route }
 // Source は流入元を返す。
 func (e *Entry) Source() value.Source { return e.source }
 
+// SourceURL は応募元ページ URL を返す。保存されていない場合は nil。
+func (e *Entry) SourceURL() *value.URL { return e.sourceURL }
+
 // Status は Entry の選考ステータスを返す。
 func (e *Entry) Status() value.EntryStatus { return e.status }
 
@@ -96,6 +101,12 @@ func (e *Entry) UpdatedAt() time.Time { return e.updatedAt }
 // UpdateSource は流入元を更新し、UpdatedAt を現在時刻にする。
 func (e *Entry) UpdateSource(source value.Source) {
 	e.source = source
+	e.updatedAt = time.Now()
+}
+
+// UpdateSourceURL は応募元ページ URL を更新し、UpdatedAt を現在時刻にする。
+func (e *Entry) UpdateSourceURL(sourceURL *value.URL) {
+	e.sourceURL = sourceURL
 	e.updatedAt = time.Now()
 }
 

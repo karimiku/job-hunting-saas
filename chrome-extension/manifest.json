@@ -21,6 +21,12 @@
     "https://*.rikunabi.com/*",
     "https://*.onecareer.jp/*",
     "https://offerbox.jp/*",
+    "https://*.offerbox.jp/*",
+    "https://*.i-web.jpn.com/*",
+    "https://*.supporterz.jp/*",
+    "https://*.wantedly.com/*",
+    "https://*.hrmos.co/*",
+    "https://*.green-japan.com/*",
     "https://*.localhost/*",
     "http://localhost:8080/*"
   ],
@@ -30,7 +36,13 @@
         "https://*.mynavi.jp/*",
         "https://*.rikunabi.com/*",
         "https://*.onecareer.jp/*",
-        "https://offerbox.jp/*"
+        "https://offerbox.jp/*",
+        "https://*.offerbox.jp/*",
+        "https://*.i-web.jpn.com/*",
+        "https://*.supporterz.jp/*",
+        "https://*.wantedly.com/*",
+        "https://*.hrmos.co/*",
+        "https://*.green-japan.com/*"
       ],
       "js": ["src/content/scrape.ts"],
       "run_at": "document_idle"

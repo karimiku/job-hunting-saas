@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   ci:
-    name: Lint + Test + Build
+    name: Lint + Test + E2E + Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -41,6 +41,12 @@ jobs:
       - name: Test
         working-directory: frontend
         run: pnpm test
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: pnpm exec playwright install --with-deps chromium webkit
+      - name: E2E
+        working-directory: frontend
+        run: pnpm test:e2e
       - name: Cache Next.js build
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:

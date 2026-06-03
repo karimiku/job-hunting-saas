@@ -15,6 +15,7 @@ type CreateInput struct {
 	CompanyID entity.CompanyID
 	Route     string
 	Source    string
+	SourceURL string
 	Memo      string
 }
 
@@ -51,6 +52,14 @@ func (uc *Create) Execute(ctx context.Context, input CreateInput) (*CreateOutput
 	}
 
 	e := entity.NewEntry(input.UserID, input.CompanyID, route, source)
+
+	if input.SourceURL != "" {
+		sourceURL, err := value.NewURL(input.SourceURL)
+		if err != nil {
+			return nil, err
+		}
+		e.UpdateSourceURL(&sourceURL)
+	}
 
 	if input.Memo != "" {
 		e.UpdateMemo(input.Memo)

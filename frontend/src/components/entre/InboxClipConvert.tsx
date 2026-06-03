@@ -69,6 +69,7 @@ export function InboxClipConvert({
       existingCompanyId: candidates[0]?.id ?? "",
       route: "本選考",
       source: clip.source ?? "",
+      sourceUrl: clip.url,
       memo: buildMemo(clip),
     },
   };
@@ -111,6 +112,7 @@ export function InboxClipConvert({
     >
       <input type="hidden" name="clipId" value={clip.id} />
       <input type="hidden" name="existingCompanyId" value={existingCompanyId} />
+      <input type="hidden" name="sourceUrl" value={clip.url} />
 
       <div className="mb-3 rounded-md border border-line bg-surface p-2.5">
         <div className="mb-2 flex items-center justify-between gap-2">

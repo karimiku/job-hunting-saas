@@ -6,11 +6,12 @@
 
 import { useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, ExternalLink, Plus, Trash2 } from "lucide-react";
 import {
   updateEntry,
   companyDisplayName,
   companyInitial,
+  entrySourceUrl,
   type EntryResponse,
 } from "@/lib/api/entries";
 import {
@@ -72,6 +73,7 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
   }
 
   const e = initialEntry;
+  const sourceUrl = entrySourceUrl(e);
   const currentIdx = STAGE_ORDER.indexOf(e.stageKind as (typeof STAGE_ORDER)[number]);
   const isOffer = e.stageKind === "offer";
   const tasks = [...initialTasks, ...createdTasks]
@@ -170,6 +172,17 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
           <p className="mt-0.5 text-[10px] text-ink-3">
             {e.source} · {e.route}
           </p>
+          {sourceUrl && (
+            <a
+              href={sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 inline-flex max-w-full items-center gap-1 rounded-md border border-line bg-surface px-2 py-1 font-mono text-[10px] font-bold text-ink-3 transition-colors hover:border-sage hover:text-sage"
+            >
+              <span className="truncate">{sourceUrl}</span>
+              <ExternalLink size={11} className="shrink-0" aria-hidden />
+            </a>
+          )}
         </div>
         {isOffer && (
           <div
