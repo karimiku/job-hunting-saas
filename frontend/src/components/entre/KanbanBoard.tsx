@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { AlertCircle, Plus } from "lucide-react";
+import { AlertCircle, ExternalLink, Plus } from "lucide-react";
 import {
   DndContext,
   DragEndEvent,
@@ -19,6 +19,7 @@ import {
   updateEntry,
   companyDisplayName,
   companyInitial,
+  entrySourceUrl,
   type EntryResponse,
 } from "@/lib/api/entries";
 
@@ -272,6 +273,7 @@ function KanbanCardPreview({ entry }: { entry: EntryResponse }) {
 }
 
 function CardContent({ entry }: { entry: EntryResponse }) {
+  const sourceUrl = entrySourceUrl(entry);
   return (
     <>
       <div className="mb-1.5 flex items-center gap-2">
@@ -286,6 +288,19 @@ function CardContent({ entry }: { entry: EntryResponse }) {
         </span>
         <span aria-hidden>⇆</span>
       </div>
+      {sourceUrl && (
+        <a
+          href={sourceUrl}
+          target="_blank"
+          rel="noreferrer"
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+          className="mt-1.5 inline-flex max-w-full items-center gap-1 rounded border border-line bg-surface px-1.5 py-0.5 text-[9px] font-bold text-ink-3 transition-colors hover:border-sage hover:text-sage"
+        >
+          <span className="truncate">応募元</span>
+          <ExternalLink size={10} className="shrink-0" aria-hidden />
+        </a>
+      )}
     </>
   );
 }

@@ -45,12 +45,18 @@ test.describe("Beta core flow — Inbox clip から Entry/Task 管理", () => {
     await page.waitForURL(/\/entry\/[^/]+$/);
     await expect(page.getByRole("heading", { name: company })).toBeVisible();
     await expect(page.getByText("MockNavi · 本選考")).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: `https://jobs.example.test/${suffix}` }),
+    ).toHaveAttribute("href", `https://jobs.example.test/${suffix}`);
 
     await page.goto("/inbox");
     await expect(page.getByText(title)).toHaveCount(0);
 
     await page.goto("/entry");
     await expect(page.getByText(company).first()).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: `${company} の応募元ページを開く` }),
+    ).toHaveAttribute("href", `https://jobs.example.test/${suffix}`);
 
     await page.goto("/kanban");
     await expect(page.getByText(company).first()).toBeVisible();

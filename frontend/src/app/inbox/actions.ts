@@ -18,6 +18,7 @@ export interface ConvertClipFormState {
     existingCompanyId: string;
     route: string;
     source: string;
+    sourceUrl: string;
     memo: string;
   };
 }
@@ -38,11 +39,12 @@ export async function convertInboxClipAction(
   const companyName = readField(formData, "companyName").trim();
   const routeRaw = readField(formData, "route", "本選考");
   const source = readField(formData, "source").trim();
+  const sourceUrl = readField(formData, "sourceUrl").trim();
   const memo = readField(formData, "memo").trim();
 
   // enum で受けた値だけ受理 (form の改ざん対策)。source は backend が自由入力を許すのでそのまま。
   const route = (ROUTES as readonly string[]).includes(routeRaw) ? routeRaw : "本選考";
-  const values = { companyName, existingCompanyId, route, source, memo };
+  const values = { companyName, existingCompanyId, route, source, sourceUrl, memo };
 
   if (!clipId) {
     return { error: "クリップの指定が不正です", values };
@@ -97,6 +99,7 @@ export async function convertInboxClipAction(
         companyId: company.id,
         route,
         source,
+        sourceUrl: sourceUrl || undefined,
         memo: memo || undefined,
       }),
     });

@@ -48,6 +48,7 @@ const entryWithDefaults = (input) => ({
   companyId: input.companyId,
   route: input.route,
   source: input.source,
+  sourceUrl: input.sourceUrl ?? "",
   status: "active",
   stageKind: "application",
   stageLabel: "エントリー",

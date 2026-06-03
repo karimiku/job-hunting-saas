@@ -2,10 +2,11 @@
 // データは props で渡される (page.tsx 側で SSR 取得済み)。
 
 import Link from "next/link";
-import { Inbox, Plus } from "lucide-react";
+import { ExternalLink, Inbox, Plus } from "lucide-react";
 import {
   companyDisplayName,
   companyInitial,
+  entrySourceUrl,
   type EntryResponse,
 } from "@/lib/api/entries";
 
@@ -48,34 +49,48 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
 
   return (
     <ul className="entre-stagger flex flex-col gap-2">
-      {entries.map((e) => (
-        <li
-          key={e.id}
-          className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-line bg-surface p-3 transition-all hover:translate-x-0.5 hover:border-sage"
-        >
-          <Link href={`/entry/${e.id}`} className="flex flex-1 items-center gap-2.5">
-            <div className="grid h-9 w-9 place-items-center rounded-[10px] bg-sage-wash font-serif text-lg font-extrabold text-sage">
-              {companyInitial(e)}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[12px] font-bold">{companyDisplayName(e)}</div>
-              <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-ink-3">
-                <span
-                  className="rounded-sm px-1.5 py-0.5 text-[8px] font-bold text-white"
-                  style={{ background: STAGE_BG[e.stageKind] ?? "var(--color-ink-3)" }}
-                >
-                  {e.stageLabel}
-                </span>
-                <span>{e.route}</span>
-                <span aria-hidden>·</span>
-                <span className="truncate">{e.source}</span>
+      {entries.map((e) => {
+        const sourceUrl = entrySourceUrl(e);
+        return (
+          <li
+            key={e.id}
+            className="flex items-center gap-2.5 rounded-xl border border-line bg-surface p-3 transition-all hover:translate-x-0.5 hover:border-sage"
+          >
+            <Link href={`/entry/${e.id}`} className="flex min-w-0 flex-1 items-center gap-2.5">
+              <div className="grid h-9 w-9 place-items-center rounded-[10px] bg-sage-wash font-serif text-lg font-extrabold text-sage">
+                {companyInitial(e)}
               </div>
-              {e.memo && <div className="mt-1 text-[10px] text-ink-2">{e.memo}</div>}
-            </div>
-          </Link>
-          <span className="text-ink-3" aria-hidden>›</span>
-        </li>
-      ))}
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[12px] font-bold">{companyDisplayName(e)}</div>
+                <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-ink-3">
+                  <span
+                    className="rounded-sm px-1.5 py-0.5 text-[8px] font-bold text-white"
+                    style={{ background: STAGE_BG[e.stageKind] ?? "var(--color-ink-3)" }}
+                  >
+                    {e.stageLabel}
+                  </span>
+                  <span>{e.route}</span>
+                  <span aria-hidden>·</span>
+                  <span className="truncate">{e.source}</span>
+                </div>
+                {e.memo && <div className="mt-1 text-[10px] text-ink-2">{e.memo}</div>}
+              </div>
+            </Link>
+            {sourceUrl && (
+              <a
+                href={sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`${companyDisplayName(e)} の応募元ページを開く`}
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-line text-ink-3 transition-colors hover:border-sage hover:text-sage"
+              >
+                <ExternalLink size={13} aria-hidden />
+              </a>
+            )}
+            <span className="text-ink-3" aria-hidden>›</span>
+          </li>
+        );
+      })}
     </ul>
   );
 }

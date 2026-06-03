@@ -57,4 +57,22 @@ describe("KanbanBoard", () => {
     );
     expect(screen.getByText("テスト商事")).toBeInTheDocument();
   });
+
+  it("応募元URLがあるカードは元ページへのリンクを表示する", () => {
+    render(
+      <KanbanBoard
+        initialEntries={[
+          {
+            ...e("application", "リクナビ"),
+            companyName: "テスト商事",
+            sourceUrl: "https://job.rikunabi.com/2027/company/r123/",
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "応募元" })).toHaveAttribute(
+      "href",
+      "https://job.rikunabi.com/2027/company/r123/",
+    );
+  });
 });
