@@ -37,7 +37,7 @@ jobs:
           set +e
           risky=$(grep -rEn 'run:.*\$\{\{[[:space:]]*github\.event\.(pull_request\.(title|body|head\.ref)|issue\.(title|body)|comment\.body)' .github/workflows/)
           if [ -n "$risky" ]; then
-            echo "::error::Expression injection risk detected. Pass via env: instead of inline \${{ }}"
+            echo "::error::Expression injection risk detected. Pass event-derived values via env instead of inline expressions."
             echo "$risky"
             exit 1
           fi
@@ -67,7 +67,7 @@ jobs:
       # We must not let continue-on-error swallow the error range, so the scan step always
       # continues and we classify the outcome explicitly in the next step instead.
       - id: scan
-        uses: google/osv-scanner-action/osv-scanner-action@75edb0fc3f7b7229ac35e8cd527c2b9b79afd94d # v2.0.2
+        uses: google/osv-scanner-action/osv-scanner-action@e69cc6c86b31f1e7e23935bbe7031b50e51082de # v2.0.2
         continue-on-error: true
         with:
           scan-args: |-
