@@ -28,6 +28,16 @@ func TestWriteError_OtherError(t *testing.T) {
 	}
 }
 
+func TestWriteError_InternalError(t *testing.T) {
+	w := httptest.NewRecorder()
+
+	writeError(w, testErr("postgres: ListEntries: connection refused"))
+
+	if w.Code != 500 {
+		t.Errorf("status = %d, want 500", w.Code)
+	}
+}
+
 func TestWriteJSON(t *testing.T) {
 	w := httptest.NewRecorder()
 
