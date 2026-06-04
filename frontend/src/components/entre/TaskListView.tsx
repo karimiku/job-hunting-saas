@@ -6,7 +6,7 @@ import { useActionState, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CalendarPlus, ClipboardList, Plus, Trash2 } from "lucide-react";
+import { CalendarPlus, CheckCircle2, ClipboardList, Plus, Trash2 } from "lucide-react";
 import {
   createTaskFromTaskPageAction,
   deleteTaskAction,
@@ -126,62 +126,76 @@ export function TaskListView({ initialTasks, entries }: Props) {
       {tasks.length === 0 ? (
         <TaskEmptyState hasEntries={entries.length > 0} />
       ) : (
-        <ul className="flex flex-col gap-2">
-          {tasks.map((task) => {
-            const status = optimistic[task.id] ?? task.status;
-            const done = status === "done";
-            return (
-              <li
-                key={task.id}
-                className={`flex items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5 transition-opacity ${
-                  done ? "opacity-50" : ""
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => toggle(task)}
-                  disabled={isPending}
-                  aria-pressed={done}
-                  aria-label={done ? "タスク未完了に戻す" : "タスク完了にする"}
-                  className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] text-white transition-colors focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:opacity-60 ${
-                    done
-                      ? "border-[1.5px] border-sage bg-sage"
-                      : "border-[1.5px] border-line bg-transparent"
+        <div className="space-y-2">
+          <div className="flex items-center justify-between rounded-xl border border-line bg-cream px-3 py-2">
+            <div>
+              <p className="text-[11px] font-extrabold">未完了を上から片づける</p>
+              <p className="mt-0.5 text-[10px] text-ink-3">
+                左の丸を押すと完了。期日が近い順に並びます。
+              </p>
+            </div>
+            <span className="rounded-md bg-sage-soft px-2 py-1 text-[10px] font-bold text-sage">
+              {tasks.filter((task) => (optimistic[task.id] ?? task.status) === "todo").length}件残り
+            </span>
+          </div>
+
+          <ul className="flex flex-col gap-2">
+            {tasks.map((task) => {
+              const status = optimistic[task.id] ?? task.status;
+              const done = status === "done";
+              return (
+                <li
+                  key={task.id}
+                  className={`flex items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5 transition-opacity ${
+                    done ? "opacity-50" : ""
                   }`}
                 >
-                  {done ? "✓" : ""}
-                </button>
-                <div className="min-w-0 flex-1">
-                  <div
-                    className={`text-[12px] font-semibold ${done ? "line-through" : ""}`}
+                  <button
+                    type="button"
+                    onClick={() => toggle(task)}
+                    disabled={isPending}
+                    aria-pressed={done}
+                    aria-label={done ? "タスク未完了に戻す" : "タスク完了にする"}
+                    className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] text-white transition-colors focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:opacity-60 ${
+                      done
+                        ? "border-[1.5px] border-sage bg-sage"
+                        : "border-[1.5px] border-line bg-transparent"
+                    }`}
                   >
-                    {task.title}
+                    {done ? <CheckCircle2 size={15} aria-hidden /> : ""}
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className={`text-[12px] font-semibold ${done ? "line-through" : ""}`}
+                    >
+                      {task.title}
+                    </div>
+                    <div className="mt-0.5 text-[10px] text-ink-3">
+                      {task.companyName ?? "（会社名未設定）"}
+                      {task.memo ? ` · ${task.memo}` : ""}
+                    </div>
                   </div>
-                  <div className="mt-0.5 text-[10px] text-ink-3">
-                    {task.companyName ?? "（会社名未設定）"}
-                    {task.memo ? ` · ${task.memo}` : ""}
-                  </div>
-                </div>
-                <span
-                  className={`shrink-0 rounded-md px-2 py-0.5 font-mono text-[10px] font-bold text-white ${
-                    TYPE_BADGE[task.type] ?? "bg-sage"
-                  }`}
-                >
-                  {formatDue(task.dueDate)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => deleteTask(task)}
-                  disabled={isPending}
-                  aria-label={`タスク「${task.title}」を削除`}
-                  className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-line text-ink-3 transition-colors hover:border-pink-deep hover:text-pink-deep focus:outline-none focus:ring-2 focus:ring-pink-deep/30 disabled:opacity-60"
-                >
-                  <Trash2 size={13} aria-hidden />
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+                  <span
+                    className={`shrink-0 rounded-md px-2 py-0.5 font-mono text-[10px] font-bold text-white ${
+                      TYPE_BADGE[task.type] ?? "bg-sage"
+                    }`}
+                  >
+                    {formatDue(task.dueDate)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => deleteTask(task)}
+                    disabled={isPending}
+                    aria-label={`タスク「${task.title}」を削除`}
+                    className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-line text-ink-3 transition-colors hover:border-pink-deep hover:text-pink-deep focus:outline-none focus:ring-2 focus:ring-pink-deep/30 disabled:opacity-60"
+                  >
+                    <Trash2 size={13} aria-hidden />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
 
       <Confetti trigger={confetti} count={22} />
@@ -217,7 +231,7 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
         <div>
           <p className="text-[12px] font-extrabold">Taskを追加</p>
           <p className="mt-0.5 text-[10px] leading-relaxed text-ink-3">
-            締切・面接予定・準備タスクをEntryに紐づけて登録します。
+            1つだけ決めればOKです。どのEntryの、何を、いつまでにやるかを登録します。
           </p>
         </div>
       </div>
@@ -238,11 +252,23 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
         </div>
       ) : (
         <>
+          <div className="mb-2 grid gap-1.5 md:grid-cols-3">
+            {["1. Entryを選ぶ", "2. やることを書く", "3. 期日を入れる"].map((label) => (
+              <div
+                key={label}
+                className="rounded-md border border-line bg-cream px-2 py-1.5 text-center text-[10px] font-bold text-ink-2"
+              >
+                {label}
+              </div>
+            ))}
+          </div>
+
           <div className="grid gap-2 md:grid-cols-[1.2fr_1.3fr]">
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold text-ink-2">Entry</span>
+              <span className="mb-1 block text-[10px] font-bold text-ink-2">どの応募先？</span>
               <select
                 name="entryId"
+                aria-label="Entry"
                 defaultValue={values.entryId}
                 className="h-9 w-full rounded-md border border-line bg-cream px-2 text-[12px] font-semibold outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
               >
@@ -254,9 +280,10 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
               </select>
             </label>
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold text-ink-2">タスク名</span>
+              <span className="mb-1 block text-[10px] font-bold text-ink-2">何をする？</span>
               <input
                 name="title"
+                aria-label="タスク名"
                 defaultValue={values.title}
                 required
                 placeholder="ES提出、一次面接、SPI受験"
@@ -290,10 +317,11 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
               </div>
             </fieldset>
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold text-ink-2">期日</span>
+              <span className="mb-1 block text-[10px] font-bold text-ink-2">いつまで？</span>
               <input
                 name="dueDate"
                 type="date"
+                aria-label="期日"
                 defaultValue={values.dueDate}
                 className="h-9 w-full rounded-md border border-line bg-cream px-2.5 font-mono text-[12px] font-semibold outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
               />

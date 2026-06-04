@@ -35,11 +35,11 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { k: "home", l: "ホーム", helper: "今日の状況", icon: Home, href: "/dashboard" },
-  { k: "entry", l: "Entry", helper: "応募管理", icon: ClipboardList, href: "/entry", countKey: "entry" },
-  { k: "kanban", l: "カンバン", helper: "選考フェーズ", icon: Columns3, href: "/kanban" },
-  { k: "roadmap", l: "ロードマップ", helper: "進め方", icon: Map, href: "/roadmap" },
-  { k: "task", l: "Task", helper: "締切と予定", icon: PencilLine, href: "/task", countKey: "task" },
-  { k: "inbox", l: "Inbox", helper: "保存クリップ", icon: Inbox, href: "/inbox", countKey: "inbox" },
+  { k: "inbox", l: "Inbox", helper: "1. 求人を一時保存", icon: Inbox, href: "/inbox", countKey: "inbox" },
+  { k: "entry", l: "Entry", helper: "2. 応募先に整理", icon: ClipboardList, href: "/entry", countKey: "entry" },
+  { k: "kanban", l: "カンバン", helper: "3. 選考フェーズを見る", icon: Columns3, href: "/kanban" },
+  { k: "task", l: "Task", helper: "4. 締切・予定を管理", icon: PencilLine, href: "/task", countKey: "task" },
+  { k: "roadmap", l: "ロードマップ", helper: "全体の進め方", icon: Map, href: "/roadmap" },
   { k: "profile", l: "プロフィール", helper: "アカウント", icon: UserCircle, href: "/profile" },
   { k: "es", l: "ESエディタ", helper: "準備中", icon: PencilLine, href: "/es", dev: true },
 ];
@@ -120,11 +120,11 @@ export function Sidebar({
       <div className="flex-1" />
 
       <div className="rounded-[10px] border border-line bg-surface px-3 py-2.5 text-[10px]">
-        <div className="mb-1 text-[11px] font-extrabold">βチェック</div>
+        <div className="mb-1 text-[11px] font-extrabold">基本の流れ</div>
         <div className="leading-relaxed text-ink-3">
           {navCounts
-            ? `Entry ${navCounts.entry}件 / 未完了Task ${navCounts.task}件 / Inbox ${navCounts.inbox}件`
-            : "保存・Entry・Task の状態を各画面で確認できます。"}
+            ? `Inboxで保存 → Entry化 → Taskで締切管理。いま Entry ${navCounts.entry}件 / 未完了Task ${navCounts.task}件 / Inbox ${navCounts.inbox}件`
+            : "Inboxで保存 → Entry化 → Taskで締切管理。迷ったらホームの「次にやること」を見ます。"}
         </div>
       </div>
 
@@ -148,9 +148,9 @@ export function MobileTabBar() {
   const pathname = usePathname();
   const tabs = [
     { k: "home", l: "ホーム", icon: Home, href: "/dashboard" },
+    { k: "inbox", l: "保存", icon: Inbox, href: "/inbox" },
     { k: "entry", l: "Entry", icon: ClipboardList, href: "/entry" },
-    { k: "roadmap", l: "ロード", icon: Map, href: "/roadmap" },
-    { k: "inbox", l: "Inbox", icon: Inbox, href: "/inbox" },
+    { k: "task", l: "Task", icon: PencilLine, href: "/task" },
     { k: "profile", l: "Me", icon: UserCircle, href: "/profile" },
   ];
 
