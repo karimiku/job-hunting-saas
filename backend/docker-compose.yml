@@ -12,8 +12,8 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-job_hunting_dev}?sslmode=disable
     depends_on:
-      db:
-        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
 
   db:
     image: postgres:16
@@ -32,6 +32,21 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  db-migrate:
+    image: postgres:16
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-job_hunting_dev}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - ./sql:/sql:ro
+      - ./docker/migrate:/migrate:ro
+    command: ["/bin/sh", "/migrate/apply.sh"]
 
 volumes:
   db-data:
