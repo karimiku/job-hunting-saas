@@ -12,6 +12,7 @@ import (
 
 type Querier interface {
 	CreateCompanyAlias(ctx context.Context, arg CreateCompanyAliasParams) error
+	CreateESMemo(ctx context.Context, arg CreateESMemoParams) (EsMemo, error)
 	CreateInboxClip(ctx context.Context, arg CreateInboxClipParams) error
 	CreateStageHistory(ctx context.Context, arg CreateStageHistoryParams) error
 	DeleteCompany(ctx context.Context, arg DeleteCompanyParams) (int64, error)
@@ -33,11 +34,15 @@ type Querier interface {
 	ListCompaniesByUserID(ctx context.Context, userID uuid.UUID) ([]Company, error)
 	ListCompanyAliasesByCompanyID(ctx context.Context, arg ListCompanyAliasesByCompanyIDParams) ([]CompanyAlias, error)
 	ListCompanyAliasesByUserID(ctx context.Context, userID uuid.UUID) ([]CompanyAlias, error)
+	ListESMemosByUserID(ctx context.Context, arg ListESMemosByUserIDParams) ([]EsMemo, error)
 	ListEntriesByUserID(ctx context.Context, arg ListEntriesByUserIDParams) ([]Entry, error)
 	ListInboxClipsByUserID(ctx context.Context, userID uuid.UUID) ([]InboxClip, error)
 	ListStageHistoriesByEntryID(ctx context.Context, entryID uuid.UUID) ([]StageHistory, error)
 	ListTasksByEntryID(ctx context.Context, arg ListTasksByEntryIDParams) ([]Task, error)
 	ListTasksByUserIDWithDueBefore(ctx context.Context, arg ListTasksByUserIDWithDueBeforeParams) ([]Task, error)
+	MCPGetEntryContext(ctx context.Context, arg MCPGetEntryContextParams) (MCPGetEntryContextRow, error)
+	MCPListEntries(ctx context.Context, userID uuid.UUID) ([]MCPListEntriesRow, error)
+	MCPListOpenTasks(ctx context.Context, userID uuid.UUID) ([]MCPListOpenTasksRow, error)
 	UpsertCompany(ctx context.Context, arg UpsertCompanyParams) error
 	UpsertEntry(ctx context.Context, arg UpsertEntryParams) error
 	UpsertTask(ctx context.Context, arg UpsertTaskParams) error

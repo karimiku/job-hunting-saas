@@ -261,6 +261,18 @@ type Entry struct {
 	UpdatedAt  pgtype.Timestamptz
 }
 
+type EsMemo struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	EntryID   pgtype.UUID
+	Category  string
+	Title     string
+	Content   string
+	Source    string
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
+}
+
 type ExternalIdentity struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID

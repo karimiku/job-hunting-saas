@@ -18,6 +18,7 @@ type CreateInput struct {
 	Type    string
 	DueDate *time.Time
 	Memo    string
+	Notify  bool
 }
 
 // CreateOutput は TaskCreate ユースケースの出力。
@@ -60,6 +61,9 @@ func (uc *Create) Execute(ctx context.Context, input CreateInput) (*CreateOutput
 
 	if input.Memo != "" {
 		t.UpdateMemo(input.Memo)
+	}
+	if input.Notify {
+		t.SetNotify(true)
 	}
 
 	if err := uc.taskRepo.Save(ctx, t); err != nil {

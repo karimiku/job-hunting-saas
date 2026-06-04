@@ -1,4 +1,4 @@
-.PHONY: help up down logs dev-fe health \
+.PHONY: help up down logs dev-fe health mcp-server \
         test test-be test-fe test-fe-e2e test-ext build build-be build-fe \
         lint lint-be lint-fe fmt fmt-be \
         gen gen-api gen-sql \
@@ -40,6 +40,9 @@ dev-fe: ## フロント dev サーバ単独
 
 health: ## API /health を叩く
 	@curl -sf http://localhost:8080/health && echo " OK" || echo "API unreachable"
+
+mcp-server: ## job-hunting-saas MCP server をstdioで起動（DATABASE_URL + MCP_USER_EMAIL/ID が必要）
+	cd backend && go run ./cmd/mcp-server
 
 # ============================================================
 # テスト・ビルド

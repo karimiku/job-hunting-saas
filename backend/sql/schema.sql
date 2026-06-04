@@ -112,6 +112,18 @@ CREATE TABLE inbox_clips (
     captured_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE es_memos (
+    id         UUID        PRIMARY KEY,
+    user_id    UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    entry_id   UUID        REFERENCES entries(id) ON DELETE SET NULL,
+    category   TEXT        NOT NULL DEFAULT 'general',
+    title      TEXT        NOT NULL,
+    content    TEXT        NOT NULL,
+    source     TEXT        NOT NULL DEFAULT 'mcp',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ============================================================
 -- インデックス
 -- ============================================================
@@ -136,3 +148,7 @@ CREATE INDEX idx_company_aliases_user_company ON company_aliases(user_id, compan
 
 -- Inbox 一覧表示用: ユーザの直近クリップから降順で取得
 CREATE INDEX idx_inbox_clips_user_captured_at ON inbox_clips(user_id, captured_at DESC);
+
+CREATE INDEX idx_es_memos_user_created_at ON es_memos(user_id, created_at DESC);
+
+CREATE INDEX idx_es_memos_user_entry ON es_memos(user_id, entry_id);

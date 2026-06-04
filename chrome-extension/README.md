@@ -76,11 +76,11 @@ popup から `credentials: "include"` で Entré API を叩く。
 Session Cookie の `SameSite` 属性は現状 `Lax` のため、host_permissions に
 バックエンド (`localhost:8080`) を含めて拡張から共有できるようにしている。
 
-## TODO
+## Roadmap
 
 - [ ] AI 抽出 — 現状は DOM の h1 / og:title をそのまま読んでいる。サーバー側で
   ページ HTML から会社名・職種・締切を抽出する API に切り替える
 - [ ] 重複検出 — 同じ URL を保存しようとしたら既存エントリーを表示する
 - [x] Inbox 連携 — 検出済みページを Inbox に保存する
-- [ ] Inbox 整理 — 保存したクリップから Entry を作成・紐付ける
+- [x] Inbox 整理 — 保存したクリップから Web の Inbox で Entry を作成・紐付ける
 - [ ] ストア公開準備 — privacy policy, store listing 画像など

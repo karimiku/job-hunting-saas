@@ -22,7 +22,7 @@
 | ホットリロード | Air |
 | ID生成 | UUID v4（google/uuid） |
 
-技術選定の詳細な理由は [docs/why-reasons.md](docs/why-reasons.md) を参照。
+技術選定の詳細な理由は [docs/why-reasons.md](../docs/why-reasons.md) を参照。
 
 ## プロジェクト構成
 
@@ -81,6 +81,29 @@ docker compose up
 ```bash
 curl http://localhost:8080/health
 ```
+
+### MCP server
+
+Claude Desktop / Codex / Gemini CLI などのMCPクライアントから、就活データを読み書きするためのstdio MCP serverを提供する。
+設計・resources/tools・配布上の注意は [docs/mcp-server.md](../docs/mcp-server.md) を参照。
+
+```bash
+DATABASE_URL=postgres://postgres:postgres@localhost:15432/job_hunting_dev?sslmode=disable \
+MCP_USER_EMAIL=you@example.com \
+go run ./cmd/mcp-server
+```
+
+リポジトリルートからは次でも起動できる。
+
+```bash
+DATABASE_URL=postgres://postgres:postgres@localhost:15432/job_hunting_dev?sslmode=disable \
+MCP_USER_EMAIL=you@example.com \
+make mcp-server
+```
+
+`MCP_USER_EMAIL` の代わりに `MCP_USER_ID` でも対象ユーザーを指定できる。multi-user DBを安全に扱うため、どちらか一方は必須。
+
+`append_es_memo` と `create_task` は `confirm: true` を渡したときだけDBへ保存する。`capture_job_email` はメール本文をルールベースで構造化し、LLM APIは呼ばない。
 
 ### 認証 / Chrome拡張向け Cookie 設定
 
