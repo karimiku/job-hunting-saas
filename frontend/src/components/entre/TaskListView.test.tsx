@@ -13,13 +13,23 @@ interface ActionResult {
 }
 const setTaskStatusAction = vi.fn(
   async (
-    _taskId: string,
+    taskId: string,
     status: "todo" | "done",
-  ): Promise<ActionResult> => ({ ok: true, status }),
+  ): Promise<ActionResult> => {
+    void taskId;
+    return { ok: true, status };
+  },
 );
-const deleteTaskAction = vi.fn(async (_taskId: string) => ({ ok: true }));
+const deleteTaskAction = vi.fn(async (taskId: string) => {
+  void taskId;
+  return { ok: true };
+});
 const createTaskFromTaskPageAction = vi.fn(
-  async (_prev: unknown, _formData: FormData) => ({ ok: true }),
+  async (prev: unknown, formData: FormData) => {
+    void prev;
+    void formData;
+    return { ok: true };
+  },
 );
 vi.mock("@/app/task/actions", () => ({
   createTaskFromTaskPageAction: (_prev: unknown, formData: FormData) =>
