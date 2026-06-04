@@ -56,6 +56,7 @@
                 inherit name;
                 runtimeInputs = projectTools;
                 text = ''
+                  export GOTOOLCHAIN=auto
                   exec make ${target} "$@"
                 '';
               }
