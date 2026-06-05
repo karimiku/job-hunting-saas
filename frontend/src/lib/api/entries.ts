@@ -26,14 +26,6 @@ export function companyDisplayName(
   return entry.companyName?.trim() || NO_COMPANY_LABEL;
 }
 
-/** アバター等に使う頭文字。会社名 → source の順でフォールバックする。 */
-export function companyInitial(
-  entry: Pick<EntryResponse, "companyName" | "source">,
-): string {
-  const base = entry.companyName?.trim() || entry.source?.trim() || "?";
-  return base.slice(0, 1).toUpperCase();
-}
-
 export interface ListEntriesParams {
   status?: string;
   stageKind?: string;

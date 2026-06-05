@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ArrowRight, ExternalLink, Inbox, Plus } from "lucide-react";
 import {
   companyDisplayName,
-  companyInitial,
   entrySourceUrl,
   type EntryResponse,
 } from "@/lib/api/entries";
@@ -65,9 +64,6 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
             className="flex items-center gap-2.5 rounded-xl border border-line bg-surface p-3 transition-all hover:translate-x-0.5 hover:border-sage"
           >
             <Link href={`/entry/${e.id}`} className="flex min-w-0 flex-1 items-center gap-2.5">
-              <div className="grid h-9 w-9 place-items-center rounded-[10px] bg-sage-wash font-serif text-lg font-extrabold text-sage">
-                {companyInitial(e)}
-              </div>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-[12px] font-bold">{companyDisplayName(e)}</div>
                 <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-ink-3">
