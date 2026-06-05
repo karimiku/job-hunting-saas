@@ -2,7 +2,7 @@
 // データは props で渡される (page.tsx 側で SSR 取得済み)。
 
 import Link from "next/link";
-import { ExternalLink, Inbox, Plus } from "lucide-react";
+import { ArrowRight, ExternalLink, Inbox, Plus } from "lucide-react";
 import {
   companyDisplayName,
   companyInitial,
@@ -48,7 +48,15 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
   }
 
   return (
-    <ul className="entre-stagger flex flex-col gap-2">
+    <div className="space-y-3">
+      <div className="rounded-xl border border-line bg-sage-wash px-3.5 py-3">
+        <p className="text-[11px] font-extrabold text-sage">この画面でやること</p>
+        <p className="mt-1 text-[11px] leading-relaxed text-ink-2">
+          応募先ごとに「いまの選考フェーズ」を確認します。詳しく見ると、メモ・応募元ページ・その企業のTaskを管理できます。
+        </p>
+      </div>
+
+      <ul className="entre-stagger flex flex-col gap-2">
       {entries.map((e) => {
         const sourceUrl = entrySourceUrl(e);
         return (
@@ -75,6 +83,10 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
                 </div>
                 {e.memo && <div className="mt-1 text-[10px] text-ink-2">{e.memo}</div>}
               </div>
+              <span className="hidden shrink-0 items-center gap-1 rounded-md bg-cream px-2 py-1 text-[10px] font-bold text-ink-3 md:inline-flex">
+                詳細を見る
+                <ArrowRight size={12} aria-hidden />
+              </span>
             </Link>
             {sourceUrl && (
               <a
@@ -91,6 +103,7 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
           </li>
         );
       })}
-    </ul>
+      </ul>
+    </div>
   );
 }

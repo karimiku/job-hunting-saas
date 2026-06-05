@@ -30,7 +30,7 @@ export default async function InboxPage() {
           <div>
             <h1 className="font-serif text-2xl font-extrabold tracking-tight">Inbox</h1>
             <p className="mt-0.5 text-[11px] text-ink-3">
-              Chrome拡張で保存した求人ページを確認し、管理対象の Entry に変換します。
+              Chrome拡張で保存した求人の一時置き場です。残す求人だけEntryに変換します。
             </p>
           </div>
           <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-2">
