@@ -18,7 +18,6 @@ import {
 import {
   updateEntry,
   companyDisplayName,
-  companyInitial,
   entrySourceUrl,
   type EntryResponse,
 } from "@/lib/api/entries";
@@ -276,12 +275,7 @@ function CardContent({ entry }: { entry: EntryResponse }) {
   const sourceUrl = entrySourceUrl(entry);
   return (
     <>
-      <div className="mb-1.5 flex items-center gap-2">
-        <div className="grid h-6 w-6 place-items-center rounded-md bg-sage-wash font-serif text-xs font-extrabold text-sage">
-          {companyInitial(entry)}
-        </div>
-        <div className="truncate text-[10px] font-bold">{companyDisplayName(entry)}</div>
-      </div>
+      <div className="mb-1.5 truncate text-[10px] font-bold">{companyDisplayName(entry)}</div>
       <div className="flex justify-between gap-2 text-[9px] text-ink-3">
         <span className="truncate">
           {entry.route} · {entry.source}
