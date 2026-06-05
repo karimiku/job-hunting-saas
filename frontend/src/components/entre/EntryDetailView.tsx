@@ -162,7 +162,7 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
       {/* Header */}
       <div className="mb-4 flex items-center gap-3">
         <div className="min-w-0 flex-1">
-          <h1 className="truncate font-serif text-lg font-extrabold tracking-tight">
+          <h1 className="font-serif text-lg font-extrabold tracking-tight break-words">
             {companyDisplayName(e)}
           </h1>
           <p className="mt-0.5 text-[10px] text-ink-3">
