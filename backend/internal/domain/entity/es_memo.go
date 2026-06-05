@@ -20,6 +20,7 @@ type ESMemo struct {
 	updatedAt time.Time
 }
 
+// NewESMemo は新しいESメモを生成する。
 func NewESMemo(
 	userID UserID,
 	entryID *EntryID,
@@ -42,6 +43,7 @@ func NewESMemo(
 	}
 }
 
+// ReconstructESMemo は永続化済みデータからESメモを再構築する。
 func ReconstructESMemo(
 	id ESMemoID,
 	userID UserID,
@@ -66,20 +68,29 @@ func ReconstructESMemo(
 	}
 }
 
+// ID はESメモIDを返す。
 func (m *ESMemo) ID() ESMemoID { return m.id }
 
+// UserID は所有ユーザーIDを返す。
 func (m *ESMemo) UserID() UserID { return m.userID }
 
+// EntryID は紐づくエントリーIDを返す。未紐づけの場合はnil。
 func (m *ESMemo) EntryID() *EntryID { return m.entryID }
 
+// Category はESメモの分類を返す。
 func (m *ESMemo) Category() value.ESMemoCategory { return m.category }
 
+// Title はESメモの見出しを返す。
 func (m *ESMemo) Title() value.ESMemoTitle { return m.title }
 
+// Content はESメモ本文を返す。
 func (m *ESMemo) Content() value.ESMemoContent { return m.content }
 
+// Source はESメモの入力元を返す。
 func (m *ESMemo) Source() value.ESMemoSource { return m.source }
 
+// CreatedAt は作成日時を返す。
 func (m *ESMemo) CreatedAt() time.Time { return m.createdAt }
 
+// UpdatedAt は更新日時を返す。
 func (m *ESMemo) UpdatedAt() time.Time { return m.updatedAt }

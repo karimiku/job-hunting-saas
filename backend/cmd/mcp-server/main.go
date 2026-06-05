@@ -1,3 +1,4 @@
+// Command mcp-server exposes job-hunting context operations over stdio MCP.
 package main
 
 import (
@@ -25,22 +26,28 @@ import (
 func main() {
 	log.SetOutput(os.Stderr)
 
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
 	ctx := context.Background()
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
-		log.Fatal("DATABASE_URL is required")
+		return errors.New("DATABASE_URL is required")
 	}
 
 	pool, err := pgxpool.New(ctx, databaseURL)
 	if err != nil {
-		log.Fatalf("connect database: %v", err)
+		return fmt.Errorf("connect database: %w", err)
 	}
 	defer pool.Close()
 
 	userRepo := postgres.NewUserRepository(pool)
 	user, err := resolveMCPUser(ctx, userRepo)
 	if err != nil {
-		log.Fatalf("resolve MCP user: %v", err)
+		return fmt.Errorf("resolve MCP user: %w", err)
 	}
 
 	entryRepo := postgres.NewEntryRepository(pool)
@@ -57,8 +64,9 @@ func main() {
 
 	server := mcphandler.NewServer(app)
 	if err := mcphandler.ServeStdio(ctx, os.Stdin, os.Stdout, server); err != nil && !errors.Is(err, io.EOF) {
-		log.Fatalf("serve MCP: %v", err)
+		return fmt.Errorf("serve MCP: %w", err)
 	}
+	return nil
 }
 
 func resolveMCPUser(ctx context.Context, repo repository.UserRepository) (*entity.User, error) {

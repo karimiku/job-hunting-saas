@@ -1,4 +1,4 @@
-package job_email
+package jobemail
 
 import (
 	"testing"

@@ -1,5 +1,5 @@
-// Package job_email は選考メール本文から就活管理に必要な候補情報を抽出する。
-package job_email
+// Package jobemail は選考メール本文から就活管理に必要な候補情報を抽出する。
+package jobemail
 
 import (
 	"regexp"
@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// ExtractInput は選考メール抽出ユースケースへの入力。
 type ExtractInput struct {
 	Subject     string
 	Text        string
@@ -15,6 +16,7 @@ type ExtractInput struct {
 	Now         time.Time
 }
 
+// ExtractOutput は選考メールから抽出した候補情報。
 type ExtractOutput struct {
 	CompanyName          string                 `json:"companyName"`
 	StageKind            string                 `json:"stageKind"`
@@ -27,12 +29,15 @@ type ExtractOutput struct {
 	RawSignals           map[string]interface{} `json:"rawSignals"`
 }
 
+// Extract は選考メール本文から就活管理用の候補情報を抽出するUseCase。
 type Extract struct{}
 
+// NewExtract は選考メール抽出ユースケースを生成する。
 func NewExtract() *Extract {
 	return &Extract{}
 }
 
+// Execute は選考メール本文を解析し、エントリー更新候補とタスク候補を返す。
 func (uc *Extract) Execute(input ExtractInput) ExtractOutput {
 	now := input.Now
 	if now.IsZero() {

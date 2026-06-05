@@ -17,6 +17,7 @@ type ESMemoCategory struct {
 	value string
 }
 
+// NewESMemoCategory はESメモ分類を生成する。
 func NewESMemoCategory(raw string) (ESMemoCategory, error) {
 	v := strings.TrimSpace(raw)
 	if v == "" {
@@ -35,6 +36,7 @@ type ESMemoTitle struct {
 	value string
 }
 
+// NewESMemoTitle はESメモ見出しを生成する。
 func NewESMemoTitle(raw string) (ESMemoTitle, error) {
 	v := strings.TrimSpace(raw)
 	if v == "" {
@@ -53,6 +55,7 @@ type ESMemoContent struct {
 	value string
 }
 
+// NewESMemoContent はESメモ本文を生成する。
 func NewESMemoContent(raw string) (ESMemoContent, error) {
 	v := strings.TrimSpace(raw)
 	if v == "" {
@@ -68,6 +71,7 @@ type ESMemoSource struct {
 	value string
 }
 
+// NewESMemoSource はESメモ入力元を生成する。
 func NewESMemoSource(raw string) (ESMemoSource, error) {
 	v := strings.TrimSpace(raw)
 	if v == "" {

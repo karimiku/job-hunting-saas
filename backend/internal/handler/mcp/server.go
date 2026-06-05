@@ -23,6 +23,7 @@ const (
 	serverVersion          = "0.1.0"
 )
 
+// Application はMCP handlerが呼び出すユースケース境界。
 type Application interface {
 	ListEntries(ctx context.Context) ([]mcpuc.EntryDTO, error)
 	GetEntryContext(ctx context.Context, rawEntryID string) (*mcpuc.EntryContextDTO, error)
@@ -33,6 +34,7 @@ type Application interface {
 	CaptureJobEmail(input mcpuc.CaptureJobEmailInput) (jobemail.ExtractOutput, error)
 }
 
+// Server はstdio MCPリクエストを処理するサーバー。
 type Server struct {
 	app Application
 }
@@ -72,10 +74,12 @@ type resourceContent struct {
 	Text     string `json:"text"`
 }
 
+// NewServer はMCPサーバーを生成する。
 func NewServer(app Application) *Server {
 	return &Server{app: app}
 }
 
+// ServeStdio はstdio上のMCPメッセージを読み書きしてリクエストを処理する。
 func ServeStdio(ctx context.Context, in io.Reader, out io.Writer, s *Server) error {
 	reader := bufio.NewReader(in)
 	writer := bufio.NewWriter(out)

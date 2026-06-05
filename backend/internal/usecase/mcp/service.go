@@ -14,6 +14,7 @@ import (
 	taskuc "github.com/karimiku/job-hunting-saas/internal/usecase/task"
 )
 
+// ContextQuery はMCPサービスが必要とする参照系クエリを表す。
 type ContextQuery interface {
 	ListEntries(ctx context.Context, userID entity.UserID) ([]EntryDTO, error)
 	GetEntryContext(ctx context.Context, userID entity.UserID, entryID entity.EntryID) (*EntryContextDTO, error)
@@ -21,6 +22,7 @@ type ContextQuery interface {
 	ListInboxClips(ctx context.Context, userID entity.UserID) ([]InboxClipDTO, error)
 }
 
+// EntryDTO はMCPクライアントに返すエントリー情報。
 type EntryDTO struct {
 	ID         string  `json:"id"`
 	CompanyID  string  `json:"companyId"`
@@ -36,6 +38,7 @@ type EntryDTO struct {
 	UpdatedAt  *string `json:"updatedAt"`
 }
 
+// TaskDTO はMCPクライアントに返すタスク情報。
 type TaskDTO struct {
 	ID        string  `json:"id"`
 	EntryID   string  `json:"entryId"`
@@ -50,6 +53,7 @@ type TaskDTO struct {
 	UpdatedAt *string `json:"updatedAt"`
 }
 
+// InboxClipDTO はMCPクライアントに返すInbox Clip情報。
 type InboxClipDTO struct {
 	ID         string  `json:"id"`
 	URL        string  `json:"url"`
@@ -59,11 +63,13 @@ type InboxClipDTO struct {
 	CapturedAt *string `json:"capturedAt"`
 }
 
+// EntryContextDTO はエントリーと関連タスクをまとめたMCP向け情報。
 type EntryContextDTO struct {
 	Entry EntryDTO  `json:"entry"`
 	Tasks []TaskDTO `json:"tasks"`
 }
 
+// AppendESMemoInput はMCP経由でESメモを追記する入力。
 type AppendESMemoInput struct {
 	Title    string `json:"title"`
 	Content  string `json:"content"`
@@ -73,6 +79,7 @@ type AppendESMemoInput struct {
 	Confirm  bool   `json:"confirm"`
 }
 
+// CreateTaskInput はMCP経由でタスクを作成する入力。
 type CreateTaskInput struct {
 	EntryID string `json:"entryId"`
 	Title   string `json:"title"`
@@ -83,12 +90,14 @@ type CreateTaskInput struct {
 	Confirm bool   `json:"confirm"`
 }
 
+// CaptureJobEmailInput はMCP経由で選考メールを解析する入力。
 type CaptureJobEmailInput struct {
 	Subject     string `json:"subject"`
 	Text        string `json:"text"`
 	CompanyName string `json:"companyName"`
 }
 
+// Service はMCPクライアントに公開する就活コンテキスト操作を提供する。
 type Service struct {
 	userID     entity.UserID
 	query      ContextQuery
@@ -98,6 +107,7 @@ type Service struct {
 	now        func() time.Time
 }
 
+// NewService はMCPサービスを生成する。
 func NewService(
 	userID entity.UserID,
 	query ContextQuery,
@@ -115,10 +125,12 @@ func NewService(
 	}
 }
 
+// ListEntries はユーザーのエントリー一覧を返す。
 func (s *Service) ListEntries(ctx context.Context) ([]EntryDTO, error) {
 	return s.query.ListEntries(ctx, s.userID)
 }
 
+// GetEntryContext は指定エントリーと関連タスクを返す。
 func (s *Service) GetEntryContext(ctx context.Context, rawEntryID string) (*EntryContextDTO, error) {
 	entryID, err := parseEntryID(rawEntryID)
 	if err != nil {
@@ -127,14 +139,17 @@ func (s *Service) GetEntryContext(ctx context.Context, rawEntryID string) (*Entr
 	return s.query.GetEntryContext(ctx, s.userID, entryID)
 }
 
+// ListOpenTasks は未完了タスク一覧を返す。
 func (s *Service) ListOpenTasks(ctx context.Context) ([]TaskDTO, error) {
 	return s.query.ListOpenTasks(ctx, s.userID)
 }
 
+// ListInboxClips はInbox Clip一覧を返す。
 func (s *Service) ListInboxClips(ctx context.Context) ([]InboxClipDTO, error) {
 	return s.query.ListInboxClips(ctx, s.userID)
 }
 
+// AppendESMemo は確認付きでESメモを追記する。
 func (s *Service) AppendESMemo(ctx context.Context, input AppendESMemoInput) (any, error) {
 	title := strings.TrimSpace(input.Title)
 	content := strings.TrimSpace(input.Content)
@@ -176,6 +191,7 @@ func (s *Service) AppendESMemo(ctx context.Context, input AppendESMemoInput) (an
 	}, nil
 }
 
+// CreateTask は確認付きでタスクを作成する。
 func (s *Service) CreateTask(ctx context.Context, input CreateTaskInput) (any, error) {
 	entryID, err := parseEntryID(input.EntryID)
 	if err != nil {
@@ -239,6 +255,7 @@ func (s *Service) CreateTask(ctx context.Context, input CreateTaskInput) (any, e
 	}, nil
 }
 
+// CaptureJobEmail は選考メール本文から候補情報を抽出する。
 func (s *Service) CaptureJobEmail(input CaptureJobEmailInput) (jobemail.ExtractOutput, error) {
 	if strings.TrimSpace(input.Text) == "" {
 		return jobemail.ExtractOutput{}, fmt.Errorf("text is required")

@@ -15,14 +15,17 @@ import (
 	mcpuc "github.com/karimiku/job-hunting-saas/internal/usecase/mcp"
 )
 
+// MCPQuery はPostgreSQLからMCP向けコンテキストを取得するQuery実装。
 type MCPQuery struct {
 	q *sqlc.Queries
 }
 
+// NewMCPQuery はMCP用の参照クエリを生成する。
 func NewMCPQuery(db sqlc.DBTX) *MCPQuery {
 	return &MCPQuery{q: sqlc.New(db)}
 }
 
+// ListEntries はユーザーのエントリー一覧をMCP向けDTOで返す。
 func (q *MCPQuery) ListEntries(ctx context.Context, userID entity.UserID) ([]mcpuc.EntryDTO, error) {
 	rows, err := q.q.MCPListEntries(ctx, uuid.UUID(userID))
 	if err != nil {
@@ -35,6 +38,7 @@ func (q *MCPQuery) ListEntries(ctx context.Context, userID entity.UserID) ([]mcp
 	return out, nil
 }
 
+// GetEntryContext は指定エントリーと関連タスクをMCP向けDTOで返す。
 func (q *MCPQuery) GetEntryContext(ctx context.Context, userID entity.UserID, entryID entity.EntryID) (*mcpuc.EntryContextDTO, error) {
 	row, err := q.q.MCPGetEntryContext(ctx, sqlc.MCPGetEntryContextParams{
 		UserID: uuid.UUID(userID),
@@ -88,6 +92,7 @@ func (q *MCPQuery) GetEntryContext(ctx context.Context, userID entity.UserID, en
 	}, nil
 }
 
+// ListOpenTasks は未完了タスク一覧をMCP向けDTOで返す。
 func (q *MCPQuery) ListOpenTasks(ctx context.Context, userID entity.UserID) ([]mcpuc.TaskDTO, error) {
 	rows, err := q.q.MCPListOpenTasks(ctx, uuid.UUID(userID))
 	if err != nil {
@@ -112,6 +117,7 @@ func (q *MCPQuery) ListOpenTasks(ctx context.Context, userID entity.UserID) ([]m
 	return out, nil
 }
 
+// ListInboxClips はユーザーのInbox Clip一覧をMCP向けDTOで返す。
 func (q *MCPQuery) ListInboxClips(ctx context.Context, userID entity.UserID) ([]mcpuc.InboxClipDTO, error) {
 	rows, err := q.q.ListInboxClipsByUserID(ctx, uuid.UUID(userID))
 	if err != nil {

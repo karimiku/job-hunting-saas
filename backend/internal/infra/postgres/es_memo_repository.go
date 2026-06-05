@@ -11,14 +11,17 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/infra/postgres/sqlc"
 )
 
+// ESMemoRepository はPostgreSQLを使ったESメモRepository実装。
 type ESMemoRepository struct {
 	q *sqlc.Queries
 }
 
+// NewESMemoRepository はESメモRepositoryを生成する。
 func NewESMemoRepository(db sqlc.DBTX) *ESMemoRepository {
 	return &ESMemoRepository{q: sqlc.New(db)}
 }
 
+// Save はESメモを永続化する。
 func (r *ESMemoRepository) Save(ctx context.Context, memo *entity.ESMemo) error {
 	var entryID pgtype.UUID
 	if memo.EntryID() != nil {
@@ -40,6 +43,7 @@ func (r *ESMemoRepository) Save(ctx context.Context, memo *entity.ESMemo) error 
 	return nil
 }
 
+// ListByUserID はユーザーのESメモを新しい順に取得する。
 func (r *ESMemoRepository) ListByUserID(ctx context.Context, userID entity.UserID, limit int32) ([]*entity.ESMemo, error) {
 	rows, err := r.q.ListESMemosByUserID(ctx, sqlc.ListESMemosByUserIDParams{
 		UserID: uuid.UUID(userID),
