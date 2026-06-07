@@ -7,13 +7,10 @@ import {
   Columns3,
   Home,
   Inbox,
-  Map,
   PencilLine,
-  Settings,
   UserCircle,
   type LucideIcon,
 } from "lucide-react";
-import { Mascot } from "./Mascot";
 
 /** サイドバーのバッジに表示する実カウント。Server Component で集計して props で渡す。 */
 export interface NavCounts {
@@ -25,23 +22,18 @@ export interface NavCounts {
 interface NavItem {
   k: string;
   l: string;
-  helper: string;
   icon: LucideIcon;
   href: string;
   /** どの NavCounts キーをバッジに出すか。未指定ならバッジ無し。 */
   countKey?: keyof NavCounts;
-  dev?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { k: "home", l: "ホーム", helper: "今日の状況", icon: Home, href: "/dashboard" },
-  { k: "inbox", l: "Inbox", helper: "1. 求人を一時保存", icon: Inbox, href: "/inbox", countKey: "inbox" },
-  { k: "entry", l: "Entry", helper: "2. 応募先に整理", icon: ClipboardList, href: "/entry", countKey: "entry" },
-  { k: "kanban", l: "カンバン", helper: "3. 選考フェーズを見る", icon: Columns3, href: "/kanban" },
-  { k: "task", l: "Task", helper: "4. 締切・予定を管理", icon: PencilLine, href: "/task", countKey: "task" },
-  { k: "roadmap", l: "ロードマップ", helper: "全体の進め方", icon: Map, href: "/roadmap" },
-  { k: "profile", l: "プロフィール", helper: "アカウント", icon: UserCircle, href: "/profile" },
-  { k: "es", l: "ESエディタ", helper: "準備中", icon: PencilLine, href: "/es", dev: true },
+  { k: "home", l: "ホーム", icon: Home, href: "/dashboard" },
+  { k: "entry", l: "Entry", icon: ClipboardList, href: "/entry", countKey: "entry" },
+  { k: "kanban", l: "カンバン", icon: Columns3, href: "/kanban" },
+  { k: "task", l: "タスク", icon: PencilLine, href: "/task", countKey: "task" },
+  { k: "inbox", l: "保存箱", icon: Inbox, href: "/inbox", countKey: "inbox" },
 ];
 
 export function Sidebar({
@@ -57,7 +49,7 @@ export function Sidebar({
   const pathname = usePathname();
 
   return (
-    <aside className="hidden md:flex w-[220px] shrink-0 flex-col gap-3.5 border-r border-line bg-cream px-3.5 py-4">
+    <aside className="hidden md:flex w-[204px] shrink-0 flex-col gap-4 border-r border-line bg-cream px-3.5 py-4">
       {/* Logo */}
       <div className="flex items-baseline gap-2 px-1.5">
         <span className="font-serif text-[22px] font-black italic tracking-tight">Entré</span>
@@ -78,25 +70,16 @@ export function Sidebar({
           return (
             <Link
               key={it.k}
-              href={it.dev ? "#" : it.href}
-              className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-semibold transition-all ${
+              href={it.href}
+              className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-xs font-semibold transition-all ${
                 active
                   ? "bg-sage text-white"
                   : "text-ink hover:bg-line-2"
-              } ${it.dev ? "opacity-55" : ""}`}
+              }`}
               aria-current={active ? "page" : undefined}
             >
               <Icon size={16} className="shrink-0" aria-hidden />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate">{it.l}</span>
-                <span
-                  className={`block truncate text-[9px] font-medium ${
-                    active ? "text-white/70" : "text-ink-3"
-                  }`}
-                >
-                  {it.helper}
-                </span>
-              </span>
+              <span className="min-w-0 flex-1 truncate">{it.l}</span>
               {count !== undefined && (
                 <span
                   data-testid={`nav-count-${it.k}`}
@@ -107,11 +90,6 @@ export function Sidebar({
                   {count}
                 </span>
               )}
-              {it.dev && (
-                <span className="rounded-sm bg-cream-2 px-1.5 py-px text-[8px] font-bold text-amber-700">
-                  開発中
-                </span>
-              )}
             </Link>
           );
         })}
@@ -119,26 +97,19 @@ export function Sidebar({
 
       <div className="flex-1" />
 
-      <div className="rounded-[10px] border border-line bg-surface px-3 py-2.5 text-[10px]">
-        <div className="mb-1 text-[11px] font-extrabold">基本の流れ</div>
-        <div className="leading-relaxed text-ink-3">
-          {navCounts
-            ? `Inboxで保存 → Entry化 → Taskで締切管理。いま Entry ${navCounts.entry}件 / 未完了Task ${navCounts.task}件 / Inbox ${navCounts.inbox}件`
-            : "Inboxで保存 → Entry化 → Taskで締切管理。迷ったらホームの「次にやること」を見ます。"}
-        </div>
-      </div>
-
       {/* User card */}
-      <div className="flex items-center gap-2 px-1.5 py-2">
-        <div className="grid h-[30px] w-[30px] place-items-center rounded-full bg-sage-soft">
-          <Mascot size={26} />
+      <Link
+        href="/profile"
+        className="flex items-center gap-2 rounded-lg px-1.5 py-2 transition-colors hover:bg-line-2"
+      >
+        <div className="grid h-[30px] w-[30px] place-items-center rounded-full bg-sage-soft text-sage">
+          <UserCircle size={18} aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-[11px] font-bold truncate">{userName}</div>
           {userSubtitle && <div className="text-[9px] text-ink-3 truncate">{userSubtitle}</div>}
         </div>
-        <Settings size={14} className="text-ink-3" aria-hidden />
-      </div>
+      </Link>
     </aside>
   );
 }
@@ -148,10 +119,10 @@ export function MobileTabBar() {
   const pathname = usePathname();
   const tabs = [
     { k: "home", l: "ホーム", icon: Home, href: "/dashboard" },
-    { k: "inbox", l: "保存", icon: Inbox, href: "/inbox" },
     { k: "entry", l: "Entry", icon: ClipboardList, href: "/entry" },
-    { k: "task", l: "Task", icon: PencilLine, href: "/task" },
-    { k: "profile", l: "Me", icon: UserCircle, href: "/profile" },
+    { k: "kanban", l: "ボード", icon: Columns3, href: "/kanban" },
+    { k: "task", l: "タスク", icon: PencilLine, href: "/task" },
+    { k: "inbox", l: "保存", icon: Inbox, href: "/inbox" },
   ];
 
   return (

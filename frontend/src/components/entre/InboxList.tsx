@@ -4,7 +4,6 @@
 import { cache } from "react";
 import Link from "next/link";
 import { ExternalLink, Inbox, Sparkles } from "lucide-react";
-import { Mascot } from "./Mascot";
 import { InboxClipConvert } from "./InboxClipConvert";
 import { InboxClipDelete } from "./InboxClipDelete";
 import type { InboxClipResponse } from "@/lib/api/inboxClips";
@@ -82,12 +81,12 @@ function formatRelative(iso: string, now: number): string {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center rounded-xl border border-dashed border-line bg-surface p-10 text-center">
-      <div style={{ animation: "entre-float 3s infinite" }}>
-        <Mascot size={80} mood="sleeping" />
+      <div className="grid h-14 w-14 place-items-center rounded-xl bg-sage-wash text-sage">
+        <Inbox size={24} aria-hidden />
       </div>
       <p className="mt-3 font-serif text-base font-extrabold">クリップは空です</p>
       <p className="mt-1 text-[11px] text-ink-2">
-        Chrome拡張で気になる求人ページを保存すると、ここで会社名を確認して Entry にできます。
+        保存した求人は、ここで会社名を確認して Entry にできます。
       </p>
       <div className="mt-4 flex flex-wrap justify-center gap-2">
         <Link
@@ -95,7 +94,7 @@ function EmptyState() {
           className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
         >
           <Sparkles size={13} aria-hidden />
-          手動でEntry追加
+          Entryを追加
         </Link>
       </div>
     </div>

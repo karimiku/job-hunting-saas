@@ -32,7 +32,7 @@ export default async function KanbanPage() {
             className="inline-flex items-center gap-1.5 rounded-lg bg-sage px-3 py-1.5 text-[11px] font-bold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/40"
           >
             <Plus size={13} aria-hidden />
-            エントリー
+            Entry
           </Link>
         </header>
 

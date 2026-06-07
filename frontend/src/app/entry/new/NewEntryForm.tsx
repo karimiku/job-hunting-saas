@@ -6,7 +6,6 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
-import { Mascot } from "@/components/entre/Mascot";
 import { createNewEntryAction, type NewEntryFormState } from "./actions";
 
 const ROUTES = ["本選考", "インターン", "OB訪問", "その他"] as const;
@@ -32,24 +31,18 @@ export function NewEntryForm() {
 
   return (
     <>
-      <header className="mb-5 flex items-center gap-3">
-        <Mascot mood="thinking" size={56} />
-        <div>
-          <p
-            className="font-hand text-[20px] text-sage"
-            style={{ transform: "rotate(-1.5deg)", display: "inline-block" }}
-          >
-            new entry,
-          </p>
-          <h1 className="font-serif text-2xl font-extrabold tracking-tight">
-            新しいエントリー
-          </h1>
-        </div>
+      <header className="mb-4">
+        <h1 className="font-serif text-2xl font-extrabold tracking-tight">
+          Entryを追加
+        </h1>
+        <p className="mt-1 text-[11px] leading-relaxed text-ink-3">
+          会社名、応募経路、応募媒体だけ入れれば始められます。
+        </p>
       </header>
 
       <form
         action={formAction}
-        className="rounded-xl border border-line bg-surface p-5 animate-[entre-fly-in_0.6s_cubic-bezier(0.2,0.8,0.4,1)_both]"
+        className="rounded-xl border border-line bg-surface p-5"
       >
         <Field label="会社名" required>
           <input
@@ -145,7 +138,7 @@ function SubmitButton() {
       disabled={pending}
       className="flex-[2] rounded-lg bg-sage py-2.5 text-sm font-bold text-white transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-60"
     >
-      {pending ? "保存中…" : "＋ Entré に保存"}
+      {pending ? "保存中…" : "Entryを保存"}
     </button>
   );
 }

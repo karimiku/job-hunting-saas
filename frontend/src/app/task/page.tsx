@@ -37,13 +37,13 @@ export default async function TaskPage() {
       <div className="relative mx-auto max-w-[700px] px-5 py-6 md:px-8 md:py-7">
         <header className="mb-4">
           <h1 className="font-serif text-2xl font-extrabold tracking-tight">
-            Task
+            タスク
             <span className="ml-2 align-middle text-[12px] font-bold text-ink-3">
               締切・予定
             </span>
           </h1>
           <p className="mt-0.5 text-[11px] text-ink-3">
-            今日やることを上から片づける画面です。締切・面接予定・準備メモをEntryに紐づけます。
+            今日やることを上から片づけます。締切、面接予定、準備メモをEntryに紐づけます。
           </p>
         </header>
 

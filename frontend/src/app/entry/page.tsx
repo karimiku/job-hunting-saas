@@ -28,11 +28,11 @@ export default async function EntryListPage() {
             <h1 className="font-serif text-2xl font-extrabold tracking-tight">
               Entry
               <span className="ml-2 align-middle text-[12px] font-bold text-ink-3">
-                応募先リスト
+                応募先 {entries.length}件
               </span>
             </h1>
             <p className="mt-0.5 text-[11px] text-ink-3">
-              応募先ごとに選考フェーズ・応募経路・次のTaskを整理します。
+              企業ごとに選考フェーズ、応募経路、次のタスクを整理します。
             </p>
           </div>
           <Link
@@ -40,7 +40,7 @@ export default async function EntryListPage() {
             className="inline-flex items-center gap-1.5 rounded-lg bg-sage px-3 py-1.5 text-[11px] font-bold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/40"
           >
             <Plus size={13} aria-hidden />
-            応募先を追加
+            Entryを追加
           </Link>
         </header>
 

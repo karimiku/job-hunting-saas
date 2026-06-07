@@ -229,9 +229,9 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
           <CalendarPlus size={16} aria-hidden />
         </div>
         <div>
-          <p className="text-[12px] font-extrabold">Taskを追加</p>
+          <p className="text-[12px] font-extrabold">タスクを追加</p>
           <p className="mt-0.5 text-[10px] leading-relaxed text-ink-3">
-            1つだけ決めればOKです。どのEntryの、何を、いつまでにやるかを登録します。
+            応募先、内容、期日だけ入れます。
           </p>
         </div>
       </div>
@@ -240,7 +240,7 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
         <div className="rounded-lg border border-dashed border-line bg-cream px-3 py-3 text-center">
           <p className="text-[11px] font-bold text-ink-2">先にEntryを追加してください</p>
           <p className="mt-1 text-[10px] leading-relaxed text-ink-3">
-            Task はどの企業の予定かを紐づけて管理します。
+            タスクはどの企業の予定かを紐づけて管理します。
           </p>
           <Link
             href="/entry/new"
@@ -252,20 +252,9 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
         </div>
       ) : (
         <>
-          <div className="mb-2 grid gap-1.5 md:grid-cols-3">
-            {["1. Entryを選ぶ", "2. やることを書く", "3. 期日を入れる"].map((label) => (
-              <div
-                key={label}
-                className="rounded-md border border-line bg-cream px-2 py-1.5 text-center text-[10px] font-bold text-ink-2"
-              >
-                {label}
-              </div>
-            ))}
-          </div>
-
           <div className="grid gap-2 md:grid-cols-[1.2fr_1.3fr]">
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold text-ink-2">どの応募先？</span>
+              <span className="mb-1 block text-[10px] font-bold text-ink-2">応募先</span>
               <select
                 name="entryId"
                 aria-label="Entry"
@@ -280,7 +269,7 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
               </select>
             </label>
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold text-ink-2">何をする？</span>
+              <span className="mb-1 block text-[10px] font-bold text-ink-2">内容</span>
               <input
                 name="title"
                 aria-label="タスク名"
@@ -317,7 +306,7 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
               </div>
             </fieldset>
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold text-ink-2">いつまで？</span>
+              <span className="mb-1 block text-[10px] font-bold text-ink-2">期日</span>
               <input
                 name="dueDate"
                 type="date"
@@ -348,7 +337,7 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
           )}
           {state.ok && (
             <p className="mt-2 rounded-md bg-sage-wash px-2.5 py-1.5 text-[10px] font-bold text-sage">
-              Taskを追加しました。
+              タスクを追加しました。
             </p>
           )}
 
@@ -370,7 +359,7 @@ function TaskCreateSubmit() {
       className="inline-flex items-center gap-1.5 rounded-lg bg-sage px-3.5 py-2 text-[11px] font-bold text-white transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/40 disabled:opacity-60"
     >
       <Plus size={13} aria-hidden />
-      {pending ? "追加中…" : "Taskを追加"}
+      {pending ? "追加中…" : "タスクを追加"}
     </button>
   );
 }
