@@ -14,7 +14,7 @@
 
 | カテゴリ | 技術 |
 |---------|------|
-| 言語 | Go 1.25 |
+| 言語 | Go 1.26 |
 | HTTPルーター | Chi v5 |
 | APIスキーマ | OpenAPI 3.0.3 + oapi-codegen |
 | データベース | PostgreSQL 16 |

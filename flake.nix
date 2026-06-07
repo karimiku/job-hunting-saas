@@ -40,7 +40,7 @@
           ldflags = [ "-X main.noVCSVersionOverride=v${version}" ];
         };
         projectTools = [
-          pkgs.go_1_25
+          pkgs.go_1_26
           pkgs.sqlc
           oapi-codegen
           node
