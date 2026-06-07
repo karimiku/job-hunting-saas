@@ -1,8 +1,6 @@
 module github.com/karimiku/job-hunting-saas
 
-go 1.25.1
-
-toolchain go1.25.11
+go 1.26.4
 
 require (
 	firebase.google.com/go/v4 v4.20.0

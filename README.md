@@ -15,7 +15,7 @@
 ## 各プロジェクト
 
 ### backend/
-Go 1.25 / Chi / PostgreSQL / sqlc / oapi-codegen による Clean Architecture バックエンド。Firebase セッション Cookie による認証付き。
+Go 1.26 / Chi / PostgreSQL / sqlc / oapi-codegen による Clean Architecture バックエンド。Firebase セッション Cookie による認証付き。
 
 - セットアップ・コマンド: [backend/README.md](backend/README.md)
 - API 定義: [backend/api/openapi.yaml](backend/api/openapi.yaml)

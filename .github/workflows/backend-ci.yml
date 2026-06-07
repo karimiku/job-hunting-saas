@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: "1.25.11"
+  GO_VERSION: "1.26.4"
   OAPI_CODEGEN_VERSION: "v2.6.0"
   SQLC_VERSION: "v1.31.1"
 

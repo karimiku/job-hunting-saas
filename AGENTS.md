@@ -4,7 +4,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## Project Overview
 
-就活管理SaaS。Go 1.25 + Clean Architecture のバックエンドAPI。OpenAPI 3.0.3 を Single Source of Truth とし、oapi-codegen でハンドラ層を自動生成。データアクセスは sqlc で型安全なSQLコード生成。
+就活管理SaaS。Go 1.26 + Clean Architecture のバックエンドAPI。OpenAPI 3.0.3 を Single Source of Truth とし、oapi-codegen でハンドラ層を自動生成。データアクセスは sqlc で型安全なSQLコード生成。
 
 ## Commands
 
