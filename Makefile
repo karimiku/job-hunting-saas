@@ -1,5 +1,5 @@
-.PHONY: help up down logs dev-fe health \
-        test test-be build build-be build-fe \
+.PHONY: help up down logs dev-fe health mcp-server \
+        test test-be test-fe test-fe-e2e test-ext build build-be build-fe \
         lint lint-be lint-fe fmt fmt-be \
         gen gen-api gen-sql \
         install install-fe install-be \
@@ -26,8 +26,9 @@ up-be: ## バックエンドだけ docker で起動
 up-d: ## バックエンドだけ docker バックグラウンド起動
 	cd backend && docker compose up -d
 
-down: ## docker compose down（ローカル pnpm dev は対象外）
+down: ## docker compose down + フロント dev (port 3000) も停止
 	cd backend && docker compose down
+	-@lsof -ti:3000 | xargs kill 2>/dev/null || true
 
 down-v: ## volumes 含めて全消し（DB も消える）
 	cd backend && docker compose down -v
@@ -40,13 +41,25 @@ dev-fe: ## フロント dev サーバ単独
 health: ## API /health を叩く
 	@curl -sf http://localhost:8080/health && echo " OK" || echo "API unreachable"
 
+mcp-server: ## job-hunting-saas MCP server をstdioで起動（DATABASE_URL + MCP_USER_EMAIL/ID が必要）
+	cd backend && go run ./cmd/mcp-server
+
 # ============================================================
 # テスト・ビルド
 # ============================================================
-test: test-be ## すべてのテスト（今はバックのみ）
+test: test-be test-fe test-fe-e2e test-ext ## すべてのテスト・リリースゲート
 
 test-be: ## Go ユニットテスト
 	cd backend && go test ./...
+
+test-fe: ## Frontend ユニット / コンポーネントテスト
+	cd frontend && pnpm test
+
+test-fe-e2e: ## Frontend Playwright E2E
+	cd frontend && pnpm test:e2e
+
+test-ext: ## Chrome拡張のビルドゲート（テスト runner 未導入）
+	cd chrome-extension && pnpm build
 
 build: build-be build-fe ## 両方ビルド
 

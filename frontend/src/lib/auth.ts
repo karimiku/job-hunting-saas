@@ -8,12 +8,9 @@
 import { signInWithPopup, signOut as firebaseSignOut } from "firebase/auth";
 import { getFirebaseAuth, googleProvider } from "./firebase";
 import { apiFetch } from "./api";
+import type { AuthUser } from "./api/client-types";
 
-export type AuthUser = {
-  id: string;
-  email: string;
-  name: string;
-};
+export type { AuthUser };
 
 /**
  * Google サインイン → バックエンドにセッション確立。

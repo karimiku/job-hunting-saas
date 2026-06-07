@@ -2,6 +2,7 @@ package value
 
 import (
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -23,6 +24,10 @@ func TestNewSource(t *testing.T) {
 		{"whitespace only", " ", ErrSourceEmpty},
 		{"leading space", " マイナビ", ErrSourceInvalid},
 		{"trailing space", "マイナビ ", ErrSourceInvalid},
+
+		// 長さ境界値（rune 数で判定。マルチバイト文字も1文字とカウント）
+		{"max length ok", strings.Repeat("あ", SourceMaxLength), nil},
+		{"too long", strings.Repeat("あ", SourceMaxLength+1), ErrSourceTooLong},
 	}
 
 	for _, tt := range tests {

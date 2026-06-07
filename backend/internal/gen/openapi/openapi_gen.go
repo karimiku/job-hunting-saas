@@ -220,6 +220,14 @@ func (e ListEntriesParamsStageKind) Valid() bool {
 	}
 }
 
+// CompanyAliasResponse defines model for CompanyAliasResponse.
+type CompanyAliasResponse struct {
+	Alias     string             `json:"alias"`
+	CompanyId openapi_types.UUID `json:"companyId"`
+	CreatedAt time.Time          `json:"createdAt"`
+	Id        openapi_types.UUID `json:"id"`
+}
+
 // CompanyResponse defines model for CompanyResponse.
 type CompanyResponse struct {
 	CreatedAt time.Time          `json:"createdAt"`
@@ -227,6 +235,11 @@ type CompanyResponse struct {
 	Memo      string             `json:"memo"`
 	Name      string             `json:"name"`
 	UpdatedAt time.Time          `json:"updatedAt"`
+}
+
+// CreateCompanyAliasRequest defines model for CreateCompanyAliasRequest.
+type CreateCompanyAliasRequest struct {
+	Alias string `json:"alias"`
 }
 
 // CreateCompanyRequest defines model for CreateCompanyRequest.
@@ -241,6 +254,7 @@ type CreateEntryRequest struct {
 	Memo      *string            `json:"memo,omitempty"`
 	Route     string             `json:"route"`
 	Source    string             `json:"source"`
+	SourceUrl *string            `json:"sourceUrl,omitempty"`
 }
 
 // CreateInboxClipRequest defines model for CreateInboxClipRequest.
@@ -280,6 +294,7 @@ type EntryResponse struct {
 	Memo       string             `json:"memo"`
 	Route      string             `json:"route"`
 	Source     string             `json:"source"`
+	SourceUrl  *string            `json:"sourceUrl,omitempty"`
 	StageKind  string             `json:"stageKind"`
 	StageLabel string             `json:"stageLabel"`
 	Status     string             `json:"status"`
@@ -335,6 +350,7 @@ type UpdateCompanyRequest struct {
 type UpdateEntryRequest struct {
 	Memo       *string                      `json:"memo,omitempty"`
 	Source     *string                      `json:"source,omitempty"`
+	SourceUrl  *string                      `json:"sourceUrl,omitempty"`
 	StageKind  *UpdateEntryRequestStageKind `json:"stageKind,omitempty"`
 	StageLabel *string                      `json:"stageLabel,omitempty"`
 	Status     *UpdateEntryRequestStatus    `json:"status,omitempty"`
@@ -361,6 +377,9 @@ type UpdateTaskRequestStatus string
 
 // UpdateTaskRequestType defines model for UpdateTaskRequest.Type.
 type UpdateTaskRequestType string
+
+// AliasId defines model for AliasId.
+type AliasId = openapi_types.UUID
 
 // ClipId defines model for ClipId.
 type ClipId = openapi_types.UUID
@@ -393,6 +412,9 @@ type CreateCompanyJSONRequestBody = CreateCompanyRequest
 // UpdateCompanyJSONRequestBody defines body for UpdateCompany for application/json ContentType.
 type UpdateCompanyJSONRequestBody = UpdateCompanyRequest
 
+// CreateCompanyAliasJSONRequestBody defines body for CreateCompanyAlias for application/json ContentType.
+type CreateCompanyAliasJSONRequestBody = CreateCompanyAliasRequest
+
 // CreateEntryJSONRequestBody defines body for CreateEntry for application/json ContentType.
 type CreateEntryJSONRequestBody = CreateEntryRequest
 
@@ -413,6 +435,12 @@ type UpdateTaskJSONRequestBody = UpdateTaskRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// 企業の別名を削除する
+	// (DELETE /api/v1/aliases/{aliasId})
+	DeleteCompanyAlias(w http.ResponseWriter, r *http.Request, aliasId AliasId)
+	// 企業の別名を取得する
+	// (GET /api/v1/aliases/{aliasId})
+	GetCompanyAlias(w http.ResponseWriter, r *http.Request, aliasId AliasId)
 	// 企業一覧を取得する
 	// (GET /api/v1/companies)
 	ListCompanies(w http.ResponseWriter, r *http.Request)
@@ -428,6 +456,12 @@ type ServerInterface interface {
 	// 企業を部分更新する
 	// (PATCH /api/v1/companies/{companyId})
 	UpdateCompany(w http.ResponseWriter, r *http.Request, companyId CompanyId)
+	// 企業の別名一覧を取得する
+	// (GET /api/v1/companies/{companyId}/aliases)
+	ListCompanyAliases(w http.ResponseWriter, r *http.Request, companyId CompanyId)
+	// 企業の別名を新規登録する
+	// (POST /api/v1/companies/{companyId}/aliases)
+	CreateCompanyAlias(w http.ResponseWriter, r *http.Request, companyId CompanyId)
 	// エントリー一覧を取得する
 	// (GET /api/v1/entries)
 	ListEntries(w http.ResponseWriter, r *http.Request, params ListEntriesParams)
@@ -479,6 +513,18 @@ type ServerInterface interface {
 
 type Unimplemented struct{}
 
+// 企業の別名を削除する
+// (DELETE /api/v1/aliases/{aliasId})
+func (_ Unimplemented) DeleteCompanyAlias(w http.ResponseWriter, r *http.Request, aliasId AliasId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// 企業の別名を取得する
+// (GET /api/v1/aliases/{aliasId})
+func (_ Unimplemented) GetCompanyAlias(w http.ResponseWriter, r *http.Request, aliasId AliasId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // 企業一覧を取得する
 // (GET /api/v1/companies)
 func (_ Unimplemented) ListCompanies(w http.ResponseWriter, r *http.Request) {
@@ -506,6 +552,18 @@ func (_ Unimplemented) GetCompany(w http.ResponseWriter, r *http.Request, compan
 // 企業を部分更新する
 // (PATCH /api/v1/companies/{companyId})
 func (_ Unimplemented) UpdateCompany(w http.ResponseWriter, r *http.Request, companyId CompanyId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// 企業の別名一覧を取得する
+// (GET /api/v1/companies/{companyId}/aliases)
+func (_ Unimplemented) ListCompanyAliases(w http.ResponseWriter, r *http.Request, companyId CompanyId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// 企業の別名を新規登録する
+// (POST /api/v1/companies/{companyId}/aliases)
+func (_ Unimplemented) CreateCompanyAlias(w http.ResponseWriter, r *http.Request, companyId CompanyId) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -608,6 +666,56 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
+// DeleteCompanyAlias operation middleware
+func (siw *ServerInterfaceWrapper) DeleteCompanyAlias(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "aliasId" -------------
+	var aliasId AliasId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "aliasId", chi.URLParam(r, "aliasId"), &aliasId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "aliasId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteCompanyAlias(w, r, aliasId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetCompanyAlias operation middleware
+func (siw *ServerInterfaceWrapper) GetCompanyAlias(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "aliasId" -------------
+	var aliasId AliasId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "aliasId", chi.URLParam(r, "aliasId"), &aliasId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "aliasId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCompanyAlias(w, r, aliasId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListCompanies operation middleware
 func (siw *ServerInterfaceWrapper) ListCompanies(w http.ResponseWriter, r *http.Request) {
 
@@ -702,6 +810,56 @@ func (siw *ServerInterfaceWrapper) UpdateCompany(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.UpdateCompany(w, r, companyId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListCompanyAliases operation middleware
+func (siw *ServerInterfaceWrapper) ListCompanyAliases(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "companyId" -------------
+	var companyId CompanyId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "companyId", chi.URLParam(r, "companyId"), &companyId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "companyId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListCompanyAliases(w, r, companyId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateCompanyAlias operation middleware
+func (siw *ServerInterfaceWrapper) CreateCompanyAlias(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "companyId" -------------
+	var companyId CompanyId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "companyId", chi.URLParam(r, "companyId"), &companyId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "companyId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateCompanyAlias(w, r, companyId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1185,6 +1343,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v1/aliases/{aliasId}", wrapper.DeleteCompanyAlias)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/aliases/{aliasId}", wrapper.GetCompanyAlias)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v1/companies", wrapper.ListCompanies)
 	})
 	r.Group(func(r chi.Router) {
@@ -1198,6 +1362,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/v1/companies/{companyId}", wrapper.UpdateCompany)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/companies/{companyId}/aliases", wrapper.ListCompanyAliases)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/companies/{companyId}/aliases", wrapper.CreateCompanyAlias)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v1/entries", wrapper.ListEntries)

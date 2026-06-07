@@ -130,6 +130,9 @@ func TestCreateSession_Success_NewUser(t *testing.T) {
 	if !cookies[0].HttpOnly {
 		t.Error("cookie should be HttpOnly")
 	}
+	if cookies[0].SameSite != http.SameSiteLaxMode {
+		t.Errorf("SameSite = %v, want Lax", cookies[0].SameSite)
+	}
 }
 
 func TestCreateSession_Success_ExistingUserByEmail(t *testing.T) {
@@ -440,8 +443,9 @@ func routeExists(r chi.Router, method, path string) bool {
 func TestDeleteSession_RespectsConfig(t *testing.T) {
 	userRepo := inmemory.NewUserRepository()
 	h := NewAuthHandler(nil, nil, userRepo, AuthConfig{
-		CookieDomain: "example.com",
-		CookieSecure: true,
+		CookieDomain:   "example.com",
+		CookieSecure:   true,
+		CookieSameSite: http.SameSiteNoneMode,
 	})
 
 	req := httptest.NewRequest(http.MethodDelete, "/", nil)
@@ -454,5 +458,8 @@ func TestDeleteSession_RespectsConfig(t *testing.T) {
 	}
 	if !c.Secure {
 		t.Error("Secure should be true")
+	}
+	if c.SameSite != http.SameSiteNoneMode {
+		t.Errorf("SameSite = %v, want None", c.SameSite)
 	}
 }

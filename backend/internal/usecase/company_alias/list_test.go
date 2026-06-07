@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
+	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 )
 
 func TestList_Multiple(t *testing.T) {
@@ -17,7 +18,7 @@ func TestList_Multiple(t *testing.T) {
 		},
 	}
 
-	uc := NewList(repo)
+	uc := NewList(repo, companyFound())
 	out, err := uc.Execute(context.Background(), ListInput{
 		UserID:    entity.NewUserID(),
 		CompanyID: entity.NewCompanyID(),
@@ -34,7 +35,7 @@ func TestList_Multiple(t *testing.T) {
 func TestList_Empty(t *testing.T) {
 	repo := &mockAliasRepo{}
 
-	uc := NewList(repo)
+	uc := NewList(repo, companyFound())
 	out, err := uc.Execute(context.Background(), ListInput{
 		UserID:    entity.NewUserID(),
 		CompanyID: entity.NewCompanyID(),
@@ -56,7 +57,7 @@ func TestList_DBError(t *testing.T) {
 		},
 	}
 
-	uc := NewList(repo)
+	uc := NewList(repo, companyFound())
 	_, err := uc.Execute(context.Background(), ListInput{
 		UserID:    entity.NewUserID(),
 		CompanyID: entity.NewCompanyID(),
@@ -67,5 +68,29 @@ func TestList_DBError(t *testing.T) {
 	}
 	if !errors.Is(err, dbErr) {
 		t.Errorf("error = %v, want dbErr", err)
+	}
+}
+
+func TestList_CompanyNotFound(t *testing.T) {
+	// 存在しない/他人の company では alias を引かず ErrNotFound を返す。
+	listed := false
+	repo := &mockAliasRepo{
+		listByCompanyFn: func(_ context.Context, _ entity.UserID, _ entity.CompanyID) ([]*entity.CompanyAlias, error) {
+			listed = true
+			return nil, nil
+		},
+	}
+
+	uc := NewList(repo, &mockCompanyRepo{})
+	_, err := uc.Execute(context.Background(), ListInput{
+		UserID:    entity.NewUserID(),
+		CompanyID: entity.NewCompanyID(),
+	})
+
+	if !errors.Is(err, repository.ErrNotFound) {
+		t.Errorf("error = %v, want ErrNotFound", err)
+	}
+	if listed {
+		t.Error("ListByCompanyID should not be called when company is not found")
 	}
 }

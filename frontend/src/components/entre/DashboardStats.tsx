@@ -1,34 +1,36 @@
-"use client";
+// Server Component。エントリー集計を SSR で計算し、子の CountUp (Client) に数字を渡す。
 
-import { useEntries } from "@/hooks/useEntries";
+import type { EntryResponse } from "@/lib/api/entries";
 import { CountUp } from "./CountUp";
 
+interface Stats {
+  total: number;
+  inProgress: number;
+  interviewing: number;
+  offered: number;
+}
+
+export function summarizeEntries(entries: EntryResponse[]): Stats {
+  return {
+    total: entries.length,
+    inProgress: entries.filter((e) => e.status === "in_progress").length,
+    interviewing: entries.filter(
+      (e) => e.stageKind === "interview" || e.stageKind === "group",
+    ).length,
+    offered: entries.filter(
+      (e) => e.status === "offered" || e.status === "accepted",
+    ).length,
+  };
+}
+
 /** Entry を集計して 4 つの stat タイルを表示する。 */
-export function DashboardStats() {
-  const { data, loading } = useEntries();
-
-  if (loading || !data) {
-    return (
-      <p role="status" className="text-[12px] text-ink-3">
-        読み込み中…
-      </p>
-    );
-  }
-
-  const total = data.length;
-  const inProgress = data.filter((e) => e.status === "in_progress").length;
-  const interviewing = data.filter(
-    (e) => e.stageKind === "interview" || e.stageKind === "group",
-  ).length;
-  const offered = data.filter(
-    (e) => e.status === "offered" || e.status === "accepted",
-  ).length;
-
+export function DashboardStats({ entries }: { entries: EntryResponse[] }) {
+  const s = summarizeEntries(entries);
   const stats = [
-    { v: total, l: "エントリー数", c: "text-sage", testId: "stat-total" },
-    { v: interviewing, l: "面接中", c: "text-pink-deep", testId: "stat-interviewing" },
-    { v: inProgress, l: "選考中", c: "text-amber", testId: "stat-in-progress" },
-    { v: offered, l: "内定", c: "text-mint", testId: "stat-offered" },
+    { v: s.total, l: "エントリー数", c: "text-sage", testId: "stat-total" },
+    { v: s.interviewing, l: "面接中", c: "text-pink-deep", testId: "stat-interviewing" },
+    { v: s.inProgress, l: "選考中", c: "text-amber", testId: "stat-in-progress" },
+    { v: s.offered, l: "内定", c: "text-mint", testId: "stat-offered" },
   ];
 
   return (
@@ -46,28 +48,4 @@ export function DashboardStats() {
       ))}
     </div>
   );
-}
-
-const STAGE_LABEL_BY_KIND: Record<string, string> = {
-  application: "エントリー",
-  document: "書類",
-  test: "テスト",
-  interview: "面接",
-  group: "GD",
-  offer: "内定",
-};
-
-/** ダッシュボード補助: ステータス円グラフ用の集計を返す。 */
-export function useStageBreakdown(): { kind: string; label: string; count: number }[] {
-  const { data } = useEntries();
-  if (!data) return [];
-  const counts = new Map<string, number>();
-  for (const e of data) {
-    counts.set(e.stageKind, (counts.get(e.stageKind) ?? 0) + 1);
-  }
-  return Array.from(counts.entries()).map(([kind, count]) => ({
-    kind,
-    label: STAGE_LABEL_BY_KIND[kind] ?? kind,
-    count,
-  }));
 }

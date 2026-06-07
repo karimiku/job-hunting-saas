@@ -1,0 +1,2 @@
+ALTER TABLE entries
+    ADD COLUMN IF NOT EXISTS source_url TEXT NOT NULL DEFAULT '';

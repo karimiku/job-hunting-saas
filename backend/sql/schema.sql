@@ -46,6 +46,7 @@ CREATE TABLE entries (
     company_id  UUID         NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     route       TEXT         NOT NULL,
     source      TEXT         NOT NULL,
+    source_url  TEXT         NOT NULL DEFAULT '',
     status      entry_status NOT NULL DEFAULT 'in_progress',
     stage_kind  stage_kind   NOT NULL DEFAULT 'application',
     stage_label TEXT         NOT NULL DEFAULT '',
@@ -101,6 +102,28 @@ CREATE TABLE password_credentials (
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE inbox_clips (
+    id          UUID        PRIMARY KEY,
+    user_id     UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    url         TEXT        NOT NULL,
+    title       TEXT        NOT NULL,
+    source      TEXT        NOT NULL,
+    guess       TEXT        NOT NULL DEFAULT '',
+    captured_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE es_memos (
+    id         UUID        PRIMARY KEY,
+    user_id    UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    entry_id   UUID        REFERENCES entries(id) ON DELETE SET NULL,
+    category   TEXT        NOT NULL DEFAULT 'general',
+    title      TEXT        NOT NULL,
+    content    TEXT        NOT NULL,
+    source     TEXT        NOT NULL DEFAULT 'mcp',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ============================================================
 -- インデックス
 -- ============================================================
@@ -122,3 +145,10 @@ CREATE INDEX idx_tasks_due_date ON tasks(due_date)
 CREATE INDEX idx_stage_histories_entry_id ON stage_histories(entry_id);
 
 CREATE INDEX idx_company_aliases_user_company ON company_aliases(user_id, company_id);
+
+-- Inbox 一覧表示用: ユーザの直近クリップから降順で取得
+CREATE INDEX idx_inbox_clips_user_captured_at ON inbox_clips(user_id, captured_at DESC);
+
+CREATE INDEX idx_es_memos_user_created_at ON es_memos(user_id, created_at DESC);
+
+CREATE INDEX idx_es_memos_user_entry ON es_memos(user_id, entry_id);

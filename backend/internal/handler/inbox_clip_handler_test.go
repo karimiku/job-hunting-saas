@@ -97,6 +97,24 @@ func TestCreateInboxClip_InvalidURL(t *testing.T) {
 	}
 }
 
+func TestCreateInboxClip_BodyTooLarge(t *testing.T) {
+	h, _ := setupInboxClipHandler()
+
+	// maxInboxClipBodyBytes を超える巨大な（ただし JSON として読み進められる）ボディを送る。
+	// 単なるゴミ文字列だと decoder が先頭で構文エラーになり MaxBytesReader まで到達しないため、
+	// 巨大な JSON 文字列値を持たせてサイズ上限の発火を確実にする。
+	huge := append([]byte(`{"title":"`), bytes.Repeat([]byte("a"), maxInboxClipBodyBytes+1)...)
+	huge = append(huge, []byte(`"}`)...)
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(huge))
+	req = req.WithContext(middleware.SetUserID(req.Context(), entity.NewUserID()))
+	w := httptest.NewRecorder()
+
+	h.CreateInboxClip(w, req)
+	if w.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("status = %d, want 413", w.Code)
+	}
+}
+
 func TestListInboxClips_Success(t *testing.T) {
 	h, repo := setupInboxClipHandler()
 	userID := entity.NewUserID()

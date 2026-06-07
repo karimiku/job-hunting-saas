@@ -1,7 +1,13 @@
-"use client";
+// Server Component で render される純粋表示コンポーネント。
+// データは props で渡される (page.tsx 側で SSR 取得済み)。
 
 import Link from "next/link";
-import { useEntries } from "@/hooks/useEntries";
+import { ArrowRight, ExternalLink, Inbox, Plus } from "lucide-react";
+import {
+  companyDisplayName,
+  entrySourceUrl,
+  type EntryResponse,
+} from "@/lib/api/entries";
 
 const STAGE_BG: Record<string, string> = {
   application: "var(--color-stage-entry)",
@@ -12,62 +18,81 @@ const STAGE_BG: Record<string, string> = {
   offer: "var(--color-stage-offer)",
 };
 
-/** エントリー一覧を API から取得して表示するビュー。 */
-export function EntryListView() {
-  const { data, loading, error } = useEntries();
-
-  if (loading) {
+export function EntryListView({ entries }: { entries: EntryResponse[] }) {
+  if (entries.length === 0) {
     return (
-      <p role="status" className="text-[12px] text-ink-3">
-        読み込み中…
-      </p>
-    );
-  }
-
-  if (error) {
-    return (
-      <p role="alert" className="rounded-lg bg-pink/40 p-3 text-[12px] font-semibold text-ink">
-        読み込みに失敗しました（{error.message}）
-      </p>
-    );
-  }
-
-  if (!data || data.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-line bg-surface p-6 text-center text-[12px] text-ink-2">
-        まだエントリーがありません。＋ボタンから1件追加しましょう。
+      <div className="rounded-xl border border-dashed border-line bg-surface p-8 text-center">
+        <p className="font-serif text-base font-extrabold">まだ Entry がありません</p>
+        <p className="mx-auto mt-1 max-w-[420px] text-[11px] leading-relaxed text-ink-2">
+          保存した求人は保存箱から Entry にできます。直接追加することもできます。
+        </p>
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <Link
+            href="/inbox"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-sage bg-sage-wash px-3 py-1.5 text-[11px] font-bold text-sage transition-colors hover:bg-sage hover:text-white"
+          >
+            <Inbox size={13} aria-hidden />
+            保存箱を見る
+          </Link>
+          <Link
+            href="/entry/new"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+          >
+            <Plus size={13} aria-hidden />
+            Entryを追加
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <ul className="entre-stagger flex flex-col gap-2">
-      {data.map((e) => (
-        <li
-          key={e.id}
-          className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-line bg-surface p-3 transition-all hover:translate-x-0.5 hover:border-sage"
-        >
-          <Link href={`/entry/${e.id}`} className="flex flex-1 items-center gap-2.5">
-            <div className="grid h-9 w-9 place-items-center rounded-[10px] bg-sage-wash font-serif text-lg font-extrabold text-sage">
-              {e.companyId.slice(0, 1).toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[12px] font-bold">{e.source}</div>
-              <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-ink-3">
-                <span
-                  className="rounded-sm px-1.5 py-0.5 text-[8px] font-bold text-white"
-                  style={{ background: STAGE_BG[e.stageKind] ?? "var(--color-ink-3)" }}
-                >
-                  {e.stageLabel}
+    <div>
+      <ul className="entre-stagger flex flex-col gap-2">
+        {entries.map((e) => {
+          const sourceUrl = entrySourceUrl(e);
+          return (
+            <li
+              key={e.id}
+              className="flex items-center gap-2.5 rounded-xl border border-line bg-surface p-3 transition-all hover:translate-x-0.5 hover:border-sage"
+            >
+              <Link href={`/entry/${e.id}`} className="flex min-w-0 flex-1 items-center gap-2.5">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[12px] font-bold">{companyDisplayName(e)}</div>
+                  <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-ink-3">
+                    <span
+                      className="rounded-sm px-1.5 py-0.5 text-[8px] font-bold text-white"
+                      style={{ background: STAGE_BG[e.stageKind] ?? "var(--color-ink-3)" }}
+                    >
+                      {e.stageLabel}
+                    </span>
+                    <span>{e.route}</span>
+                    <span aria-hidden>·</span>
+                    <span className="truncate">{e.source}</span>
+                  </div>
+                  {e.memo && <div className="mt-1 text-[10px] text-ink-2">{e.memo}</div>}
+                </div>
+                <span className="hidden shrink-0 items-center gap-1 rounded-md bg-cream px-2 py-1 text-[10px] font-bold text-ink-3 md:inline-flex">
+                  詳細を見る
+                  <ArrowRight size={12} aria-hidden />
                 </span>
-                <span>{e.route}</span>
-              </div>
-              {e.memo && <div className="mt-1 text-[10px] text-ink-2">{e.memo}</div>}
-            </div>
-          </Link>
-          <span className="text-ink-3" aria-hidden>›</span>
-        </li>
-      ))}
-    </ul>
+              </Link>
+              {sourceUrl && (
+                <a
+                  href={sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`${companyDisplayName(e)} の応募元ページを開く`}
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-line text-ink-3 transition-colors hover:border-sage hover:text-sage"
+                >
+                  <ExternalLink size={13} aria-hidden />
+                </a>
+              )}
+              <span className="text-ink-3" aria-hidden>›</span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }

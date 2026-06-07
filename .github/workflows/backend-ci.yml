@@ -19,7 +19,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: "1.25.1"
+  GO_VERSION: "1.25.11"
+  OAPI_CODEGEN_VERSION: "v2.6.0"
+  SQLC_VERSION: "v1.31.1"
 
 jobs:
   lint:
@@ -31,7 +33,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: backend/go.sum
-      - uses: golangci/golangci-lint-action@4afd733a84b1f43292c63897423277bb7f4313a9 # v8.0.0
+      - uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
         with:
           version: v2.1.6
           install-mode: goinstall
@@ -49,7 +51,7 @@ jobs:
       - name: Run tests
         working-directory: backend
         run: go test -race -coverprofile=coverage.out ./...
-      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: backend-coverage
@@ -79,9 +81,11 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: backend/go.sum
       - name: Install codegen tools
+        env:
+          GOTOOLCHAIN: auto
         run: |
-          go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.6.0
-          go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.29.0
+          go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@${OAPI_CODEGEN_VERSION}
+          go install github.com/sqlc-dev/sqlc/cmd/sqlc@${SQLC_VERSION}
       - name: Regenerate (oapi-codegen)
         working-directory: backend/api
         run: oapi-codegen -config oapi-codegen.yaml openapi.yaml
@@ -104,9 +108,55 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: backend/go.sum
+      # Install must always succeed; an install failure is a real CI failure, not a vulnerability.
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
+      # In -json mode govulncheck exits 0 on a successful run regardless of whether
+      # vulnerabilities were found, and exits non-zero only on an execution error
+      # (compile error, bad flags, etc.). This lets us treat those two cases separately:
+      # an execution error always fails the job; vulnerability findings are reported
+      # afterwards and are only non-blocking on pull_request.
       - name: Run govulncheck
         working-directory: backend
+        run: govulncheck -json ./... > govulncheck.json
+      - name: Evaluate govulncheck findings
+        working-directory: backend
+        env:
+          IS_PR: ${{ github.event_name == 'pull_request' }}
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@v1.1.3
-          govulncheck ./...
-        continue-on-error: ${{ github.event_name == 'pull_request' }}
+          # A "finding" whose trace reaches a specific function is a vulnerability that is
+          # actually called (matching govulncheck's default text-mode "affected" report).
+          # Findings without a called function are informational and ignored here.
+          # govulncheck -json emits a stream of concatenated (pretty-printed) JSON objects,
+          # so we decode them sequentially with raw_decode instead of line-by-line.
+          called=$(python3 - <<'PY'
+          import json
+          with open("govulncheck.json") as f:
+              data = f.read()
+          dec = json.JSONDecoder()
+          idx, n, called = 0, len(data), False
+          while idx < n:
+              while idx < n and data[idx].isspace():
+                  idx += 1
+              if idx >= n:
+                  break
+              obj, idx = dec.raw_decode(data, idx)
+              finding = obj.get("finding")
+              if finding and any(frame.get("function") for frame in finding.get("trace", [])):
+                  called = True
+          print("true" if called else "false")
+          PY
+          )
+          if [ "$called" = "true" ]; then
+            echo "::group::govulncheck JSON output"
+            cat govulncheck.json
+            echo "::endgroup::"
+            if [ "$IS_PR" = "true" ]; then
+              echo "::warning::govulncheck found vulnerabilities that are called by this module. Non-blocking on pull requests; please review before merge."
+            else
+              echo "::error::govulncheck found vulnerabilities that are called by this module."
+              exit 1
+            fi
+          else
+            echo "No called vulnerabilities found by govulncheck."
+          fi

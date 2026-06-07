@@ -180,10 +180,12 @@ func TestCreateEntry_Success(t *testing.T) {
 	}
 
 	memo := "やる気"
+	sourceURL := "https://job.rikunabi.com/2027/company/r123/"
 	body, _ := json.Marshal(openapi.CreateEntryRequest{
 		CompanyId: uuid.UUID(company.ID()),
 		Route:     "本選考",
 		Source:    "リクナビ",
+		SourceUrl: &sourceURL,
 		Memo:      &memo,
 	})
 
@@ -203,6 +205,9 @@ func TestCreateEntry_Success(t *testing.T) {
 	}
 	if resp.Route != "本選考" {
 		t.Errorf("Route = %q, want %q", resp.Route, "本選考")
+	}
+	if resp.SourceUrl == nil || *resp.SourceUrl != sourceURL {
+		t.Fatalf("SourceUrl = %v, want %q", resp.SourceUrl, sourceURL)
 	}
 }
 

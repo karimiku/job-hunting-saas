@@ -21,6 +21,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/infra/postgres"
 	"github.com/karimiku/job-hunting-saas/internal/middleware"
 	companyuc "github.com/karimiku/job-hunting-saas/internal/usecase/company"
+	companyaliasuc "github.com/karimiku/job-hunting-saas/internal/usecase/company_alias"
 	entryuc "github.com/karimiku/job-hunting-saas/internal/usecase/entry"
 	inboxclipuc "github.com/karimiku/job-hunting-saas/internal/usecase/inbox_clip"
 	stagehistoryuc "github.com/karimiku/job-hunting-saas/internal/usecase/stage_history"
@@ -47,6 +48,7 @@ func run() error {
 
 	var (
 		companyRepo      repository.CompanyRepository
+		companyAliasRepo repository.CompanyAliasRepository
 		entryRepo        repository.EntryRepository
 		taskRepo         repository.TaskRepository
 		stageHistoryRepo repository.StageHistoryRepository
@@ -63,20 +65,14 @@ func run() error {
 		defer pool.Close()
 
 		companyRepo = postgres.NewCompanyRepository(pool)
+		companyAliasRepo = postgres.NewCompanyAliasRepository(pool)
 		entryRepo = postgres.NewEntryRepository(pool)
 		taskRepo = postgres.NewTaskRepository(pool)
 		stageHistoryRepo = postgres.NewStageHistoryRepository(pool)
 		userRepo = postgres.NewUserRepository(pool)
 		extIDRepo = postgres.NewExternalIdentityRepository(pool)
-		// Inbox の Postgres 実装が未着手のため in-memory を採用するが、Postgres モードで
-		// 黙って in-memory が動くと再起動でクリップ消失する事故になる。明示的な opt-in を要求。
-		if os.Getenv("INBOX_ALLOW_INMEMORY") != "true" {
-			return errors.New("INBOX_ALLOW_INMEMORY=true is required when DATABASE_URL is set " +
-				"because the Inbox repository is not yet persisted to PostgreSQL and clips will be " +
-				"lost on every restart; set the flag to acknowledge this")
-		}
-		inboxClipRepo = inmemory.NewInboxClipRepository()
-		log.Println("using PostgreSQL repositories (Inbox clips: in-memory only — INBOX_ALLOW_INMEMORY=true)")
+		inboxClipRepo = postgres.NewInboxClipRepository(pool)
+		log.Println("using PostgreSQL repositories")
 	} else {
 		// DATABASE_URL 未設定 = 開発・ローカルテストモード。auth middleware も配線できないため
 		// 全エンドポイントが認証なしで通る。これを誤って本番起動しないよう明示フラグを要求。
@@ -90,6 +86,7 @@ func run() error {
 		inMemoryEntryRepo := inmemory.NewEntryRepository()
 
 		companyRepo = inMemoryCompanyRepo
+		companyAliasRepo = inmemory.NewCompanyAliasRepository()
 		entryRepo = inMemoryEntryRepo
 		taskRepo = inmemory.NewTaskRepository(inMemoryEntryRepo)
 		stageHistoryRepo = inmemory.NewStageHistoryRepository()
@@ -119,8 +116,13 @@ func run() error {
 		// Firebase SDK 型を handler / middleware に漏らさないため、adapter で DTO に変換する。
 		sessionCreator := fbinfra.NewSessionCreator(fb.Auth)
 		sessionVerifier := fbinfra.NewSessionVerifier(fb.Auth)
+		cookieSameSite, err := parseCookieSameSite(os.Getenv("COOKIE_SAME_SITE"))
+		if err != nil {
+			return err
+		}
 		authHandler = handler.NewAuthHandler(sessionCreator, authenticateUC, userRepo, handler.AuthConfig{
-			CookieSecure: os.Getenv("COOKIE_SECURE") == "true",
+			CookieSecure:   os.Getenv("COOKIE_SECURE") == "true",
+			CookieSameSite: cookieSameSite,
 		})
 		authMiddleware = middleware.NewAuth(sessionVerifier, extIDRepo)
 		log.Println("firebase auth wired")
@@ -132,6 +134,13 @@ func run() error {
 		companyuc.NewList(companyRepo),
 		companyuc.NewUpdate(companyRepo),
 		companyuc.NewDelete(companyRepo),
+	)
+
+	companyAliasHandler := handler.NewCompanyAliasHandler(
+		companyaliasuc.NewCreate(companyAliasRepo, companyRepo),
+		companyaliasuc.NewGet(companyAliasRepo),
+		companyaliasuc.NewList(companyAliasRepo, companyRepo),
+		companyaliasuc.NewDelete(companyAliasRepo),
 	)
 
 	entryHandler := handler.NewEntryHandler(
@@ -163,6 +172,7 @@ func run() error {
 
 	h := &handler.Handler{
 		CompanyHandler:      companyHandler,
+		CompanyAliasHandler: companyAliasHandler,
 		EntryHandler:        entryHandler,
 		TaskHandler:         taskHandler,
 		StageHistoryHandler: stageHistoryHandler,
@@ -219,12 +229,25 @@ func run() error {
 	return nil
 }
 
+func parseCookieSameSite(raw string) (http.SameSite, error) {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "", "lax":
+		return http.SameSiteLaxMode, nil
+	case "strict":
+		return http.SameSiteStrictMode, nil
+	case "none":
+		return http.SameSiteNoneMode, nil
+	default:
+		return 0, fmt.Errorf("invalid COOKIE_SAME_SITE %q (want lax, strict, or none)", raw)
+	}
+}
+
 // corsMiddleware はフロントエンドとの Cookie 付き通信を許可する最小 CORS 実装。
 // 受け取るのはカンマ区切りの allowlist。空なら http://localhost:3000 のみ。
 //
 // Chrome 拡張から呼びたい場合は `chrome-extension://<extension-id>` を allowlist に追加する。
-// なお Cookie が SameSite=Lax である限り、拡張 origin への credentials 付き fetch には
-// Cookie が乗らない点には注意 (本番では Cookie の SameSite=None;Secure 化が別途必要)。
+// 拡張 origin から Cookie を送る本番 HTTPS 環境では COOKIE_SAME_SITE=none と
+// COOKIE_SECURE=true をセットする。
 func corsMiddleware(allowedOriginsRaw string) func(http.Handler) http.Handler {
 	if allowedOriginsRaw == "" {
 		allowedOriginsRaw = "http://localhost:3000"

@@ -31,8 +31,9 @@ const (
 
 // AuthConfig は Cookie 発行のランタイム設定。
 type AuthConfig struct {
-	CookieDomain string // 通常は空（リクエスト host に合わせる）
-	CookieSecure bool   // 本番 HTTPS では true
+	CookieDomain   string // 通常は空（リクエスト host に合わせる）
+	CookieSecure   bool   // 本番 HTTPS では true
+	CookieSameSite http.SameSite
 }
 
 // IDTokenClaims は ID Token から取り出した認証クレーム。
@@ -147,7 +148,7 @@ func (h *AuthHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   int(sessionMaxAge.Seconds()),
 		HttpOnly: true,
 		Secure:   h.cfg.CookieSecure,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: h.cookieSameSite(),
 	})
 
 	writeJSON(w, http.StatusOK, authUserResponse{
@@ -167,9 +168,16 @@ func (h *AuthHandler) DeleteSession(w http.ResponseWriter, _ *http.Request) {
 		MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   h.cfg.CookieSecure,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: h.cookieSameSite(),
 	})
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *AuthHandler) cookieSameSite() http.SameSite {
+	if h.cfg.CookieSameSite == 0 {
+		return http.SameSiteLaxMode
+	}
+	return h.cfg.CookieSameSite
 }
 
 // Me は context に載った userID で User を引いて返す。

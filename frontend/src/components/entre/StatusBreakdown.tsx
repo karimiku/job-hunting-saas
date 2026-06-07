@@ -1,6 +1,6 @@
-"use client";
+// Server Component。ステージ別件数の凡例 + ミニ円グラフ。entries は props で受け取る。
 
-import { useEntries } from "@/hooks/useEntries";
+import type { EntryResponse } from "@/lib/api/entries";
 
 const ORDER = ["application", "document", "test", "interview", "group", "offer"] as const;
 const LABEL: Record<string, string> = {
@@ -20,16 +20,12 @@ const COLOR: Record<string, string> = {
   offer: "var(--color-stage-offer)",
 };
 
-/** ステージ別件数の凡例 + ミニ円グラフ。 */
-export function StatusBreakdown() {
-  const { data } = useEntries();
+export function StatusBreakdown({ entries }: { entries: EntryResponse[] }) {
   const counts = new Map<string, number>();
-  if (data) {
-    for (const e of data) {
-      counts.set(e.stageKind, (counts.get(e.stageKind) ?? 0) + 1);
-    }
+  for (const e of entries) {
+    counts.set(e.stageKind, (counts.get(e.stageKind) ?? 0) + 1);
   }
-  const total = data?.length ?? 0;
+  const total = entries.length;
 
   // 円グラフ用 — 各ステージの dasharray (周長 113 を total で按分)
   // 累積 offset は reduce で純関数的に計算 (ループ内 mutation を避ける)

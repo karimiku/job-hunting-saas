@@ -3,13 +3,19 @@ package value
 import (
 	"errors"
 	"strings"
+	"unicode/utf8"
 )
+
+// SourceMaxLength は source の最大文字数（rune 数）。
+const SourceMaxLength = 128
 
 // ErrSourceEmpty は source が空文字のときに返されるエラー。
 // ErrSourceInvalid は source の形式が不正なときに返されるエラー。
+// ErrSourceTooLong は source が上限長を超えたときに返されるエラー。
 var (
 	ErrSourceEmpty   = errors.New("source must not be empty")
 	ErrSourceInvalid = errors.New("source format is invalid")
+	ErrSourceTooLong = errors.New("source is too long")
 )
 
 // Source は応募経由の媒体を表す値オブジェクト。
@@ -25,6 +31,9 @@ func NewSource(raw string) (Source, error) {
 	}
 	if raw != strings.TrimSpace(raw) {
 		return Source{}, ErrSourceInvalid
+	}
+	if utf8.RuneCountInString(raw) > SourceMaxLength {
+		return Source{}, ErrSourceTooLong
 	}
 	return Source{value: raw}, nil
 }

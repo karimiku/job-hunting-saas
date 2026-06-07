@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 	"github.com/karimiku/job-hunting-saas/internal/gen/openapi"
@@ -24,7 +25,6 @@ func writeJSON(w http.ResponseWriter, statusCode int, body any) {
 
 // writeError はドメイン/リポジトリ層のエラーをHTTPステータスに変換する。
 // handlerごとにエラー分岐が重複するのを防ぐための集約ポイント。
-// TODO: 予期しないエラーは500を返すように改善する
 func writeError(w http.ResponseWriter, err error) {
 	if errors.Is(err, repository.ErrNotFound) {
 		writeJSON(w, http.StatusNotFound, openapi.ErrorResponse{Message: "not found"})
@@ -34,5 +34,18 @@ func writeError(w http.ResponseWriter, err error) {
 		writeJSON(w, http.StatusConflict, openapi.ErrorResponse{Message: "already exists"})
 		return
 	}
+	if isUnexpectedError(err) {
+		log.Printf("writeError: internal error: %v", err)
+		writeJSON(w, http.StatusInternalServerError, openapi.ErrorResponse{Message: "internal error"})
+		return
+	}
 	writeJSON(w, http.StatusBadRequest, openapi.ErrorResponse{Message: err.Error()})
+}
+
+func isUnexpectedError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := err.Error()
+	return strings.HasPrefix(message, "postgres:") || strings.HasPrefix(message, "BUG:")
 }

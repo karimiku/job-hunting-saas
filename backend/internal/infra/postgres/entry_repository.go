@@ -32,6 +32,7 @@ func (r *EntryRepository) Save(ctx context.Context, entry *entity.Entry) error {
 		CompanyID:  uuid.UUID(entry.CompanyID()),
 		Route:      entry.Route().String(),
 		Source:     entry.Source().String(),
+		SourceUrl:  sourceURLString(entry),
 		Status:     sqlc.EntryStatus(entry.Status().String()),
 		StageKind:  sqlc.StageKind(entry.Stage().Kind().String()),
 		StageLabel: entry.Stage().Label(),
@@ -128,6 +129,15 @@ func reconstructEntry(row sqlc.Entry) (*entity.Entry, error) {
 		return nil, fmt.Errorf("BUG: invalid data in DB: entry source: %w", err)
 	}
 
+	var sourceURL *value.URL
+	if row.SourceUrl != "" {
+		parsed, err := value.NewURL(row.SourceUrl)
+		if err != nil {
+			return nil, fmt.Errorf("BUG: invalid data in DB: entry source_url: %w", err)
+		}
+		sourceURL = &parsed
+	}
+
 	status, err := value.NewEntryStatus(string(row.Status))
 	if err != nil {
 		return nil, fmt.Errorf("BUG: invalid data in DB: entry status: %w", err)
@@ -150,9 +160,17 @@ func reconstructEntry(row sqlc.Entry) (*entity.Entry, error) {
 		route,
 		source,
 		status,
+		sourceURL,
 		stage,
 		row.Memo,
 		row.CreatedAt.Time,
 		row.UpdatedAt.Time,
 	), nil
+}
+
+func sourceURLString(entry *entity.Entry) string {
+	if entry.SourceURL() == nil {
+		return ""
+	}
+	return entry.SourceURL().String()
 }

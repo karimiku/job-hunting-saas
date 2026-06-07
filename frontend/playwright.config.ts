@@ -1,7 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = process.env.PORT ?? "3000";
+const PORT = process.env.PLAYWRIGHT_PORT ?? process.env.PORT ?? "3100";
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${PORT}`;
+const READY_URL = `${BASE_URL}/e2e/ready`;
+const ciChrome = process.env.CI ? { channel: "chrome" } : {};
 
 /**
  * Entré フロントエンド E2E テスト設定。
@@ -26,19 +28,19 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], ...ciChrome },
     },
     {
       name: "mobile",
-      use: { ...devices["iPhone 14"] },
+      use: { ...devices["Pixel 7"], ...ciChrome },
     },
   ],
 
   webServer: process.env.PLAYWRIGHT_SKIP_WEB_SERVER
     ? undefined
     : {
-        command: "pnpm dev",
-        url: BASE_URL,
+        command: "node scripts/e2e-web-server.mjs",
+        url: READY_URL,
         reuseExistingServer: true,
         timeout: 60_000,
       },

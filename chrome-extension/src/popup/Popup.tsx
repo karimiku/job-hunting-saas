@@ -1,64 +1,162 @@
 import { useEffect, useState } from "react";
 import { Mascot } from "../components/Mascot";
 import { Confetti } from "../components/Confetti";
-import { saveDetectedJob } from "../lib/api";
+import { ApiRequestError, WEB_BASE, createInboxClip } from "../lib/api";
 
 interface DetectedPage {
   source: string;
-  companyName: string;
-  jobTitle: string;
+  companyGuess: string;
+  title: string;
   url: string;
 }
 
-// key = backend の stageKind (CreateEntryRequest と互換、UpdateEntryRequest enum と一致)。
-// label = popup 表示名 + UpdateEntryRequest の stageLabel に流す値。
-const STAGES = [
-  { key: "application", label: "エントリー", color: "#C9CBB4" },
-  { key: "document", label: "書類選考", color: "#A8C0DA" },
-  { key: "test", label: "ES提出", color: "#D4BA82" },
-  { key: "interview", label: "面接", color: "#E9B9B0" },
-  { key: "offer", label: "内定", color: "#9BB58A" },
-] as const;
+// 保存失敗時の表示。message は必須、recovery があれば回復ボタンを出す。
+interface ErrorState {
+  message: string;
+  recovery?: { label: string; onClick: () => void };
+}
+
+function openWebLogin() {
+  const url = `${WEB_BASE}/login`;
+  openUrl(url);
+}
+
+function openWebInbox() {
+  const url = `${WEB_BASE}/inbox`;
+  openUrl(url);
+}
+
+function openWebDashboard() {
+  const url = `${WEB_BASE}/dashboard`;
+  openUrl(url);
+}
+
+function openWebEntries() {
+  const url = `${WEB_BASE}/entry`;
+  openUrl(url);
+}
+
+function openUrl(url: string) {
+  if (typeof chrome !== "undefined" && chrome.tabs?.create) {
+    void chrome.tabs.create({ url });
+  } else {
+    window.open(url, "_blank", "noopener");
+  }
+}
+
+// 保存エラーをユーザー向けメッセージ + 回復導線に変換する。
+function toErrorState(e: unknown): ErrorState {
+  const kind = e instanceof ApiRequestError ? e.kind : "client";
+  switch (kind) {
+    case "unauthorized":
+      return {
+        message:
+          "Entré にログインしていません。Web アプリでログインしてから、もう一度保存してください。",
+        recovery: { label: "Web でログインする", onClick: openWebLogin },
+      };
+    case "forbidden":
+      return {
+        message:
+          "アクセスが拒否されました。一度ログアウト／再ログインするか、拡張の許可設定を管理者に確認してください。",
+        recovery: { label: "Web を開く", onClick: openWebLogin },
+      };
+    case "network":
+      return {
+        message:
+          "サーバーに接続できませんでした。ネット接続と、Entré サーバー／拡張の許可ドメイン設定を確認してください。",
+      };
+    case "server":
+      return {
+        message:
+          "サーバーでエラーが発生しました。少し時間をおいて、もう一度お試しください。",
+      };
+    default:
+      return {
+        message: "保存に失敗しました。もう一度お試しください。",
+      };
+  }
+}
+
+interface ScrapedPage {
+  source?: string;
+  companyName?: string;
+  jobTitle?: string;
+  url?: string;
+}
+
+interface ScrapeResponse {
+  data?: ScrapedPage | null;
+}
 
 const SOURCES: Record<string, string> = {
   "mynavi.jp": "マイナビ",
   "rikunabi.com": "リクナビ",
   "onecareer.jp": "ONE CAREER",
   "offerbox.jp": "OfferBox",
+  "i-web.jpn.com": "i-web",
+  "supporterz.jp": "サポーターズ",
+  "wantedly.com": "Wantedly",
+  "hrmos.co": "HRMOS",
+  "green-japan.com": "Green",
 };
+
+const AUTO_OPEN_INBOX_KEY = "entre.autoOpenInbox";
 
 export function Popup() {
   const [page, setPage] = useState<DetectedPage | null>(null);
-  const [stageIdx, setStageIdx] = useState(0);
-  const [memo, setMemo] = useState("");
+  const [companyGuess, setCompanyGuess] = useState("");
   const [saving, setSaving] = useState(false);
   const [confetti, setConfetti] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorState | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [autoOpenInbox, setAutoOpenInbox] = useState(false);
 
   useEffect(() => {
-    void detectCurrentPage().then(setPage);
+    let mounted = true;
+    void detectCurrentPage().then((detected) => {
+      if (!mounted) return;
+      setPage(detected);
+      setCompanyGuess(detected?.companyGuess ?? "");
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
+
+  useEffect(() => {
+    if (typeof chrome === "undefined" || !chrome.storage?.local) return;
+    chrome.storage.local.get(AUTO_OPEN_INBOX_KEY, (items) => {
+      setAutoOpenInbox(Boolean(items[AUTO_OPEN_INBOX_KEY]));
+    });
+  }, []);
+
+  const handleAutoOpenInboxChange = (checked: boolean) => {
+    setAutoOpenInbox(checked);
+    if (typeof chrome !== "undefined" && chrome.storage?.local) {
+      void chrome.storage.local.set({ [AUTO_OPEN_INBOX_KEY]: checked });
+    }
+  };
 
   const handleSave = async () => {
     if (!page || saving) return;
     setError(null);
+    setSaved(false);
     setSaving(true);
-    const stage = STAGES[stageIdx];
     try {
-      await saveDetectedJob({
-        companyName: page.companyName,
-        route: "本選考",
+      await createInboxClip({
+        url: page.url,
+        title: page.title,
         source: page.source,
-        memo,
-        stageKind: stage.key,
-        stageLabel: stage.label,
+        guess: companyGuess.trim() || undefined,
       });
       setConfetti((n) => n + 1);
       setSaving(false);
-      window.setTimeout(() => window.close(), 1500);
+      setSaved(true);
+      if (autoOpenInbox) openWebInbox();
     } catch (e) {
+      // 失敗時は popup を閉じず、回復導線つきのエラーを表示する。
       setSaving(false);
-      setError(e instanceof Error ? e.message : "保存に失敗しました");
+      setError(toErrorState(e));
     }
   };
 
@@ -73,47 +171,89 @@ export function Popup() {
 
       {/* Body */}
       <div className="flex-1 overflow-auto p-3.5">
-        {page ? (
-          <DetectedCard page={page} />
-        ) : (
-          <div className="rounded-[10px] border border-line bg-surface p-4 text-center text-[11px] text-ink-3">
-            このページからはエントリーを検出できません
+        <div className="mb-2 grid grid-cols-3 gap-1.5">
+          <button
+            type="button"
+            onClick={openWebDashboard}
+            className="rounded-md border border-line bg-surface px-2 py-1.5 text-[10px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+          >
+            Dashboard
+          </button>
+          <button
+            type="button"
+            onClick={openWebInbox}
+            className="rounded-md border border-line bg-surface px-2 py-1.5 text-[10px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+          >
+            Inbox
+          </button>
+          <button
+            type="button"
+            onClick={openWebEntries}
+            className="rounded-md border border-line bg-surface px-2 py-1.5 text-[10px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+          >
+            Entry
+          </button>
+        </div>
+
+        {saved && (
+          <div className="mb-2 rounded-lg border border-sage bg-sage-wash p-3">
+            <div className="flex items-start gap-2">
+              <Mascot size={34} mood="happy" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[12px] font-black text-sage">Inbox に保存しました</p>
+                <p className="mt-0.5 text-[10px] leading-relaxed text-ink-2">
+                  Web の Inbox で会社名を確認すると、Entry・Kanban・Task で管理できます。
+                </p>
+                <button
+                  type="button"
+                  onClick={openWebInbox}
+                  className="mt-2 rounded-md bg-sage px-2.5 py-1 text-[10px] font-bold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/40"
+                >
+                  Web Inbox を開く
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
-        <div className="mt-3 mb-1.5 text-[10px] font-bold text-ink-2">ステータス</div>
-        <div className="mb-3 flex gap-1">
-          {STAGES.map((s, i) => (
-            <button
-              key={s.key}
-              type="button"
-              onClick={() => setStageIdx(i)}
-              className="flex-1 rounded-md py-1 text-[8px] font-bold transition-colors"
-              style={{
-                background: i === stageIdx ? s.color : "var(--color-surface)",
-                color: i === stageIdx ? "#fff" : "var(--color-ink-2)",
-                border: `1px solid ${i === stageIdx ? s.color : "var(--color-line)"}`,
-              }}
-              aria-pressed={i === stageIdx}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="mb-1.5 text-[10px] font-bold text-ink-2">メモ</div>
-        <textarea
-          value={memo}
-          onChange={(e) => setMemo(e.target.value)}
-          placeholder="気になるポイントなど"
-          className="block min-h-[50px] w-full resize-none rounded-lg border border-line bg-surface px-2.5 py-2 font-sans text-[10px] text-ink-2 outline-none focus:border-sage"
-        />
+        {page ? (
+          <DetectedCard page={page} guess={companyGuess} onGuessChange={setCompanyGuess} />
+        ) : (
+          <div className="rounded-[10px] border border-line bg-surface p-4 text-center">
+            <div className="font-serif text-[14px] font-extrabold">保存できるページが見つかりません</div>
+            <p className="mt-1 text-[10px] leading-relaxed text-ink-3">
+              http/https の求人ページで開き直してから、もう一度 Entré を開いてください。
+            </p>
+          </div>
+        )}
 
         {error && (
-          <p className="mt-2 rounded-md bg-pink/40 px-2.5 py-1.5 text-[10px] font-semibold text-ink">
-            {error}
-          </p>
+          <div
+            role="alert"
+            className="mt-2 rounded-md bg-pink/40 px-2.5 py-2 text-[10px] font-semibold text-ink"
+          >
+            <p className="leading-relaxed">{error.message}</p>
+            {error.recovery && (
+              <button
+                type="button"
+                onClick={error.recovery.onClick}
+                className="mt-1.5 rounded-md bg-sage px-2.5 py-1 text-[10px] font-bold text-white transition-transform hover:-translate-y-0.5"
+              >
+                {error.recovery.label}
+              </button>
+            )}
+          </div>
         )}
+
+        <label className="mt-2 flex cursor-pointer items-center justify-between gap-2 rounded-md border border-line bg-surface px-2.5 py-2">
+          <span className="text-[10px] font-bold text-ink-2">保存後に Web Inbox を開く</span>
+          <input
+            type="checkbox"
+            checked={autoOpenInbox}
+            onChange={(event) => handleAutoOpenInboxChange(event.target.checked)}
+            className="h-3.5 w-3.5 accent-sage"
+          />
+        </label>
       </div>
 
       {/* Footer */}
@@ -128,10 +268,10 @@ export function Popup() {
         <button
           type="button"
           onClick={handleSave}
-          disabled={!page || saving}
+          disabled={!page || saving || saved}
           className="flex-[2] rounded-lg bg-sage px-2.5 py-2 text-[11px] font-bold text-white transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-60"
         >
-          {saving ? "保存中..." : confetti ? "✓ 保存しました！" : "＋ Entré に保存"}
+          {saving ? "保存中..." : saved ? "保存済み" : "Inbox に保存"}
         </button>
       </footer>
 
@@ -140,16 +280,43 @@ export function Popup() {
   );
 }
 
-function DetectedCard({ page }: { page: DetectedPage }) {
+function DetectedCard({
+  page,
+  guess,
+  onGuessChange,
+}: {
+  page: DetectedPage;
+  guess: string;
+  onGuessChange: (value: string) => void;
+}) {
   return (
     <div className="rounded-[10px] border border-line bg-surface p-3">
-      <div className="mb-1 text-[9px] text-ink-3">
-        検出されたページ · {page.source}
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div>
+          <div className="text-[9px] text-ink-3">検出されたページ</div>
+          <div className="text-[10px] font-bold text-ink-2">保存前に会社名を確認</div>
+        </div>
+        <span className="rounded-sm bg-cream-2 px-1.5 py-0.5 text-[9px] font-bold text-ink-2">
+          {page.source}
+        </span>
       </div>
-      <div className="mb-1.5 text-[13px] font-extrabold leading-tight">
-        {page.companyName}
-      </div>
-      <div className="text-[11px] text-ink-2">{page.jobTitle}</div>
+
+      <label className="mb-1 block text-[10px] font-bold text-ink-2" htmlFor="company-guess">
+        企業名候補
+      </label>
+      <input
+        id="company-guess"
+        value={guess}
+        onChange={(e) => onGuessChange(e.target.value)}
+        placeholder="未入力"
+        className="mb-1 block h-9 w-full rounded-lg border border-line bg-cream px-2.5 font-sans text-[12px] font-bold text-ink outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
+      />
+      <p className="mb-2 text-[9px] leading-relaxed text-ink-3">
+        ここで直した会社名候補が Web Inbox の Entry 作成フォームに入ります。
+      </p>
+
+      <div className="mb-1 text-[10px] font-bold text-ink-2">ページ名</div>
+      <div className="line-clamp-2 text-[11px] leading-snug text-ink-2">{page.title}</div>
       <div className="mt-2 truncate font-mono text-[9px] text-ink-3">{page.url}</div>
     </div>
   );
@@ -161,8 +328,8 @@ async function detectCurrentPage(): Promise<DetectedPage | null> {
     // 開発用フォールバック (vite dev server で popup を直接開いたとき)
     return {
       source: "マイナビ",
-      companyName: "株式会社○○商事 / 総合職 新卒採用 2026",
-      jobTitle: "総合職・新卒",
+      companyGuess: "株式会社○○商事",
+      title: "株式会社○○商事 / 総合職 新卒採用 2026",
       url: "https://job.mynavi.jp/26/pc/search/corp123/outline.html",
     };
   }
@@ -171,16 +338,61 @@ async function detectCurrentPage(): Promise<DetectedPage | null> {
   if (!tab?.url) return null;
 
   const url = new URL(tab.url);
-  // host の末尾一致 + ドット境界で厳密マッチ (incomplete-url-substring-sanitization 対策)
-  const sourceKey = Object.keys(SOURCES).find(
-    (k) => url.hostname === k || url.hostname.endsWith(`.${k}`),
-  );
-  if (!sourceKey) return null;
+  if (!isSavableUrl(url)) return null;
 
+  const scraped = typeof tab.id === "number" ? await scrapeCurrentTab(tab.id) : null;
+  const title = normalizeText(scraped?.jobTitle) || normalizeText(tab.title) || url.href;
+  const companyGuess =
+    normalizeText(scraped?.companyName) || normalizeText(firstTitlePart(title));
   return {
-    source: SOURCES[sourceKey],
-    companyName: tab.title?.split("|")[0]?.trim() ?? "（タイトル不明）",
-    jobTitle: tab.title ?? "",
-    url: tab.url,
+    source: normalizeText(scraped?.source) || detectSource(url.hostname),
+    companyGuess,
+    title,
+    url: normalizeHttpUrl(scraped?.url) ?? tab.url,
   };
+}
+
+async function scrapeCurrentTab(tabId: number): Promise<ScrapedPage | null> {
+  return new Promise((resolve) => {
+    chrome.tabs.sendMessage(
+      tabId,
+      { type: "ENTRE_SCRAPE_REQUEST" },
+      (response: ScrapeResponse | undefined) => {
+        if (chrome.runtime.lastError) {
+          resolve(null);
+          return;
+        }
+        resolve(response?.data ?? null);
+      },
+    );
+  });
+}
+
+function isSavableUrl(url: URL): boolean {
+  return url.protocol === "http:" || url.protocol === "https:";
+}
+
+function detectSource(hostname: string): string {
+  const sourceKey = Object.keys(SOURCES).find(
+    (k) => hostname === k || hostname.endsWith(`.${k}`),
+  );
+  return sourceKey ? SOURCES[sourceKey] : hostname.replace(/^www\./, "");
+}
+
+function firstTitlePart(title: string): string {
+  return title.split(/[|｜]/)[0]?.trim() ?? "";
+}
+
+function normalizeText(value: string | undefined): string {
+  return (value ?? "").replace(/\s+/g, " ").trim();
+}
+
+function normalizeHttpUrl(value: string | undefined): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return isSavableUrl(url) ? url.href : null;
+  } catch {
+    return null;
+  }
 }

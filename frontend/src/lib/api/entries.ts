@@ -4,14 +4,26 @@ export { ApiError } from "./client";
 export interface EntryResponse {
   id: string;
   companyId: string;
+  /** 会社名。backend レスポンスには無く、server-resources で companyId から join して埋める。 */
+  companyName?: string;
   route: string;
   source: string;
+  sourceUrl?: string;
   status: string;
   stageKind: string;
   stageLabel: string;
   memo: string;
   createdAt: string;
   updatedAt: string;
+}
+
+const NO_COMPANY_LABEL = "（会社名未設定）";
+
+/** 会社名の主表示。join できなかった場合はフォールバック文言を返す。 */
+export function companyDisplayName(
+  entry: Pick<EntryResponse, "companyName">,
+): string {
+  return entry.companyName?.trim() || NO_COMPANY_LABEL;
 }
 
 export interface ListEntriesParams {
@@ -40,6 +52,7 @@ export interface CreateEntryInput {
   companyId: string;
   route: string;
   source: string;
+  sourceUrl?: string;
   memo?: string;
 }
 
@@ -54,6 +67,7 @@ export async function createEntry(
 
 export interface UpdateEntryInput {
   source?: string;
+  sourceUrl?: string;
   status?: string;
   stageKind?: string;
   stageLabel?: string;
@@ -72,4 +86,28 @@ export async function updateEntry(
 
 export async function deleteEntry(id: string): Promise<void> {
   await apiFetch<void>(`/api/v1/entries/${id}`, { method: "DELETE" });
+}
+
+export function entrySourceUrl(
+  entry: Pick<EntryResponse, "sourceUrl" | "memo">,
+): string | null {
+  const direct = normalizeHttpsUrl(entry.sourceUrl);
+  if (direct) return direct;
+
+  for (const token of entry.memo.split(/\s+/)) {
+    const candidate = normalizeHttpsUrl(token);
+    if (candidate) return candidate;
+  }
+  return null;
+}
+
+function normalizeHttpsUrl(value: string | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim().replace(/[)\]、。,.]+$/, "");
+  try {
+    const url = new URL(trimmed);
+    return url.protocol === "https:" ? url.href : null;
+  } catch {
+    return null;
+  }
 }

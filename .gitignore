@@ -1,5 +1,6 @@
 .env
 .env.local
+.direnv/
 tmp/
 /server
 /backend/server
@@ -21,3 +22,6 @@ entre-*.png
 
 # repo root に誤って生成された oapi-codegen 出力（正しくは backend/internal/...）
 /internal/
+
+# 面接対策メモ（個人用、push 厳禁）
+/interview-prep/

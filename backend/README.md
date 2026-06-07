@@ -22,7 +22,7 @@
 | ホットリロード | Air |
 | ID生成 | UUID v4（google/uuid） |
 
-技術選定の詳細な理由は [docs/why-reasons.md](docs/why-reasons.md) を参照。
+技術選定の詳細な理由は [docs/why-reasons.md](../docs/why-reasons.md) を参照。
 
 ## プロジェクト構成
 
@@ -82,6 +82,60 @@ docker compose up
 curl http://localhost:8080/health
 ```
 
+### MCP server
+
+Claude Desktop / Codex / Gemini CLI などのMCPクライアントから、就活データを読み書きするためのstdio MCP serverを提供する。
+設計・resources/tools・配布上の注意は [docs/mcp-server.md](../docs/mcp-server.md) を参照。
+
+```bash
+DATABASE_URL=postgres://postgres:postgres@localhost:15432/job_hunting_dev?sslmode=disable \
+MCP_USER_EMAIL=you@example.com \
+go run ./cmd/mcp-server
+```
+
+リポジトリルートからは次でも起動できる。
+
+```bash
+DATABASE_URL=postgres://postgres:postgres@localhost:15432/job_hunting_dev?sslmode=disable \
+MCP_USER_EMAIL=you@example.com \
+make mcp-server
+```
+
+`MCP_USER_EMAIL` の代わりに `MCP_USER_ID` でも対象ユーザーを指定できる。multi-user DBを安全に扱うため、どちらか一方は必須。
+
+`append_es_memo` と `create_task` は `confirm: true` を渡したときだけDBへ保存する。`capture_job_email` はメール本文をルールベースで構造化し、LLM APIは呼ばない。
+
+### 認証 / Chrome拡張向け Cookie 設定
+
+認証ありで起動する場合は `DATABASE_URL` に加えて Firebase 設定が必要。`DATABASE_URL` を設定すると PostgreSQL、未設定だと InMemory リポジトリで起動する。
+
+| 変数 | 用途 | 既定 / 例 |
+| --- | --- | --- |
+| `PORT` | API ポート | `8080` |
+| `DATABASE_URL` | 設定で PostgreSQL、未設定で InMemory | `postgres://postgres:postgres@localhost:15432/job_hunting_dev` |
+| `FIREBASE_PROJECT_ID` | Firebase プロジェクト ID（認証に必須） | `your-project-id` |
+| `FIREBASE_CREDENTIALS_FILE` | service account JSON のパス | `./secrets/service-account.json` |
+| `CORS_ALLOWED_ORIGINS` | カンマ区切りの許可 origin（Web + 拡張） | `http://localhost:3000,chrome-extension://<extension-id>` |
+| `COOKIE_SECURE` | 本番 HTTPS は `true`、localhost は `false` | `false` |
+| `COOKIE_SAME_SITE` | `lax` / `strict` / `none`。拡張から Cookie を送る本番は `none` | `lax` |
+| `ALLOW_INSECURE_NO_AUTH` | `true` で認証なし起動（ローカル検証用） | 未設定 |
+
+> ⚠️ service account JSON と `.env` はコミットしない（`.gitignore` 済みであることを確認）。secret 値そのものを README に書かないこと。
+
+Chrome拡張から認証付きで API を呼ぶ本番 HTTPS 環境では、拡張の origin を `CORS_ALLOWED_ORIGINS` に追加し、Cookie を cross-site fetch に送れるようにする:
+
+```bash
+FIREBASE_PROJECT_ID=your-project-id
+CORS_ALLOWED_ORIGINS=https://your-web-app.example,chrome-extension://<extension-id>
+COOKIE_SECURE=true
+COOKIE_SAME_SITE=none
+```
+
+- **local (HTTP)**: `COOKIE_SECURE=false` / `COOKIE_SAME_SITE=lax`
+- **本番 (HTTPS)**: `COOKIE_SECURE=true` / `COOKIE_SAME_SITE=none`
+
+backend / frontend / 拡張をまたぐ通し手順と拡張 ID の確認方法は、ルート [README.md](../README.md) の「β環境セットアップ」を参照。
+
 ### テスト実行
 
 ```bash
@@ -137,7 +191,7 @@ HTTP Request
 
 ## 開発ステータス
 
-### 実装済み（MVP-1 進行中）
+### 実装済み
 
 - [x] Company CRUD
 - [x] Entry CRUD（フィルタ付き一覧）
@@ -147,15 +201,16 @@ HTTP Request
 - [x] 値オブジェクトによるドメインバリデーション
 - [x] OpenAPI スキーマ駆動のハンドラー生成
 - [x] Docker Compose 開発環境
+- [x] 認証（Firebase セッション Cookie / Google ログイン）
+- [x] PostgreSQL Repository 実装（sqlc + pgx）
+- [x] Inbox Clip（作成 / 一覧 / 削除、PostgreSQL 永続化）
 
-### 未実装
+### 未実装（正式リリース以降）
 
-- [ ] 認証（Google OAuth）
-- [ ] PostgreSQL Repository 実装（sqlc）
-- [ ] Clip / Inbox（MVP-2）
-- [ ] Chrome拡張連携
-- [ ] メール通知
-- [ ] ダッシュボード用集約API
+- [ ] メール通知（#38）
+- [ ] CSV エクスポート（#37）
+- [ ] アカウント削除 / データ全削除（#35）
+- [ ] ダッシュボード用集約API（β では既存 list API から算出）
 
 ## ドキュメント
 
