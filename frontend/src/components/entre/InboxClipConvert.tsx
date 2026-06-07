@@ -118,10 +118,10 @@ export function InboxClipConvert({
         <div className="mb-2 flex items-center justify-between gap-2">
           <div>
             <p className="text-[10px] font-black text-sage">
-              保存クリップを Entry に変換
+              保存クリップをEntryに変換
             </p>
             <p className="mt-0.5 text-[10px] leading-relaxed text-ink-3">
-              会社名と応募経路を確認すると、Entry/Kanban/Task で管理できるようになります。
+              会社名と応募経路を確認すると、カンバンとタスクで管理できるようになります。
             </p>
           </div>
           <ArrowRight size={16} className="shrink-0 text-sage" aria-hidden />
@@ -129,7 +129,7 @@ export function InboxClipConvert({
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-[10px]">
           <PreviewPill
             icon={<Building2 size={12} aria-hidden />}
-            label="Company"
+            label="会社"
             value={selectedCompany?.name || companyName || v.companyName || "会社名を入力"}
           />
           <span className="text-ink-3" aria-hidden>→</span>

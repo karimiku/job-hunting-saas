@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test";
 
 const API_BASE = process.env.PLAYWRIGHT_MOCK_API_BASE ?? "http://127.0.0.1:18080";
 
-test.describe("Beta core flow — Inbox clip から Entry/Task 管理", () => {
-  test("保存済み clip を Entry 化し、Entry/Kanban/Task で管理できる", async ({
+test.describe("Beta core flow — 保存箱からEntry/Kanban/Task管理", () => {
+  test("保存済み clip をEntry化し、KanbanとTaskで管理できる", async ({
     page,
     request,
   }, testInfo) => {
@@ -35,7 +35,8 @@ test.describe("Beta core flow — Inbox clip から Entry/Task 管理", () => {
     await page.goto("/inbox");
     await expect(page.getByText(title)).toBeVisible();
 
-    await page.getByRole("button", { name: "Entryとして管理" }).click();
+    const clipRow = page.getByRole("listitem").filter({ hasText: title });
+    await clipRow.getByRole("button", { name: "Entryとして管理" }).click();
     await expect(page.getByLabel("会社名")).toHaveValue(company);
     await expect(page.getByLabel("ソース")).toHaveValue("MockNavi");
 
@@ -64,8 +65,8 @@ test.describe("Beta core flow — Inbox clip から Entry/Task 管理", () => {
     await page.goto("/task");
     await page.getByLabel("タスク名").fill(taskTitle);
     await page.getByLabel("期日").fill("2026-06-15");
-    await page.getByRole("button", { name: "Taskを追加" }).click();
-    await expect(page.getByText("Taskを追加しました。")).toBeVisible();
+    await page.getByRole("button", { name: "タスクを追加" }).click();
+    await expect(page.getByText("タスクを追加しました。")).toBeVisible();
     await expect(page.getByText(taskTitle)).toBeVisible();
 
     const completeButton = page.getByRole("button", {

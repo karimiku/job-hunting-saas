@@ -1,4 +1,4 @@
-// Server Component。実タスクから「今日のクエスト」リストと進捗率を組み立てる。
+// Server Component。実タスクから今日のタスクリストを組み立てる。
 // タスクは entry 単位の API しか無いため、page 側で集約した TaskWithEntry[] を受け取る。
 // useEffect は使わない（純粋な集計 + 表示のみ）。
 
@@ -72,32 +72,24 @@ export function questProgress(tasks: TaskWithEntry[]): number {
   return Math.round((done / tasks.length) * 100);
 }
 
-/** 実タスクから組み立てた「今日のクエスト」カード。 */
+/** 実タスクから組み立てた「今日のタスク」カード。 */
 export function DashboardQuests({ tasks }: { tasks: TaskWithEntry[] }) {
   const quests = buildQuests(tasks);
-  const progress = questProgress(tasks);
 
   return (
     <div className="rounded-xl border border-line bg-surface p-5">
       <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="text-[13px] font-extrabold">📌 今日のクエスト</h2>
+        <h2 className="text-[14px] font-extrabold">今日のタスク</h2>
         <Link href="/task" className="text-[10px] font-bold text-sage">
-          すべて見る →
+          一覧
         </Link>
-      </div>
-      <div className="mb-3.5 h-1.5 overflow-hidden rounded-sm bg-line">
-        <div
-          data-testid="quest-progress"
-          className="h-full rounded-sm bg-gradient-to-r from-sage-mid to-sage transition-all duration-1000"
-          style={{ width: `${progress}%` }}
-        />
       </div>
 
       {quests.length === 0 ? (
         <div data-testid="quest-empty" className="py-6 text-center">
           <p className="text-[12px] font-bold text-ink-2">タスクはまだありません</p>
           <p className="mt-1 text-[11px] text-ink-3">
-            Entry 詳細から締切や予定を追加すると、優先順に表示されます。
+            Entryごとに締切や予定を追加すると、近い順に表示されます。
           </p>
           <Link
             href="/entry"

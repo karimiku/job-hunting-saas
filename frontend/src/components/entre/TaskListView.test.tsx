@@ -152,13 +152,13 @@ describe("TaskListView", () => {
     expect(confettiFired()).toBe(false);
   });
 
-  it("Entry があると Task 追加フォームを表示し、送信できる", async () => {
+  it("Entry があるとタスク追加フォームを表示し、送信できる", async () => {
     const user = userEvent.setup();
     render(<TaskListView initialTasks={[]} entries={[entry()]} />);
 
     expect(screen.getByLabelText("Entry")).toHaveValue("e1");
     await user.type(screen.getByLabelText("タスク名"), "一次面接");
-    await user.click(screen.getByRole("button", { name: /Taskを追加/ }));
+    await user.click(screen.getByRole("button", { name: /タスクを追加/ }));
 
     await waitFor(() => expect(createTaskFromTaskPageAction).toHaveBeenCalled());
     const fd = createTaskFromTaskPageAction.mock.calls[0][1] as FormData;

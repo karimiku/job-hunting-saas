@@ -19,7 +19,6 @@ import {
   updateTask,
   type TaskResponse,
 } from "@/lib/api/tasks";
-import { Mascot } from "./Mascot";
 import { Confetti } from "./Confetti";
 
 const STAGE_ORDER = ["application", "document", "test", "interview", "group", "offer"] as const;
@@ -222,14 +221,14 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
           })}
         </div>
         <p className="mt-2 text-[10px] font-bold text-sage">
-          📍 現在: <span data-testid="current-stage">{e.stageLabel}</span>
+          現在: <span data-testid="current-stage">{e.stageLabel}</span>
         </p>
       </section>
 
       {/* Memo */}
       {e.memo && (
         <section className="mb-3 rounded-xl border border-line bg-cream-2 p-3">
-          <p className="mb-1 font-hand text-sm text-sage">📝 メモ</p>
+          <p className="mb-1 text-[11px] font-bold text-sage">メモ</p>
           <p className="text-[11px] leading-relaxed text-ink-2">{e.memo}</p>
         </section>
       )}
@@ -238,7 +237,7 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
       <section className="mb-3 rounded-xl border border-line bg-surface p-3">
         <div className="mb-2 flex items-start justify-between gap-2">
           <div>
-            <p className="text-[12px] font-bold">📌 タスク</p>
+            <p className="text-[12px] font-bold">タスク</p>
             <p className="mt-0.5 text-[10px] text-ink-3">
               このEntryに必要な締切・予定を追加できます。
             </p>
@@ -385,14 +384,6 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
           </ul>
         )}
       </section>
-
-      {/* Mascot encouragement */}
-      <div className="flex items-center gap-3 rounded-xl border-[1.5px] border-line bg-gradient-to-br from-cream-2 to-sage-wash p-4">
-        <Mascot size={48} mood={isOffer ? "cheering" : "thinking"} />
-        <p className="font-hand text-sm text-sage">
-          {isOffer ? "おめでとう！本当にお疲れさま 🎉" : "次のステップ、応援してます。"}
-        </p>
-      </div>
 
       <Confetti trigger={confetti} count={28} />
     </div>
