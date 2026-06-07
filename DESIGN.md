@@ -119,6 +119,12 @@ references: [notion.so, attio.com, todoist.com, linear.app]
 
 ## Component Patterns
 
+### Landing Page
+- 最初の画面では `Entré` と実サービス画面を大きく見せる。抽象的なイラストや機能リストを主役にしない
+- LPの主要コピーは「保存箱 → Entry → カンバン」に限定し、Chrome拡張・通知・ロードマップ・AI機能などは前面に出さない
+- スクリーンショットは `frontend/public/marketing/` の Shots.so 書き出しを使い、PC / スマホとも実装画面と一致するものだけを採用する
+- セクションは Hero / Core Flow / Entry / Kanban / CTA を基本とし、FAQ や4機能カードのような横展開は必要になるまで戻さない
+
 ### ステータスバッジ（選考ステージ）
 - ピル型（border-radius: full）
 - 各ステージに固有の色 + アイコン
