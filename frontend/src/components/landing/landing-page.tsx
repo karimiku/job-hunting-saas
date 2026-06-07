@@ -368,18 +368,18 @@ function MobileFirstSection() {
               本腰を入れて。
             </h2>
             <p className="lp-device-sub">
-              就活サイトを見ながら Chrome 拡張でワンクリック保存。
-              選考ボードや一覧で全体を俯瞰しながら、腰を据えて応募を管理できます。
+              保存箱に求人を残して、必要なものだけ Entry に変換。
+              Entry 一覧とカンバンで、応募先の状態を落ち着いて管理できます。
             </p>
             <ul className="lp-device-list">
               <li>
-                <span className="lp-mf-check">✓</span> Chrome 拡張で URL・タイトルを1クリック保存
+                <span className="lp-mf-check">✓</span> 保存箱から Entry に変換
               </li>
               <li>
-                <span className="lp-mf-check">✓</span> 選考ボード・一覧で全体を俯瞰
+                <span className="lp-mf-check">✓</span> Entry 一覧とカンバンで全体を俯瞰
               </li>
               <li>
-                <span className="lp-mf-check">✓</span> キーボードショートカットで高速操作
+                <span className="lp-mf-check">✓</span> メモと応募元 URL を Entry に集約
               </li>
             </ul>
           </div>
@@ -409,18 +409,18 @@ function MobileFirstSection() {
               寝る前も。
             </h2>
             <p className="lp-device-sub">
-              通知で締切を逃さず、思いついたときにサッと URL を保存。
-              タスクの完了や期限変更もスマホだけで完結します。
+              今日見るべきタスクを確認して、必要な Entry へすぐ戻る。
+              外出中でも、次にやることだけを迷わず見られます。
             </p>
             <ul className="lp-device-list">
               <li>
-                <span className="lp-mf-check">✓</span> 締切・予定をプッシュ通知でお知らせ
+                <span className="lp-mf-check">✓</span> 今日のタスクを確認
               </li>
               <li>
-                <span className="lp-mf-check">✓</span> タスク完了・期限変更もスマホだけで
+                <span className="lp-mf-check">✓</span> Entry 詳細へすぐ移動
               </li>
               <li>
-                <span className="lp-mf-check">✓</span> URL をペーストしてサッと保存
+                <span className="lp-mf-check">✓</span> 保存箱と Entry 追加にアクセス
               </li>
             </ul>
           </div>
@@ -474,20 +474,40 @@ function ToolsSection() {
     {
       icon: (
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4F6E58" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <path d="M9 4v16M15 4v16" />
+          <path d="M5.5 8h3M11.5 12h3M17.5 9h2" />
+        </svg>
+      ),
+      name: "カンバン",
+      sub: "選考ボード",
+      desc: (
+        <>
+          Entry を列で動かして、
+          <br />
+          選考状況をひと目で確認
+        </>
+      ),
+      accent: "pink",
+      preview: <KanbanPreview />,
+    },
+    {
+      icon: (
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4F6E58" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
           <path d="M9 11l3 3 8-8" />
           <path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h11" />
         </svg>
       ),
-      name: "Task",
+      name: "タスク",
       sub: "タスク管理",
       desc: (
         <>
-          締切や直近予定を可視化、
+          Entry に締切や予定を紐づけ、
           <br />
-          リマインドで漏れない
+          今日やることだけ見る
         </>
       ),
-      accent: "pink",
+      accent: "gold",
       preview: <TaskPreview />,
     },
     {
@@ -497,39 +517,17 @@ function ToolsSection() {
           <path d="M4 8l8 6 8-6" />
         </svg>
       ),
-      name: "Inbox",
-      sub: "通知・やること管理",
+      name: "保存箱",
+      sub: "Entry候補",
       desc: (
         <>
-          企業からの連絡や
+          保存した求人を置いて、
           <br />
-          自分のやることを1画面で
-        </>
-      ),
-      accent: "gold",
-      preview: <InboxPreview />,
-    },
-    {
-      icon: (
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4F6E58" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="3" width="8" height="8" rx="1" />
-          <rect x="13" y="3" width="8" height="8" rx="1" />
-          <rect x="3" y="13" width="8" height="8" rx="1" />
-          <rect x="13" y="13" width="5" height="5" rx="1" />
-          <path d="M18 16v5h3" />
-        </svg>
-      ),
-      name: "Chrome拡張",
-      sub: "ワンクリック登録",
-      desc: (
-        <>
-          ブラウザからカンタンに
-          <br />
-          求人情報を保存
+          必要なものだけ Entry へ
         </>
       ),
       accent: "sky",
-      preview: <ChromePreview />,
+      preview: <InboxPreview />,
     },
   ];
 
@@ -598,40 +596,41 @@ function TaskPreview() {
   );
 }
 
-function InboxPreview() {
+function KanbanPreview() {
   return (
     <div className="lp-preview-stack">
-      <div className="lp-preview-notify">
-        <span className="lp-preview-dot lp-preview-dot--danger" />
-        <span className="lp-preview-task-name">ES提出</span>
-        <span className="lp-preview-date is-soon">今日</span>
+      <div className="lp-preview-entry-row">
+        <span className="lp-preview-co">応募済み</span>
+        <span className="lp-preview-pill lp-preview-pill--doc">3</span>
       </div>
-      <div className="lp-preview-notify">
-        <span className="lp-preview-dot lp-preview-dot--warning" />
-        <span className="lp-preview-task-name">面接 14:00</span>
-        <span className="lp-preview-date">明日</span>
+      <div className="lp-preview-entry-row">
+        <span className="lp-preview-co">面接</span>
+        <span className="lp-preview-pill lp-preview-pill--interview">2</span>
       </div>
-      <div className="lp-preview-inbox-badge">
-        <span>📎 未整理</span>
-        <span className="lp-preview-inbox-count">3</span>
+      <div className="lp-preview-entry-row">
+        <span className="lp-preview-co">内定</span>
+        <span className="lp-preview-pill lp-preview-pill--offer">1</span>
       </div>
     </div>
   );
 }
 
-function ChromePreview() {
+function InboxPreview() {
   return (
-    <div className="lp-preview-browser">
-      <div className="lp-preview-browser-bar">
-        <span className="lp-preview-browser-dot" style={{ background: "#FF6159" }} />
-        <span className="lp-preview-browser-dot" style={{ background: "#FFBD2E" }} />
-        <span className="lp-preview-browser-dot" style={{ background: "#28C941" }} />
-        <span className="lp-preview-browser-url">rikunabi.com/…</span>
+    <div className="lp-preview-stack">
+      <div className="lp-preview-notify">
+        <span className="lp-preview-dot lp-preview-dot--danger" />
+        <span className="lp-preview-task-name">株式会社ミライ</span>
+        <span className="lp-preview-date is-soon">未整理</span>
       </div>
-      <div className="lp-preview-browser-body">
-        <div className="lp-preview-browser-save">
-          <span>+</span> Entré に保存
-        </div>
+      <div className="lp-preview-notify">
+        <span className="lp-preview-dot lp-preview-dot--warning" />
+        <span className="lp-preview-task-name">募集ページ</span>
+        <span className="lp-preview-date">保存済み</span>
+      </div>
+      <div className="lp-preview-inbox-badge">
+        <span>Entry 候補</span>
+        <span className="lp-preview-inbox-count">3</span>
       </div>
     </div>
   );
@@ -704,12 +703,12 @@ function StepsSection() {
           />
           <StepCard
             num={4}
-            title="通知を受け取る"
+            title="タスクを確認"
             desc={
               <>
-                締切や予定をお知らせ、
+                締切や予定を見て、
                 <br />
-                うっかりを防止。
+                今日やることを決める。
               </>
             }
             visual={
@@ -722,9 +721,9 @@ function StepsSection() {
           <div className="lp-step-end-card lp-reveal" style={{ "--lp-reveal-i": 4 } as CSSProperties}>
             <EnvelopeMascot size={58} mood="wink" />
             <div className="lp-step-end-text">
-              あなたの就活を、
+              Entryとカンバンで、
               <br />
-              やさしく自動化。
+              迷わず管理。
             </div>
           </div>
         </div>
