@@ -1,20 +1,22 @@
 ---
-brand: JobHunting SaaS
-style: Warm Productivity
-themes: [light, dark]
+brand: Entré
+style: Quiet Core Workflow
+themes: [light]
 default_theme: light
-references: [notion.so, attio.com, amie.so, todoist.com, linear.app]
+references: [notion.so, attio.com, todoist.com, linear.app]
 ---
 
 # DESIGN.md
 
 ## Design Philosophy
 
-「毎日開きたくなる就活管理ツール」
-- 非エンジニアでも迷わない親しみやすさ（← Notion, Airbnb）
-- パイプライン管理の情報密度と一覧性（← Attio, Linear）
-- 節目だけ感動させるアニメーション（← Amie）
-- 日常操作はゼロ摩擦で速く
+「Entry とカンバンを中心に、次の行動だけが分かる就活管理ツール」
+
+- コア導線は Home / Entry / カンバン / タスク / 保存箱に絞る
+- Entry は応募先の主語、カンバンは選考状況の俯瞰、タスクは今日やること、保存箱は Entry 候補の置き場
+- 非コア機能に見える導線（ロードマップ、通知設定、カレンダー連携、拡張機能訴求）は画面上で主張させない
+- 一覧・ボードは情報密度を保ち、フォームや空状態は次の1アクションだけを提示する
+- 日常操作は装飾より速度と理解しやすさを優先する
 
 ## Colors
 
@@ -22,39 +24,30 @@ references: [notion.so, attio.com, amie.so, todoist.com, linear.app]
 
 | Token | Hex | 出典・意図 |
 |-------|-----|-----------|
-| background | `#F7F6F3` | Notion の warm canvas。純白より目に優しく長時間使える |
-| surface | `#FFFFFF` | カード・モーダルの背景 |
-| text-primary | `#37352F` | Notion の warm charcoal。黒すぎず読みやすい |
-| text-secondary | `#717171` | Airbnb の muted。補足情報・ラベル |
-| accent | `#5B8DEF` | 希望・前進を感じるブルー。Amie のブルーを少し柔らかく |
-| accent-hover | `#4A7BE0` | accent の hover 状態 |
-| success | `#34C759` | ステージ通過・タスク完了 |
-| warning | `#FF9500` | 締切が近い |
-| danger | `#FF3B30` | 締切超過・お見送り |
-| border | `#E8E6E1` | Notion 系の暖かいボーダー |
-
-### Dark Theme (パワーユーザー向け)
-
-| Token | Hex | 出典・意図 |
-|-------|-----|-----------|
-| background | `#1A1A2E` | Linear の deep background |
-| surface | `#232338` | カード背景 |
-| text-primary | `#F7F7F8` | Linear |
-| text-secondary | `#A1A1AA` | |
-| accent | `#7B9EF7` | Light の accent を明度上げ |
-| border | `#2E2E45` | |
+| cream | `#FBF8F1` | LP とアプリ共通の暖かいキャンバス |
+| cream-2 | `#F6EFD8` | 控えめな面・選択背景 |
+| surface | `#FFFFFF` | カード・フォーム・リスト行 |
+| ink | `#2B2A26` | 見出し・主文 |
+| ink-2 | `#5C5A52` | 補足文・サブ情報 |
+| ink-3 | `#8F8D82` | メタ情報・非強調ラベル |
+| line | `#E6E1D3` | 境界線 |
+| sage | `#4F6E58` | 主CTA・選択状態・コア導線 |
+| sage-soft | `#E5ECDE` | 主CTA以外の強調背景 |
+| sage-wash | `#F0F3E8` | セクション/アイコン背景 |
 
 ## Typography
 
 ### フォントスタック
 
 ```css
-/* UI全般 — Inter をベースに日本語フォールバック */
---font-sans: 'Inter', 'Noto Sans JP', 'Hiragino Kaku Gothic ProN',
-             'Yu Gothic', sans-serif;
+/* UI全般 */
+--font-sans: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', system-ui, sans-serif;
 
-/* 数値・ID・ショートカット表示 */
---font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+/* 見出し */
+--font-serif: 'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+
+/* 数値・ID表示 */
+--font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 ```
 
 ### サイズスケール
@@ -87,30 +80,29 @@ references: [notion.so, attio.com, amie.so, todoist.com, linear.app]
 
 | Token | Value | 用途 |
 |-------|-------|------|
-| sm | 4px | バッジ・タグ |
-| md | 8px | カード・入力フィールド |
-| lg | 12px | モーダル・ドロップダウン |
-| xl | 16px | 大きなカード |
+| sm | 8px | バッジ・タグ |
+| md | 12px | カード・入力フィールド |
+| lg | 16px | モーダル・ドロップダウン |
+| xl | 20px | 大きなカード |
 | full | 9999px | ピル型ボタン・検索バー（← Airbnb） |
 
 ## Shadows
 
 ```css
---shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
---shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);   /* カード hover */
---shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);   /* モーダル */
+--shadow-soft: 0 6px 18px -8px rgba(43, 42, 38, 0.12);
+--shadow-card: 0 4px 12px -4px rgba(43, 42, 38, 0.08);
+--shadow-fab: 0 10px 24px rgba(79, 110, 88, 0.4);
 ```
 
 ## Animation Guidelines
 
-**原則: 毎日使うところは速く、節目だけ感動させる**
+**原則: 毎日使うところは速く、装飾はコア理解を邪魔しない**
 
 ### 使う場面（← Amie, Todoist）
 | 場面 | 種類 | Duration | Easing |
 |------|------|----------|--------|
 | ステージ変更 | カード移動 | 300ms | ease-out |
 | タスク完了 | チェック + フェードアウト | 250ms | ease-in-out |
-| 内定獲得 | confetti / celebration | 1000ms | — |
 | ドラッグ&ドロップ | スムーズ追従 | 150ms | linear |
 
 ### 使わない場面（← Linear）
@@ -142,31 +134,43 @@ references: [notion.so, attio.com, amie.so, todoist.com, linear.app]
 - インラインでステータス変更
 - 行 hover で quick actions 表示
 
+### アプリナビゲーション
+- Desktop: Home / Entry / カンバン / タスク / 保存箱を左サイドバーに固定
+- Mobile: Home / Entry / ボード / タスク / 保存の5タブに絞る
+- Profile はアカウント確認とログアウトだけを置き、設定機能のように見せない
+- Roadmap はコア導線から外し、認証後は Home に戻す
+
 ### ダッシュボード
-- 「今日やること」が最上部
-- 締切が近いタスクのハイライト（warning カラー）
-- 選考状況のサマリー（ファネル or 数値）
+- 最上部は次の行動を1つだけ示す
+- 続けて今日のタスクを表示する
+- Entry / 保存箱 / タスクへのCTAは、状況に応じて1つに絞る
+- ステータス円グラフ、励ましカード、ロードマップ導線など別機能に見える要素は置かない
 
 ## CSS Variables (まとめ)
 
 ```css
 :root {
   /* Colors — Light */
-  --color-bg: #f7f6f3;
+  --color-cream: #fbf8f1;
+  --color-cream-2: #f6efd8;
   --color-surface: #ffffff;
-  --color-text: #37352f;
-  --color-text-muted: #717171;
-  --color-accent: #5b8def;
-  --color-accent-hover: #4a7be0;
-  --color-success: #34c759;
-  --color-warning: #ff9500;
-  --color-danger: #ff3b30;
-  --color-border: #e8e6e1;
+  --color-ink: #2b2a26;
+  --color-ink-2: #5c5a52;
+  --color-ink-3: #8f8d82;
+  --color-line: #e6e1d3;
+  --color-sage: #4f6e58;
+  --color-sage-soft: #e5ecde;
+  --color-sage-wash: #f0f3e8;
+  --color-stage-entry: #c9cbb4;
+  --color-stage-doc: #a8c0da;
+  --color-stage-es: #d4ba82;
+  --color-stage-interview: #e9b9b0;
+  --color-stage-offer: #9bb58a;
 
   /* Typography */
-  --font-sans: 'Inter', 'Noto Sans JP', 'Hiragino Kaku Gothic ProN',
-               'Yu Gothic', sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+  --font-sans: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', system-ui, sans-serif;
+  --font-serif: 'Noto Serif JP', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
   /* Spacing (8px base) */
   --space-2xs: 4px;
@@ -179,16 +183,15 @@ references: [notion.so, attio.com, amie.so, todoist.com, linear.app]
   --space-3xl: 64px;
 
   /* Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-full: 9999px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
 
   /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
+  --shadow-soft: 0 6px 18px -8px rgba(43, 42, 38, 0.12);
+  --shadow-card: 0 4px 12px -4px rgba(43, 42, 38, 0.08);
+  --shadow-fab: 0 10px 24px rgba(79, 110, 88, 0.4);
 
   /* Transitions */
   --transition-fast: 150ms ease-out;
@@ -196,15 +199,5 @@ references: [notion.so, attio.com, amie.so, todoist.com, linear.app]
   --transition-slow: 400ms ease-out;
 }
 
-[data-theme="dark"] {
-  --color-bg: #1a1a2e;
-  --color-surface: #232338;
-  --color-text: #f7f7f8;
-  --color-text-muted: #a1a1aa;
-  --color-accent: #7b9ef7;
-  --color-border: #2e2e45;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.4);
-}
+/* Dark theme tokens are not active in the current beta UI. */
 ```

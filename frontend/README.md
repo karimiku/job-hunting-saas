@@ -1,6 +1,18 @@
 # Entré Frontend
 
-Next.js 16（App Router / SSR / Server Actions）の Web フロントエンド。Firebase で Google ログインし、Entry / Kanban / Inbox / Task / Dashboard を提供する。backend が OpenAPI で公開する型に合わせて API を呼ぶ。
+Next.js 16（App Router / SSR / Server Actions）の Web フロントエンド。Firebase で Google ログインし、ホーム / Entry / カンバン / タスク / 保存箱を提供する。backend が OpenAPI で公開する型に合わせて API を呼ぶ。
+
+## コア画面
+
+- `/dashboard`: 次の行動と今日のタスクを確認するホーム
+- `/entry`: 応募先を Entry 単位で一覧・追加する
+- `/entry/[entryId]`: Entry のステージ、メモ、タスクを確認する
+- `/kanban`: Entry を選考ステージ別に俯瞰するカンバン
+- `/task`: Entry に紐づく締切・予定を追加/完了する
+- `/inbox`: 保存した求人を Entry に変換する保存箱
+- `/profile`: アカウント情報とログアウト
+
+`/roadmap` はコア導線から外しており、認証後は `/dashboard` に戻す。
 
 ## セットアップ
 

@@ -5,15 +5,15 @@ Created: 2026-05-28
 
 ## Goal
 
-Beta release means the Chrome extension is usable as the main entry point:
+Beta release means the simplified web core workflow is usable end to end:
 
 1. A user signs in with Google on the web app.
-2. The user saves a recruiting page from the Chrome extension.
+2. The user has a saved recruiting page in the web Inbox.
 3. The clip is persisted in PostgreSQL with the signed-in user.
 4. The clip appears in the web Inbox.
-5. The user turns the clip into an Entry and can manage it in Entry/Kanban/detail views.
+5. The user turns the clip into an Entry and can manage it in Entry/Kanban/Task views.
 
-This plan intentionally does not include a public Chrome Web Store release or full MVP-1 scope such as email notifications, data export, or account deletion. Those remain formal-release work.
+The Chrome extension remains an optional input accelerator for beta sign-off, not the main product surface. This plan intentionally does not include a public Chrome Web Store release or full formal-release scope such as email notifications, data export, account deletion, roadmap, Gmail, or Calendar integrations.
 
 ## Current State
 
@@ -24,6 +24,7 @@ Confirmed working:
 - `/inbox` can display persisted clips for the logged-in user.
 - Core backend CRUD exists for Company, Entry, Task, StageHistory, InboxClip.
 - Chrome extension popup can save to the Inbox API.
+- The authenticated app shell now focuses on Home, Entry, Kanban, Task, and Inbox.
 
 Quality pass completed in the current branch:
 
@@ -37,11 +38,11 @@ Quality pass completed in the current branch:
 - Task page can now create deadline/schedule tasks directly by selecting an Entry.
 - Task page now sorts tasks by actionable order and can delete tasks without leaving the page.
 - Entry detail can now create, complete, and delete tasks in the company context.
+- Dashboard, Sidebar, Profile, and Roadmap have been simplified so non-core surfaces no longer compete with Entry/Kanban/Task/Inbox.
 
 Known gaps:
 
-- Authenticated browser E2E still does not cover the full extension-save-to-entry-management flow.
-- Profile settings are read-only and still lack notification/calendar persistence.
+- Authenticated browser E2E covers the web core flow with a mock API, but not the real Chrome extension/Firebase/PostgreSQL combination.
 - Task editing still requires deeper per-task controls; Task creation/completion/deletion now works from Task page and Entry detail.
 - New-company Entry creation still creates Company then Entry via two API calls; backend transaction/dedicated conversion endpoint remains issue #62.
 - Extension extraction is still client-side heuristic extraction and can miss company names on unsupported page layouts.
@@ -54,7 +55,8 @@ Known gaps:
 
 - Inbox clip to Entry workflow.
 - Real-data web views for the beta path.
-- Extension save reliability and clear user-facing error states.
+- Home / Entry / Kanban / Task / Inbox as the only core app surfaces.
+- Extension save reliability and clear user-facing error states as optional input support.
 - Environment documentation for Firebase, CORS, Cookie, and extension ID.
 - Release-gate tests and CI coverage for backend, frontend, and extension.
 
@@ -63,6 +65,8 @@ Known gaps:
 - Email notifications.
 - CSV export.
 - Account deletion and full data purge.
+- Roadmap and long-term planning views.
+- Gmail / Google Calendar integrations.
 - Chrome Web Store public listing.
 - Privacy policy/store assets.
 - Advanced duplicate merge and company alias management.

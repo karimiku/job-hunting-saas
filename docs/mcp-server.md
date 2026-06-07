@@ -5,7 +5,7 @@ job-hunting-saas は stdio MCP server を提供し、Claude Desktop / Codex / Ge
 
 ## 想定ユースケース
 
-- Chrome拡張で保存した求人ページをAIが `inbox://clips` から読み取り、Entry化や調査タスク作成の候補を作る
+- 保存箱に入った求人ページをAIが `inbox://clips` から読み取り、Entry化や調査タスク作成の候補を作る
 - Entry一覧・未完了Task・応募先詳細をAIが引いて、今日やるべき締切や面接準備を整理する
 - メール本文を `capture_job_email` に渡して、面接日程・提出締切・持ち物などをTask候補として構造化する
 - 自己PR・ガクチカ・面接で出た話を `append_es_memo` でESメモとして蓄積する
@@ -50,7 +50,7 @@ make mcp-server
 | `entries://list` | 応募先一覧 |
 | `entries://{entryId}` | 応募先1件と紐づくTask |
 | `tasks://open` | 未完了Task一覧 |
-| `inbox://clips` | Chrome拡張などで保存したInbox clip一覧 |
+| `inbox://clips` | 保存箱のInbox clip一覧 |
 
 ## Tools
 
