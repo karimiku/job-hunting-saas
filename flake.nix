@@ -77,6 +77,8 @@
             pkgs.gopls
             pkgs.gotools
 
+            pkgs.supabase-cli
+
             pkgs.docker-client
             pkgs.docker-compose
             pkgs.postgresql_16
