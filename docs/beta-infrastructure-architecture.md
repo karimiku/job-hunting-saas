@@ -482,6 +482,21 @@ Alert候補:
 - Cloud Run deploy failure
 - GCP budget alert
 
+## Cost Operation
+
+公開βでは自動停止よりも、まずBudget alertと人間による止血手順を優先する。
+
+初期予算:
+
+```text
+Monthly budget: 1000 JPY
+Thresholds: 50%, 80%, 100%, forecasted 100%
+```
+
+Budget alertは自動停止ではなく通知である。通知を受けたら、Cloud Runの公開停止、不要なArtifact Registry image削除、必要に応じたBilling unlinkの順で対応する。
+
+詳細な手順は [Operations Runbook](./operations-runbook.md) に記載する。
+
 ## Mail
 
 メール送信はResendを使う。
