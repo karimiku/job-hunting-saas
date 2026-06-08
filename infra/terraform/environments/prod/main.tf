@@ -17,6 +17,10 @@ module "backend" {
   enable_domain_mapping   = var.enable_domain_mapping
   backend_container_image = var.backend_container_image
 
+  enable_github_deploy_wif                             = var.enable_github_deploy_wif
+  github_actions_workload_identity_pool_id             = var.github_actions_workload_identity_pool_id
+  github_actions_workload_identity_pool_project_number = var.github_actions_workload_identity_pool_project_number
+
   database_url_secret_version = var.database_url_secret_version
 
   cors_allowed_origins = var.cors_allowed_origins

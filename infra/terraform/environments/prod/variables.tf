@@ -51,6 +51,24 @@ variable "database_url_secret_version" {
   default     = "1"
 }
 
+variable "enable_github_deploy_wif" {
+  description = "Whether to allow GitHub Actions to impersonate the deploy service account through the bootstrap WIF pool."
+  type        = bool
+  default     = true
+}
+
+variable "github_actions_workload_identity_pool_id" {
+  description = "Existing GitHub Actions Workload Identity Pool ID created by bootstrap."
+  type        = string
+  default     = "github-actions"
+}
+
+variable "github_actions_workload_identity_pool_project_number" {
+  description = "Project number that owns the GitHub Actions Workload Identity Pool. Empty means the current project."
+  type        = string
+  default     = ""
+}
+
 variable "cors_allowed_origins" {
   description = "Allowed CORS origins for cookie-bearing API requests."
   type        = list(string)

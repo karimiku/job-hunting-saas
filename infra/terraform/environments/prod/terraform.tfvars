@@ -7,8 +7,11 @@ backend_domain  = "api.entre.kamiriku.com"
 github_repository    = "karimiku/job-hunting-saas"
 github_repository_id = "1162289724"
 
-enable_backend_service = false
-enable_domain_mapping  = false
+enable_backend_service   = false
+enable_domain_mapping    = false
+enable_github_deploy_wif = true
+
+github_actions_workload_identity_pool_id = "github-actions"
 
 backend_container_image = "asia-northeast1-docker.pkg.dev/job-hunting-saas/entre/backend:bootstrap"
 

@@ -17,8 +17,3 @@ output "runtime_service_account_email" {
   description = "Cloud Run runtime service account email."
   value       = module.backend.runtime_service_account_email
 }
-
-output "workload_identity_provider_name" {
-  description = "Full Workload Identity provider resource name for google-github-actions/auth."
-  value       = module.backend.workload_identity_provider_name
-}

@@ -5,14 +5,14 @@ This directory manages the public beta Google Cloud infrastructure.
 Layout follows Google Cloud Terraform root module guidance:
 
 ```text
-bootstrap/              # one-time remote state bucket
+bootstrap/              # one-time remote state bucket and Terraform CI identity
 environments/prod/      # production root module
 modules/backend/        # reusable backend service module
 ```
 
 ## Bootstrap
 
-Create the GCS bucket used by the production remote state:
+Create the GCS bucket used by the production remote state, plus the GitHub OIDC/WIF identity used by Terraform CI:
 
 ```bash
 cd infra/terraform/bootstrap
@@ -20,7 +20,20 @@ terraform init
 terraform apply
 ```
 
-After the bucket exists, initialize the production environment:
+If this is the first Terraform run in the project and API enablement fails, enable the bootstrap APIs once with your own Google account:
+
+```bash
+gcloud services enable serviceusage.googleapis.com cloudresourcemanager.googleapis.com iam.googleapis.com --project=job-hunting-saas
+```
+
+After bootstrap is applied, set these GitHub repository variables from the bootstrap outputs:
+
+```text
+GCP_WORKLOAD_IDENTITY_PROVIDER = workload_identity_provider_name
+GCP_TERRAFORM_SERVICE_ACCOUNT  = terraform_service_account_email
+```
+
+Then initialize the production environment:
 
 ```bash
 cd ../environments/prod
@@ -42,7 +55,7 @@ Do not commit `DATABASE_URL`, API keys, service account JSON, tokens, or passwor
 
 ## Backend Service Creation
 
-The production environment starts with `enable_backend_service = false` so that the first apply can create APIs, Artifact Registry, service accounts, secrets, and Workload Identity Federation before a production container image and secret versions exist.
+The production environment starts with `enable_backend_service = false` so that the first apply can create APIs, Artifact Registry, service accounts, secrets, and deploy IAM before a production container image and secret versions exist.
 
 Once the backend image has been pushed and required secret versions exist, set:
 
@@ -64,7 +77,7 @@ terraform -chdir=infra/terraform/environments/prod init -backend=false
 terraform -chdir=infra/terraform/environments/prod validate
 ```
 
-Production plans require GCP authentication and are enabled after the initial bootstrap/prod apply creates Workload Identity Federation. Configure these GitHub repository variables:
+Production plans require GCP authentication and are enabled after bootstrap creates Workload Identity Federation and the Terraform service account. Configure these GitHub repository variables:
 
 ```text
 GCP_WORKLOAD_IDENTITY_PROVIDER
@@ -72,3 +85,11 @@ GCP_TERRAFORM_SERVICE_ACCOUNT
 ```
 
 The plan job is skipped until both variables exist. `terraform apply` remains manual.
+
+Use separate service accounts for separate responsibilities:
+
+```text
+github-terraform     # Terraform plan/apply and remote state access
+github-deploy        # Docker push and Cloud Run deploy
+entre-backend-runtime # Cloud Run runtime identity
+```

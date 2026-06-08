@@ -68,18 +68,6 @@ variable "github_repository_id" {
   type        = string
 }
 
-variable "workload_identity_pool_id" {
-  description = "Workload Identity Pool ID for GitHub Actions."
-  type        = string
-  default     = "github-actions"
-}
-
-variable "workload_identity_provider_id" {
-  description = "Workload Identity Pool Provider ID for GitHub Actions."
-  type        = string
-  default     = "github"
-}
-
 variable "secret_ids" {
   description = "Secret Manager secret IDs used by the backend."
   type        = set(string)
@@ -116,6 +104,24 @@ variable "enable_public_invoker" {
   description = "Whether to allow unauthenticated HTTP invocation of the Cloud Run service."
   type        = bool
   default     = true
+}
+
+variable "enable_github_deploy_wif" {
+  description = "Whether to allow GitHub Actions to impersonate the deploy service account through the bootstrap WIF pool."
+  type        = bool
+  default     = true
+}
+
+variable "github_actions_workload_identity_pool_id" {
+  description = "Existing GitHub Actions Workload Identity Pool ID created by bootstrap."
+  type        = string
+  default     = "github-actions"
+}
+
+variable "github_actions_workload_identity_pool_project_number" {
+  description = "Project number that owns the GitHub Actions Workload Identity Pool. Empty means the current project."
+  type        = string
+  default     = ""
 }
 
 variable "backend_container_image" {

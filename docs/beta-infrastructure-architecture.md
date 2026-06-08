@@ -43,6 +43,8 @@ flowchart TD
   Logging["Cloud Logging / Monitoring"]
   GitHub["GitHub Actions"]
   WIF["Workload Identity Federation"]
+  TerraformSA["github-terraform SA"]
+  DeploySA["github-deploy SA"]
 
   User --> Vercel
   User --> Firebase
@@ -54,8 +56,12 @@ flowchart TD
   CloudRun --> SecretManager
   CloudRun --> Logging
   GitHub --> WIF
-  WIF --> ArtifactRegistry
-  WIF --> CloudRun
+  WIF --> TerraformSA
+  WIF --> DeploySA
+  TerraformSA --> ArtifactRegistry
+  TerraformSA --> CloudRun
+  DeploySA --> ArtifactRegistry
+  DeploySA --> CloudRun
 ```
 
 ## Frontend
@@ -406,6 +412,7 @@ Service Accountは役割ごとに分ける。
 ```text
 sa-cloudrun-backend-runtime
 sa-cloudrun-migrator
+sa-github-terraform
 sa-github-deploy
 ```
 
@@ -420,12 +427,19 @@ sa-github-deploy
 - Migration用DATABASE_URLを読める
 - Migration Job実行に必要な権限を持つ
 
+`sa-github-terraform`:
+
+- Terraform plan/applyを実行する
+- tfstate用GCS bucketを読める/書ける
+- GCPリソース作成・IAM変更・API有効化に必要な権限を持つ
+- アプリデプロイ用workflowからは使わない
+
 `sa-github-deploy`:
 
 - Artifact Registryへpushできる
 - Cloud Runへdeployできる
 - runtime service accountをactAsできる
-- Terraform planに必要なread権限を持つ
+- Terraform plan/apply用の強い権限は持たない
 
 ## Logging / Monitoring
 
@@ -554,12 +568,11 @@ GCP内Private IPやIAM統合は強いが、固定費が高い。
 
 Terraform:
 
-- Artifact Registry
-- Cloud Run service
-- Secret Manager secrets
-- Cloud Run service accounts
-- Workload Identity Federation
-- IAM bindings
+- bootstrap apply
+- GitHub repo variables設定
+- prod plan / apply
+- Cloud Run service有効化
+- Cloud Run domain mapping有効化
 - Cloud Logging / Monitoring alert
 - Budget alert
 

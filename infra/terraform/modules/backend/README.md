@@ -7,7 +7,7 @@ Creates the Google Cloud resources for the public beta backend:
 - Secret Manager secrets
 - Cloud Run runtime service account
 - GitHub Actions deploy service account
-- Workload Identity Federation for GitHub Actions
+- optional deploy service account impersonation through the bootstrap WIF pool
 - Optional Cloud Run backend service
 - Optional Cloud Run domain mapping
 
