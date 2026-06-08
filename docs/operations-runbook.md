@@ -20,6 +20,7 @@ Google Cloud Budget alertを設定する。Budget alert自体は通知のため�
 ```text
 Billing account: 01F9CE-57B873-BD64C4
 Project: job-hunting-saas
+Budget ID: 564f8a79-6c1b-4bc8-afd8-0bc58f4bf1cb
 Monthly budget: 1000 JPY
 Alert thresholds:
   - 50%
@@ -46,6 +47,9 @@ gcloud billing budgets create \
 確認:
 
 ```bash
+gcloud billing budgets describe 564f8a79-6c1b-4bc8-afd8-0bc58f4bf1cb \
+  --billing-account=01F9CE-57B873-BD64C4
+
 gcloud billing budgets list \
   --billing-account=01F9CE-57B873-BD64C4
 ```
