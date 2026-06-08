@@ -150,11 +150,6 @@ resource "google_cloud_run_v2_service" "backend" {
       }
 
       env {
-        name  = "PORT"
-        value = tostring(var.container_port)
-      }
-
-      env {
         name  = "FIREBASE_PROJECT_ID"
         value = var.project_id
       }
@@ -199,17 +194,18 @@ resource "google_cloud_run_v2_service" "backend" {
 
   lifecycle {
     ignore_changes = [
+      scaling,
       template[0].containers[0].image,
     ]
   }
 }
 
-resource "google_cloud_run_service_iam_binding" "public_invoker" {
+resource "google_cloud_run_v2_service_iam_binding" "public_invoker" {
   count = var.enable_backend_service && var.enable_public_invoker ? 1 : 0
 
   project  = var.project_id
   location = google_cloud_run_v2_service.backend[0].location
-  service  = google_cloud_run_v2_service.backend[0].name
+  name     = google_cloud_run_v2_service.backend[0].name
   role     = "roles/run.invoker"
   members  = ["allUsers"]
 }
