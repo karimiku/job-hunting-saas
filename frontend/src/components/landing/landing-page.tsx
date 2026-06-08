@@ -6,11 +6,11 @@ import { useEffect } from "react";
 import type { CSSProperties } from "react";
 
 const productShots = {
-  dashboard: "/marketing/desktop-dashboard.png",
-  entry: "/marketing/desktop-entry.png",
-  kanban: "/marketing/desktop-kanban.png",
-  mobileEntry: "/marketing/mobile-entry.png",
-  mobileKanban: "/marketing/mobile-kanban.png",
+  dashboard: { src: "/marketing/desktop-dashboard.png", width: 2880, height: 2048 },
+  entry: { src: "/marketing/desktop-entry.png", width: 2880, height: 2048 },
+  kanban: { src: "/marketing/desktop-kanban.png", width: 2880, height: 2048 },
+  mobileEntry: { src: "/marketing/mobile-entry.png", width: 1170, height: 2532 },
+  mobileKanban: { src: "/marketing/mobile-kanban.png", width: 1170, height: 2532 },
 };
 
 export function LandingPage() {
@@ -103,20 +103,20 @@ function Hero() {
 
       <div className="lp-simple-hero-visual">
         <Image
-          src={productShots.dashboard}
+          src={productShots.dashboard.src}
           alt="Entré のホーム画面。保存箱から Entry に変換する次の行動と今日のタスクを表示している。"
-          width={1920}
-          height={1440}
+          width={productShots.dashboard.width}
+          height={productShots.dashboard.height}
           priority
           unoptimized
           className="lp-simple-dashboard-shot"
         />
         <div className="lp-simple-mobile-float" aria-hidden>
           <Image
-            src={productShots.mobileEntry}
+            src={productShots.mobileEntry.src}
             alt=""
-            width={1920}
-            height={1440}
+            width={productShots.mobileEntry.width}
+            height={productShots.mobileEntry.height}
             priority
             unoptimized
             className="lp-simple-mobile-shot"
@@ -208,9 +208,9 @@ function ScreenFeature({
   eyebrow: string;
   title: string;
   body: string;
-  image: string;
+  image: { src: string; width: number; height: number };
   alt: string;
-  mobileImage?: string;
+  mobileImage?: { src: string; width: number; height: number };
   reverse?: boolean;
 }) {
   return (
@@ -222,20 +222,20 @@ function ScreenFeature({
       </div>
       <div className="lp-simple-screen-shot lp-reveal" style={{ "--lp-reveal-i": 1 } as CSSProperties}>
         <Image
-          src={image}
+          src={image.src}
           alt={alt}
-          width={1920}
-          height={1440}
+          width={image.width}
+          height={image.height}
           priority
           unoptimized
           className="lp-simple-product-shot"
         />
         {mobileImage ? (
           <Image
-            src={mobileImage}
+            src={mobileImage.src}
             alt=""
-            width={1920}
-            height={1440}
+            width={mobileImage.width}
+            height={mobileImage.height}
             priority
             unoptimized
             className="lp-simple-screen-mobile"
