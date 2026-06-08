@@ -68,14 +68,14 @@ jobs:
       # We must not let continue-on-error swallow the error range, so the scan step always
       # continues and we classify the outcome explicitly in the next step instead.
       - id: scan
-        uses: google/osv-scanner-action/osv-scanner-action@e69cc6c86b31f1e7e23935bbe7031b50e51082de # v2.0.2
+        uses: google/osv-scanner-action/osv-scanner-action@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
         continue-on-error: true
         with:
           scan-args: |-
+            scan source
             --recursive
-            --skip-git
             --format=sarif
-            --output=osv-results.sarif
+            --output-file=osv-results.sarif
             ./
       - name: Classify scan outcome
         env:
@@ -94,13 +94,13 @@ jobs:
           fi
           # SARIF exists but the step "failed": vulnerabilities/findings were reported.
           if [ "$IS_PR" = "true" ]; then
-            echo "::warning::osv-scanner found vulnerabilities. Non-blocking on pull requests; see the Security tab / SARIF for details."
+            echo "::warning::osv-scanner found vulnerabilities. Non-blocking on pull requests; SARIF upload runs outside pull_request events."
           else
             echo "::error::osv-scanner found vulnerabilities."
             exit 1
           fi
       - uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
-        if: always() && hashFiles('osv-results.sarif') != ''
+        if: always() && github.event_name != 'pull_request' && hashFiles('osv-results.sarif') != ''
         with:
           sarif_file: osv-results.sarif
 
