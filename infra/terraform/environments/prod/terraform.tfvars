@@ -8,7 +8,7 @@ github_repository    = "karimiku/job-hunting-saas"
 github_repository_id = "1162289724"
 
 enable_backend_service   = true
-enable_domain_mapping    = false
+enable_domain_mapping    = true
 enable_github_deploy_wif = true
 
 github_actions_workload_identity_pool_id = "github-actions"
