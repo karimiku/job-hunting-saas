@@ -121,6 +121,7 @@ func run() error {
 			return err
 		}
 		authHandler = handler.NewAuthHandler(sessionCreator, authenticateUC, userRepo, handler.AuthConfig{
+			CookieDomain:   os.Getenv("COOKIE_DOMAIN"),
 			CookieSecure:   os.Getenv("COOKIE_SECURE") == "true",
 			CookieSameSite: cookieSameSite,
 		})
@@ -246,8 +247,8 @@ func parseCookieSameSite(raw string) (http.SameSite, error) {
 // 受け取るのはカンマ区切りの allowlist。空なら http://localhost:3000 のみ。
 //
 // Chrome 拡張から呼びたい場合は `chrome-extension://<extension-id>` を allowlist に追加する。
-// 拡張 origin から Cookie を送る本番 HTTPS 環境では COOKIE_SAME_SITE=none と
-// COOKIE_SECURE=true をセットする。
+// 拡張の popup/background から host_permissions 付きで呼ぶ場合は SameSite=Strict の
+// session cookie 共有を検証する。動かない場合は拡張専用 token 方式に切り替える。
 func corsMiddleware(allowedOriginsRaw string) func(http.Handler) http.Handler {
 	if allowedOriginsRaw == "" {
 		allowedOriginsRaw = "http://localhost:3000"

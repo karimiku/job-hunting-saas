@@ -25,3 +25,10 @@ entre-*.png
 
 # 面接対策メモ（個人用、push 厳禁）
 /interview-prep/
+
+# Terraform local state/cache
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfplan

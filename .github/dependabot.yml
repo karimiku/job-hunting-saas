@@ -46,3 +46,15 @@ updates:
     schedule:
       interval: weekly
     labels: [dependencies, docker]
+
+  - package-ecosystem: terraform
+    directory: /infra/terraform/bootstrap
+    schedule:
+      interval: weekly
+    labels: [dependencies, terraform]
+
+  - package-ecosystem: terraform
+    directory: /infra/terraform/environments/prod
+    schedule:
+      interval: weekly
+    labels: [dependencies, terraform]
