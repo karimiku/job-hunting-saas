@@ -7,7 +7,7 @@ backend_domain  = "api.entre.kamiriku.com"
 github_repository    = "karimiku/job-hunting-saas"
 github_repository_id = "1162289724"
 
-enable_backend_service   = false
+enable_backend_service   = true
 enable_domain_mapping    = false
 enable_github_deploy_wif = true
 
