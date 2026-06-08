@@ -32,3 +32,6 @@ entre-*.png
 *.tfstate.*
 crash.log
 *.tfplan
+
+# Supabase CLI local project metadata
+supabase/.temp/

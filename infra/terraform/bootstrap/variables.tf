@@ -67,7 +67,6 @@ variable "terraform_project_roles" {
   default = [
     "roles/artifactregistry.admin",
     "roles/iam.serviceAccountAdmin",
-    "roles/iam.serviceAccountIamAdmin",
     "roles/iam.serviceAccountUser",
     "roles/resourcemanager.projectIamAdmin",
     "roles/run.admin",
