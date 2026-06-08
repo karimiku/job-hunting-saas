@@ -68,7 +68,7 @@ jobs:
       # We must not let continue-on-error swallow the error range, so the scan step always
       # continues and we classify the outcome explicitly in the next step instead.
       - id: scan
-        uses: google/osv-scanner-action/osv-scanner-action@e69cc6c86b31f1e7e23935bbe7031b50e51082de # v2.0.2
+        uses: google/osv-scanner-action/osv-scanner-action@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
         continue-on-error: true
         with:
           scan-args: |-
