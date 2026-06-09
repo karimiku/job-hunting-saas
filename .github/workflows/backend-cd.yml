@@ -3,6 +3,10 @@ name: Backend CD
 on:
   workflow_dispatch:
     inputs:
+      confirm_production_deploy:
+        description: "Type deploy-production to confirm the production deploy."
+        required: true
+        type: string
       image_tag:
         description: "Artifact Registry image tag. Defaults to the selected commit SHA."
         required: false
@@ -36,6 +40,10 @@ jobs:
           set -euo pipefail
           if [ "$GITHUB_REF" != "refs/heads/main" ]; then
             echo "::error::Production backend deploys must run from main. Current ref: $GITHUB_REF"
+            exit 1
+          fi
+          if [ "${{ inputs.confirm_production_deploy }}" != "deploy-production" ]; then
+            echo "::error::Type deploy-production in confirm_production_deploy to run a production backend deploy."
             exit 1
           fi
 
