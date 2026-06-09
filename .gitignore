@@ -35,3 +35,4 @@ crash.log
 
 # Supabase CLI local project metadata
 supabase/.temp/
+.vercel

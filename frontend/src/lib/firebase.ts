@@ -18,6 +18,10 @@ const firebaseConfig = {
 let cachedApp: FirebaseApp | null = null;
 let cachedAuth: Auth | null = null;
 
+export function hasFirebaseClientConfig(): boolean {
+  return Object.values(firebaseConfig).every(Boolean);
+}
+
 export function getFirebaseAuth(): Auth {
   if (cachedAuth) return cachedAuth;
   cachedApp = getApps().length ? getApp() : initializeApp(firebaseConfig);

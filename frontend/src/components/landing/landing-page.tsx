@@ -107,8 +107,9 @@ function Hero() {
           alt="Entré のホーム画面。保存箱から Entry に変換する次の行動と今日のタスクを表示している。"
           width={productShots.dashboard.width}
           height={productShots.dashboard.height}
-          priority
-          unoptimized
+          loading="eager"
+          fetchPriority="high"
+          sizes="(max-width: 900px) calc(100vw - 40px), 1116px"
           className="lp-simple-dashboard-shot"
         />
         <div className="lp-simple-mobile-float" aria-hidden>
@@ -117,8 +118,8 @@ function Hero() {
             alt=""
             width={productShots.mobileEntry.width}
             height={productShots.mobileEntry.height}
-            priority
-            unoptimized
+            loading="eager"
+            sizes="(max-width: 560px) 58vw, (max-width: 900px) 48vw, 360px"
             className="lp-simple-mobile-shot"
           />
         </div>
@@ -226,8 +227,7 @@ function ScreenFeature({
           alt={alt}
           width={image.width}
           height={image.height}
-          priority
-          unoptimized
+          sizes="(max-width: 900px) calc(100vw - 40px), 62vw"
           className="lp-simple-product-shot"
         />
         {mobileImage ? (
@@ -236,8 +236,7 @@ function ScreenFeature({
             alt=""
             width={mobileImage.width}
             height={mobileImage.height}
-            priority
-            unoptimized
+            sizes="(max-width: 560px) 50vw, (max-width: 900px) 42vw, 270px"
             className="lp-simple-screen-mobile"
             aria-hidden
           />
@@ -263,7 +262,13 @@ function FinalCTASection() {
 }
 
 function Footer() {
-  return <footer className="lp-footer">© 2026 Entré</footer>;
+  return (
+    <footer className="lp-footer">
+      <span>© 2026 Entré</span>
+      <Link href="/terms">利用規約</Link>
+      <Link href="/privacy">プライバシーポリシー</Link>
+    </footer>
+  );
 }
 
 function GoogleG() {
