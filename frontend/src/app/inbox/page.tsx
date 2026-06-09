@@ -5,9 +5,11 @@
 import { redirect } from "next/navigation";
 import { getCurrentUserServer } from "@/lib/auth-server";
 import {
+  buildNavCounts,
   listInboxClipsServer,
-  getNavCountsServer,
   listCompaniesServer,
+  listEntriesServer,
+  listTasksServer,
 } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { InboxList } from "@/components/entre/InboxList";
@@ -16,11 +18,13 @@ export default async function InboxPage() {
   const user = await getCurrentUserServer();
   if (!user) redirect("/login");
 
-  const [clips, navCounts, companies] = await Promise.all([
+  const [clips, companies, entries, tasks] = await Promise.all([
     listInboxClipsServer(),
-    getNavCountsServer(),
     listCompaniesServer().catch(() => []),
+    listEntriesServer().catch(() => []),
+    listTasksServer().catch(() => []),
   ]);
+  const navCounts = buildNavCounts(entries, tasks, clips);
 
   return (
     <AppShell userName={user.name} userSubtitle={user.email} navCounts={navCounts}>

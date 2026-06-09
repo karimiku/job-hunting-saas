@@ -5,9 +5,10 @@ import { redirect } from "next/navigation";
 import { getCurrentUserServer } from "@/lib/auth-server";
 import {
   attachCompanyNamesToTasks,
+  buildNavCounts,
   listEntriesWithCompanyNamesServer,
+  listInboxClipsServer,
   listTasksServer,
-  getNavCountsServer,
 } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { DashboardQuests } from "@/components/entre/DashboardQuests";
@@ -15,16 +16,17 @@ import { DashboardNextAction } from "@/components/entre/DashboardNextAction";
 import { SignOutButton } from "@/components/entre/SignOutButton";
 
 export default async function DashboardPage() {
-  // user / entries / tasks / navCounts は独立なので並列取得 (cookies() は内部で memoize される)
-  const [user, entries, rawTasks, navCounts] = await Promise.all([
+  // user / entries / tasks / inbox は独立なので並列取得 (cookies() は内部で memoize される)
+  const [user, entries, rawTasks, clips] = await Promise.all([
     getCurrentUserServer(),
     listEntriesWithCompanyNamesServer().catch(() => []),
     listTasksServer().catch(() => []),
-    getNavCountsServer(),
+    listInboxClipsServer().catch(() => []),
   ]);
   if (!user) redirect("/login");
 
   const tasks = attachCompanyNamesToTasks(rawTasks, entries);
+  const navCounts = buildNavCounts(entries, rawTasks, clips);
 
   const firstName = user.name.split(/[\s　]/)[0] || user.name;
   const openTasks = tasks.filter((t) => t.status === "todo").length;
