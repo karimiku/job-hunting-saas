@@ -2,6 +2,8 @@
 
 本ドキュメントは、各技術選定の「なぜ？」をこのプロジェクト固有の理由で整理したものである。
 
+パフォーマンス改善の実測ログは [Performance Optimization Log](./performance-optimization-log.md) に記録する。
+
 ---
 
 ## 1. Go
