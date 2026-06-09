@@ -399,6 +399,25 @@ paths:
                 required:
                   - stageHistories
 
+  /api/v1/tasks:
+    get:
+      operationId: listAllTasks
+      summary: ログインユーザーの全タスク一覧を取得する
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TaskResponse"
+                required:
+                  - tasks
+
   /api/v1/tasks/{taskId}:
     parameters:
       - $ref: "#/components/parameters/TaskId"

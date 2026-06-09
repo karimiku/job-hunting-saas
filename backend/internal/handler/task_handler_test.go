@@ -27,6 +27,7 @@ func setupTaskHandler() (*TaskHandler, *inmemory.TaskRepository, *inmemory.Entry
 		taskuc.NewCreate(taskRepo, entryRepo),
 		taskuc.NewGet(taskRepo),
 		taskuc.NewList(taskRepo),
+		taskuc.NewListAll(taskRepo),
 		taskuc.NewUpdate(taskRepo),
 		taskuc.NewDelete(taskRepo),
 	)
@@ -343,6 +344,61 @@ func TestListTasks_EntryNotFound(t *testing.T) {
 
 	if w.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want 404", w.Code)
+	}
+}
+
+// --- ListAllTasks ---
+
+func TestListAllTasks_Success_OnlyOwnTasks(t *testing.T) {
+	h, taskRepo, entryRepo, companyRepo := setupTaskHandler()
+	userID := entity.NewUserID()
+	ownTask, _ := seedTask(t, taskRepo, entryRepo, companyRepo, userID)
+	otherUserID := entity.NewUserID()
+	_, _ = seedTask(t, taskRepo, entryRepo, companyRepo, otherUserID)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req = req.WithContext(middleware.SetUserID(req.Context(), userID))
+	w := httptest.NewRecorder()
+
+	h.ListAllTasks(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	var resp struct {
+		Tasks []openapi.TaskResponse `json:"tasks"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(resp.Tasks) != 1 {
+		t.Fatalf("len = %d, want 1", len(resp.Tasks))
+	}
+	if resp.Tasks[0].Id != openapi.TaskId(ownTask.ID()) {
+		t.Errorf("task id = %v, want %v", resp.Tasks[0].Id, ownTask.ID())
+	}
+}
+
+func TestListAllTasks_Empty(t *testing.T) {
+	h, _, _, _ := setupTaskHandler()
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req = req.WithContext(middleware.SetUserID(req.Context(), entity.NewUserID()))
+	w := httptest.NewRecorder()
+
+	h.ListAllTasks(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	var resp struct {
+		Tasks []openapi.TaskResponse `json:"tasks"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(resp.Tasks) != 0 {
+		t.Fatalf("len = %d, want 0", len(resp.Tasks))
 	}
 }
 

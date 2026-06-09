@@ -1,5 +1,5 @@
 // Server Component。実タスクから今日のタスクリストを組み立てる。
-// タスクは entry 単位の API しか無いため、page 側で集約した TaskWithEntry[] を受け取る。
+// page 側で取得した TaskWithEntry[] を受け取る。
 // useEffect は使わない（純粋な集計 + 表示のみ）。
 
 import Link from "next/link";

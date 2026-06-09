@@ -69,11 +69,11 @@ test.describe("Beta core flow — 保存箱からEntry/Kanban/Task管理", () =>
     await expect(page.getByText("タスクを追加しました。")).toBeVisible();
     await expect(page.getByText(taskTitle)).toBeVisible();
 
-    const completeButton = page.getByRole("button", {
+    const taskRow = page.getByRole("listitem").filter({ hasText: taskTitle });
+    const completeButton = taskRow.getByRole("button", {
       name: "タスク完了にする",
     });
     await completeButton.click();
-    const taskRow = page.getByRole("listitem").filter({ hasText: taskTitle });
     await expect(
       taskRow.getByRole("button", { name: "タスク未完了に戻す" }),
     ).toHaveAttribute("aria-pressed", "true");

@@ -13,18 +13,12 @@ beforeEach(() => {
 });
 
 describe("listAllTasksServer", () => {
-  it("渡された entry ごとに tasks を引き、会社名付きで集約する", async () => {
+  it("全タスクAPIを1回だけ呼び、会社名付きで返す", async () => {
     serverFetch.mockImplementation(async (path: string) => {
-      if (path === "/api/v1/entries/e1/tasks") {
+      if (path === "/api/v1/tasks") {
         return {
           tasks: [
             { id: "t1", entryId: "e1", title: "ES提出", type: "deadline", status: "todo", dueDate: null, memo: "", createdAt: "x", updatedAt: "x" },
-          ],
-        };
-      }
-      if (path === "/api/v1/entries/e2/tasks") {
-        return {
-          tasks: [
             { id: "t2", entryId: "e2", title: "SPI受験", type: "schedule", status: "done", dueDate: null, memo: "", createdAt: "x", updatedAt: "x" },
           ],
         };
@@ -40,27 +34,17 @@ describe("listAllTasksServer", () => {
     expect(tasks).toHaveLength(2);
     expect(tasks.find((t) => t.id === "t1")?.companyName).toBe("○○商事");
     expect(tasks.find((t) => t.id === "t2")?.companyName).toBe("△△株式会社");
+    expect(serverFetch).toHaveBeenCalledTimes(1);
+    expect(serverFetch).toHaveBeenCalledWith("/api/v1/tasks", undefined);
   });
 
-  it("個別 entry の tasks 取得に失敗しても取れたぶんだけ返す", async () => {
-    serverFetch.mockImplementation(async (path: string) => {
-      if (path === "/api/v1/entries/e1/tasks") {
-        return {
-          tasks: [
-            { id: "t1", entryId: "e1", title: "面接準備", type: "schedule", status: "todo", dueDate: null, memo: "", createdAt: "x", updatedAt: "x" },
-          ],
-        };
-      }
-      // e2 のタスク取得は失敗させる
-      throw new Error("boom");
-    });
+  it("全タスクAPI取得に失敗したら呼び出し側にエラーを返す", async () => {
+    serverFetch.mockRejectedValue(new Error("boom"));
 
-    const tasks = await listAllTasksServer([
+    await expect(listAllTasksServer([
       { id: "e1", companyName: "A社" },
       { id: "e2", companyName: "B社" },
-    ]);
-    expect(tasks).toHaveLength(1);
-    expect(tasks[0].id).toBe("t1");
+    ])).rejects.toThrow("boom");
   });
 
   it("entry が無ければ tasks API を呼ばず空配列を返す", async () => {

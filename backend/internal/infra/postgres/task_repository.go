@@ -78,6 +78,16 @@ func (r *TaskRepository) ListByEntryID(ctx context.Context, userID entity.UserID
 	return reconstructTasks(rows)
 }
 
+// ListByUserID は userID 所有の全 Task を返す。SQL で Entry の userID を JOIN 検証する。
+func (r *TaskRepository) ListByUserID(ctx context.Context, userID entity.UserID) ([]*entity.Task, error) {
+	rows, err := r.q.ListTasksByUserID(ctx, uuid.UUID(userID))
+	if err != nil {
+		return nil, fmt.Errorf("postgres: ListTasksByUserID: %w", err)
+	}
+
+	return reconstructTasks(rows)
+}
+
 // ListByUserIDWithDueBefore は userID 所有かつ deadline より前が期限の未完了 Task を返す。リマインダ通知用。
 func (r *TaskRepository) ListByUserIDWithDueBefore(ctx context.Context, userID entity.UserID, deadline time.Time) ([]*entity.Task, error) {
 	rows, err := r.q.ListTasksByUserIDWithDueBefore(ctx, sqlc.ListTasksByUserIDWithDueBeforeParams{

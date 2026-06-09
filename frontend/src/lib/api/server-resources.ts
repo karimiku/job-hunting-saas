@@ -76,28 +76,25 @@ export async function listTasksByEntryServer(
   return res.tasks;
 }
 
-// 1人のユーザーの全タスクを集約する。タスクは entry 単位の API しか無いため、
-// 渡された entry ごとに /tasks を引いて concat する (会社名も join 済みで返す)。
-// 個別の entry でタスク取得に失敗してもその entry をスキップして全体は返す。
 export interface TaskWithEntry extends TaskResponse {
   /** タスクが属する entry の会社名 (join 済み、未設定なら undefined)。 */
   companyName?: string;
 }
 
+// 1人のユーザーの全タスクを1回の API で取得し、渡された entries から会社名を join する。
 export async function listAllTasksServer(
   entries: Pick<EntryResponse, "id" | "companyName">[],
 ): Promise<TaskWithEntry[]> {
-  const perEntry = await Promise.all(
-    entries.map(async (entry) => {
-      try {
-        const tasks = await listTasksByEntryServer(entry.id);
-        return tasks.map((t) => ({ ...t, companyName: entry.companyName }));
-      } catch {
-        return [] as TaskWithEntry[];
-      }
-    }),
+  if (entries.length === 0) return [];
+
+  const res = await serverFetch<{ tasks: TaskResponse[] }>("/api/v1/tasks");
+  const companyNameByEntryId = new Map(
+    entries.map((entry) => [entry.id, entry.companyName]),
   );
-  return perEntry.flat();
+  return res.tasks.map((task) => ({
+    ...task,
+    companyName: companyNameByEntryId.get(task.entryId),
+  }));
 }
 
 export interface NavCounts {

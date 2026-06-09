@@ -181,6 +181,10 @@ func (r *recordingTaskRepo) ListByEntryID(context.Context, entity.UserID, entity
 	return []*entity.Task{}, nil
 }
 
+func (r *recordingTaskRepo) ListByUserID(context.Context, entity.UserID) ([]*entity.Task, error) {
+	return []*entity.Task{}, nil
+}
+
 func (r *recordingTaskRepo) ListByUserIDWithDueBefore(context.Context, entity.UserID, time.Time) ([]*entity.Task, error) {
 	return []*entity.Task{}, nil
 }

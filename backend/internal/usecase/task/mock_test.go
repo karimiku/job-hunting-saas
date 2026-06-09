@@ -12,6 +12,7 @@ type mockTaskRepo struct {
 	saveFn            func(ctx context.Context, task *entity.Task) error
 	findByIDFn        func(ctx context.Context, userID entity.UserID, id entity.TaskID) (*entity.Task, error)
 	listByEntryIDFn   func(ctx context.Context, userID entity.UserID, entryID entity.EntryID) ([]*entity.Task, error)
+	listByUserIDFn    func(ctx context.Context, userID entity.UserID) ([]*entity.Task, error)
 	listByDueBeforeFn func(ctx context.Context, userID entity.UserID, deadline time.Time) ([]*entity.Task, error)
 	deleteFn          func(ctx context.Context, userID entity.UserID, id entity.TaskID) error
 }
@@ -33,6 +34,13 @@ func (m *mockTaskRepo) FindByID(ctx context.Context, userID entity.UserID, id en
 func (m *mockTaskRepo) ListByEntryID(ctx context.Context, userID entity.UserID, entryID entity.EntryID) ([]*entity.Task, error) {
 	if m.listByEntryIDFn != nil {
 		return m.listByEntryIDFn(ctx, userID, entryID)
+	}
+	return []*entity.Task{}, nil
+}
+
+func (m *mockTaskRepo) ListByUserID(ctx context.Context, userID entity.UserID) ([]*entity.Task, error) {
+	if m.listByUserIDFn != nil {
+		return m.listByUserIDFn(ctx, userID)
 	}
 	return []*entity.Task{}, nil
 }

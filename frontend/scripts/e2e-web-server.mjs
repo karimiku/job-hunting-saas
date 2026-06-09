@@ -216,6 +216,11 @@ const mockApi = http.createServer((req, res) => {
         return;
       }
 
+      if (url.pathname === "/api/v1/tasks" && req.method === "GET") {
+        json(res, 200, { tasks: state.tasks });
+        return;
+      }
+
       const taskMatch = url.pathname.match(/^\/api\/v1\/tasks\/([^/]+)$/);
       if (taskMatch && req.method === "PATCH") {
         const body = await readJson(req);

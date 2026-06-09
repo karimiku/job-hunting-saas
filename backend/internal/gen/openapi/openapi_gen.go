@@ -498,6 +498,9 @@ type ServerInterface interface {
 	// ページクリップを削除する
 	// (DELETE /api/v1/inbox/clips/{clipId})
 	DeleteInboxClip(w http.ResponseWriter, r *http.Request, clipId ClipId)
+	// ログインユーザーの全タスク一覧を取得する
+	// (GET /api/v1/tasks)
+	ListAllTasks(w http.ResponseWriter, r *http.Request)
 	// タスクを削除する
 	// (DELETE /api/v1/tasks/{taskId})
 	DeleteTask(w http.ResponseWriter, r *http.Request, taskId TaskId)
@@ -636,6 +639,12 @@ func (_ Unimplemented) CreateInboxClip(w http.ResponseWriter, r *http.Request) {
 // ページクリップを削除する
 // (DELETE /api/v1/inbox/clips/{clipId})
 func (_ Unimplemented) DeleteInboxClip(w http.ResponseWriter, r *http.Request, clipId ClipId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ログインユーザーの全タスク一覧を取得する
+// (GET /api/v1/tasks)
+func (_ Unimplemented) ListAllTasks(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1154,6 +1163,20 @@ func (siw *ServerInterfaceWrapper) DeleteInboxClip(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// ListAllTasks operation middleware
+func (siw *ServerInterfaceWrapper) ListAllTasks(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAllTasks(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // DeleteTask operation middleware
 func (siw *ServerInterfaceWrapper) DeleteTask(w http.ResponseWriter, r *http.Request) {
 
@@ -1404,6 +1427,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v1/inbox/clips/{clipId}", wrapper.DeleteInboxClip)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/tasks", wrapper.ListAllTasks)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v1/tasks/{taskId}", wrapper.DeleteTask)

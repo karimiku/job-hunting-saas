@@ -39,6 +39,7 @@ type Querier interface {
 	ListInboxClipsByUserID(ctx context.Context, userID uuid.UUID) ([]InboxClip, error)
 	ListStageHistoriesByEntryID(ctx context.Context, entryID uuid.UUID) ([]StageHistory, error)
 	ListTasksByEntryID(ctx context.Context, arg ListTasksByEntryIDParams) ([]Task, error)
+	ListTasksByUserID(ctx context.Context, userID uuid.UUID) ([]Task, error)
 	ListTasksByUserIDWithDueBefore(ctx context.Context, arg ListTasksByUserIDWithDueBeforeParams) ([]Task, error)
 	MCPGetEntryContext(ctx context.Context, arg MCPGetEntryContextParams) (MCPGetEntryContextRow, error)
 	MCPListEntries(ctx context.Context, userID uuid.UUID) ([]MCPListEntriesRow, error)

@@ -13,11 +13,12 @@ import (
 
 // TaskHandler は oapi-codegen が生成した ServerInterface のTask関連メソッドを実装する。
 type TaskHandler struct {
-	createUseCase *taskuc.Create
-	getUseCase    *taskuc.Get
-	listUseCase   *taskuc.List
-	updateUseCase *taskuc.Update
-	deleteUseCase *taskuc.Delete
+	createUseCase  *taskuc.Create
+	getUseCase     *taskuc.Get
+	listUseCase    *taskuc.List
+	listAllUseCase *taskuc.ListAll
+	updateUseCase  *taskuc.Update
+	deleteUseCase  *taskuc.Delete
 }
 
 // NewTaskHandler は TaskHandler に必要なユースケース群を DI して新しい TaskHandler を返す。
@@ -25,15 +26,17 @@ func NewTaskHandler(
 	createUseCase *taskuc.Create,
 	getUseCase *taskuc.Get,
 	listUseCase *taskuc.List,
+	listAllUseCase *taskuc.ListAll,
 	updateUseCase *taskuc.Update,
 	deleteUseCase *taskuc.Delete,
 ) *TaskHandler {
 	return &TaskHandler{
-		createUseCase: createUseCase,
-		getUseCase:    getUseCase,
-		listUseCase:   listUseCase,
-		updateUseCase: updateUseCase,
-		deleteUseCase: deleteUseCase,
+		createUseCase:  createUseCase,
+		getUseCase:     getUseCase,
+		listUseCase:    listUseCase,
+		listAllUseCase: listAllUseCase,
+		updateUseCase:  updateUseCase,
+		deleteUseCase:  deleteUseCase,
 	}
 }
 
@@ -85,6 +88,26 @@ func (h *TaskHandler) ListTasks(w http.ResponseWriter, r *http.Request, entryId 
 	result, err := h.listUseCase.Execute(r.Context(), taskuc.ListInput{
 		UserID:  middleware.GetUserID(r.Context()),
 		EntryID: entity.EntryID(entryId),
+	})
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+
+	items := make([]openapi.TaskResponse, len(result.Tasks))
+	for i, task := range result.Tasks {
+		items[i] = toTaskResponse(task)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"tasks": items,
+	})
+}
+
+// ListAllTasks は GET /tasks の handler。
+func (h *TaskHandler) ListAllTasks(w http.ResponseWriter, r *http.Request) {
+	result, err := h.listAllUseCase.Execute(r.Context(), taskuc.ListAllInput{
+		UserID: middleware.GetUserID(r.Context()),
 	})
 	if err != nil {
 		writeError(w, err)
