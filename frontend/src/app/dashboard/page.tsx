@@ -4,8 +4,9 @@
 import { redirect } from "next/navigation";
 import { getCurrentUserServer } from "@/lib/auth-server";
 import {
+  attachCompanyNamesToTasks,
   listEntriesWithCompanyNamesServer,
-  listAllTasksServer,
+  listTasksServer,
   getNavCountsServer,
 } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
@@ -14,16 +15,16 @@ import { DashboardNextAction } from "@/components/entre/DashboardNextAction";
 import { SignOutButton } from "@/components/entre/SignOutButton";
 
 export default async function DashboardPage() {
-  // user は独立、entries/navCounts も独立なので並列取得 (cookies() は内部で memoize される)
-  const [user, entries, navCounts] = await Promise.all([
+  // user / entries / tasks / navCounts は独立なので並列取得 (cookies() は内部で memoize される)
+  const [user, entries, rawTasks, navCounts] = await Promise.all([
     getCurrentUserServer(),
     listEntriesWithCompanyNamesServer().catch(() => []),
+    listTasksServer().catch(() => []),
     getNavCountsServer(),
   ]);
   if (!user) redirect("/login");
 
-  // タスクは entry 単位 API しか無いので entries を引いてから集約する。
-  const tasks = await listAllTasksServer(entries).catch(() => []);
+  const tasks = attachCompanyNamesToTasks(rawTasks, entries);
 
   const firstName = user.name.split(/[\s　]/)[0] || user.name;
   const openTasks = tasks.filter((t) => t.status === "todo").length;

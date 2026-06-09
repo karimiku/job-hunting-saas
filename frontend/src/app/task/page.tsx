@@ -3,9 +3,10 @@
 import { redirect } from "next/navigation";
 import { getCurrentUserServer } from "@/lib/auth-server";
 import {
-  listAllTasksServer,
+  attachCompanyNamesToTasks,
   listEntriesWithCompanyNamesServer,
   listInboxClipsServer,
+  listTasksServer,
 } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { TaskListView } from "@/components/entre/TaskListView";
@@ -14,11 +15,12 @@ export default async function TaskPage() {
   const user = await getCurrentUserServer();
   if (!user) redirect("/login");
 
-  const entries = await listEntriesWithCompanyNamesServer().catch(() => []);
-  const [tasks, clips] = await Promise.all([
-    listAllTasksServer(entries).catch(() => []),
+  const [entries, rawTasks, clips] = await Promise.all([
+    listEntriesWithCompanyNamesServer().catch(() => []),
+    listTasksServer().catch(() => []),
     listInboxClipsServer().catch(() => []),
   ]);
+  const tasks = attachCompanyNamesToTasks(rawTasks, entries);
 
   const navCounts = {
     entry: entries.length,

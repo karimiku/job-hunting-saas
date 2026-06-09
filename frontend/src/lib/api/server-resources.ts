@@ -81,20 +81,32 @@ export interface TaskWithEntry extends TaskResponse {
   companyName?: string;
 }
 
+// 1人のユーザーの全タスクを1回の API で取得する。
+export async function listTasksServer(): Promise<TaskResponse[]> {
+  const res = await serverFetch<{ tasks: TaskResponse[] }>("/api/v1/tasks");
+  return res.tasks;
+}
+
+export function attachCompanyNamesToTasks(
+  tasks: TaskResponse[],
+  entries: Pick<EntryResponse, "id" | "companyName">[],
+): TaskWithEntry[] {
+  const companyNameByEntryId = new Map(
+    entries.map((entry) => [entry.id, entry.companyName]),
+  );
+  return tasks.map((task) => ({
+    ...task,
+    companyName: companyNameByEntryId.get(task.entryId),
+  }));
+}
+
 // 1人のユーザーの全タスクを1回の API で取得し、渡された entries から会社名を join する。
 export async function listAllTasksServer(
   entries: Pick<EntryResponse, "id" | "companyName">[],
 ): Promise<TaskWithEntry[]> {
   if (entries.length === 0) return [];
 
-  const res = await serverFetch<{ tasks: TaskResponse[] }>("/api/v1/tasks");
-  const companyNameByEntryId = new Map(
-    entries.map((entry) => [entry.id, entry.companyName]),
-  );
-  return res.tasks.map((task) => ({
-    ...task,
-    companyName: companyNameByEntryId.get(task.entryId),
-  }));
+  return attachCompanyNamesToTasks(await listTasksServer(), entries);
 }
 
 export interface NavCounts {
@@ -106,13 +118,11 @@ export interface NavCounts {
 // サイドバーのバッジ用カウント。Entry / Inbox は一覧件数、Task は未完了タスク件数。
 // どれか1つの取得に失敗しても 0 にフォールバックしてサイドバー描画は止めない。
 export async function getNavCountsServer(): Promise<NavCounts> {
-  const [entries, clips] = await Promise.all([
+  const [entries, clips, tasks] = await Promise.all([
     listEntriesServer().catch(() => [] as EntryResponse[]),
     listInboxClipsServer().catch(() => [] as InboxClipResponse[]),
+    listTasksServer().catch(() => [] as TaskResponse[]),
   ]);
-  const tasks = await listAllTasksServer(entries).catch(
-    () => [] as TaskWithEntry[],
-  );
   return {
     entry: entries.length,
     task: tasks.filter((t) => t.status === "todo").length,
