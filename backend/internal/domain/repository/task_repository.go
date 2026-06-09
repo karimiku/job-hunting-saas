@@ -15,6 +15,7 @@ type TaskRepository interface {
 	Save(ctx context.Context, task *entity.Task) error
 	FindByID(ctx context.Context, userID entity.UserID, id entity.TaskID) (*entity.Task, error)
 	ListByEntryID(ctx context.Context, userID entity.UserID, entryID entity.EntryID) ([]*entity.Task, error)
+	ListByUserID(ctx context.Context, userID entity.UserID) ([]*entity.Task, error)
 	ListByUserIDWithDueBefore(ctx context.Context, userID entity.UserID, deadline time.Time) ([]*entity.Task, error)
 	Delete(ctx context.Context, userID entity.UserID, id entity.TaskID) error
 }

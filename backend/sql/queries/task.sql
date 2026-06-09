@@ -23,6 +23,17 @@ JOIN entries e ON t.entry_id = e.id
 WHERE e.user_id = $1 AND t.entry_id = $2
 ORDER BY t.created_at;
 
+-- name: ListTasksByUserID :many
+SELECT t.id, t.entry_id, t.title, t.task_type, t.due_date, t.status, t.notify, t.memo, t.created_at, t.updated_at
+FROM tasks t
+JOIN entries e ON t.entry_id = e.id
+WHERE e.user_id = $1
+ORDER BY
+    CASE WHEN t.status = 'todo' THEN 0 ELSE 1 END,
+    CASE WHEN t.due_date IS NULL THEN 1 ELSE 0 END,
+    t.due_date,
+    t.created_at;
+
 -- name: ListTasksByUserIDWithDueBefore :many
 SELECT t.id, t.entry_id, t.title, t.task_type, t.due_date, t.status, t.notify, t.memo, t.created_at, t.updated_at
 FROM tasks t

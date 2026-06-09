@@ -156,6 +156,7 @@ func run() error {
 		taskuc.NewCreate(taskRepo, entryRepo),
 		taskuc.NewGet(taskRepo),
 		taskuc.NewList(taskRepo),
+		taskuc.NewListAll(taskRepo),
 		taskuc.NewUpdate(taskRepo),
 		taskuc.NewDelete(taskRepo),
 	)

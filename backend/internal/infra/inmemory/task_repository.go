@@ -70,6 +70,22 @@ func (r *TaskRepository) ListByEntryID(ctx context.Context, userID entity.UserID
 	return result, nil
 }
 
+// ListByUserID は userID 所有の全 Task を返す。Entry 経由で所有権を検証する。
+func (r *TaskRepository) ListByUserID(ctx context.Context, userID entity.UserID) ([]*entity.Task, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var result []*entity.Task
+	for _, task := range r.tasksByID {
+		// Entry経由でuserIDの所有権を検証
+		if _, err := r.entryRepo.FindByID(ctx, userID, task.EntryID()); err != nil {
+			continue
+		}
+		result = append(result, task)
+	}
+	return result, nil
+}
+
 // ListByUserIDWithDueBefore は userID 所有かつ deadline より前が期限の未完了 Task を返す。リマインダ通知用。
 func (r *TaskRepository) ListByUserIDWithDueBefore(ctx context.Context, userID entity.UserID, deadline time.Time) ([]*entity.Task, error) {
 	r.mu.RLock()

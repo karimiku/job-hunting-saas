@@ -105,6 +105,49 @@ func (q *Queries) ListTasksByEntryID(ctx context.Context, arg ListTasksByEntryID
 	return items, nil
 }
 
+const listTasksByUserID = `-- name: ListTasksByUserID :many
+SELECT t.id, t.entry_id, t.title, t.task_type, t.due_date, t.status, t.notify, t.memo, t.created_at, t.updated_at
+FROM tasks t
+JOIN entries e ON t.entry_id = e.id
+WHERE e.user_id = $1
+ORDER BY
+    CASE WHEN t.status = 'todo' THEN 0 ELSE 1 END,
+    CASE WHEN t.due_date IS NULL THEN 1 ELSE 0 END,
+    t.due_date,
+    t.created_at
+`
+
+func (q *Queries) ListTasksByUserID(ctx context.Context, userID uuid.UUID) ([]Task, error) {
+	rows, err := q.db.Query(ctx, listTasksByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Task
+	for rows.Next() {
+		var i Task
+		if err := rows.Scan(
+			&i.ID,
+			&i.EntryID,
+			&i.Title,
+			&i.TaskType,
+			&i.DueDate,
+			&i.Status,
+			&i.Notify,
+			&i.Memo,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTasksByUserIDWithDueBefore = `-- name: ListTasksByUserIDWithDueBefore :many
 SELECT t.id, t.entry_id, t.title, t.task_type, t.due_date, t.status, t.notify, t.memo, t.created_at, t.updated_at
 FROM tasks t

@@ -1,5 +1,4 @@
-// Server Component。ユーザーの全タスクを SSR で集約取得し、interactive 部分は Client に委譲する。
-// backend に全タスク一覧 API が無いため、entries → entry ごとの tasks を server-resources で集約する。
+// Server Component。ユーザーの全タスクを SSR で取得し、interactive 部分は Client に委譲する。
 
 import { redirect } from "next/navigation";
 import { getCurrentUserServer } from "@/lib/auth-server";
@@ -15,7 +14,6 @@ export default async function TaskPage() {
   const user = await getCurrentUserServer();
   if (!user) redirect("/login");
 
-  // backend に全タスク一覧 API が無いため entries → entry ごとの tasks を集約する。
   const entries = await listEntriesWithCompanyNamesServer().catch(() => []);
   const [tasks, clips] = await Promise.all([
     listAllTasksServer(entries).catch(() => []),
