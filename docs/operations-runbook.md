@@ -9,6 +9,37 @@ Created: 2026-06-08
 
 このRunbookは、まず人間が判断して止める運用を前提にする。Budget alertから自動停止する仕組みは、Pub/SubやCloud Functionsなど追加の運用対象と微小な課金要素が増えるため、公開β初期では採用しない。
 
+## Backend Deploy
+
+BackendはGitHub Actionsの `Backend CD` workflowから手動で本番反映する。
+
+実行条件:
+
+- `main` branchから実行する
+- GitHub Actionsの `production` environment承認を通す
+- Repository variable `GCP_WORKLOAD_IDENTITY_PROVIDER` が設定済み
+- `github-deploy@job-hunting-saas.iam.gserviceaccount.com` がWorkload Identity Federationで利用可能
+
+手順:
+
+1. GitHub Actions > `Backend CD` を開く
+2. `Run workflow` を選ぶ
+3. Branchは `main` を選ぶ
+4. `image_tag` は通常空欄のままにする
+5. `production` 承認後、Artifact Registry pushとCloud Run deployが実行される
+6. workflow内の `/health` smoke testが成功することを確認する
+
+`image_tag` を空欄にした場合、選択したcommit SHAがDocker image tagになる。
+
+失敗時:
+
+- `Build backend image` が失敗した場合はDockerfileまたはGo buildを確認する
+- `Push backend image` が失敗した場合はArtifact Registry権限を確認する
+- `Deploy to Cloud Run` が失敗した場合は `github-deploy` の `roles/run.admin` と `entre-backend-runtime` に対する `roles/iam.serviceAccountUser` を確認する
+- `Smoke test` が失敗した場合はCloud Run logsとSecret Managerの `database-url` versionを確認する
+
+Terraform applyやDB migrationはこのworkflowでは実行しない。
+
 ## Cost Guardrail
 
 ### Budget Alert

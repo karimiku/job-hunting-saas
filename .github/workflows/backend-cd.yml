@@ -1,0 +1,124 @@
+name: Backend CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Artifact Registry image tag. Defaults to the selected commit SHA."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: backend-cd-production
+  cancel-in-progress: false
+
+env:
+  PROJECT_ID: job-hunting-saas
+  REGION: asia-northeast1
+  ARTIFACT_REPOSITORY: entre
+  IMAGE_NAME: backend
+  CLOUD_RUN_SERVICE: entre-backend
+  BACKEND_HEALTH_URL: https://api.entre.kamiriku.com/health
+  DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT || 'github-deploy@job-hunting-saas.iam.gserviceaccount.com' }}
+
+jobs:
+  deploy:
+    name: Deploy Backend to Cloud Run
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Guard production branch
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Production backend deploys must run from main. Current ref: $GITHUB_REF"
+            exit 1
+          fi
+
+      - name: Validate deploy configuration
+        run: |
+          set -euo pipefail
+          if [ -z "${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
+            echo "::error::Repository variable GCP_WORKLOAD_IDENTITY_PROVIDER is required."
+            exit 1
+          fi
+          if [ -z "$DEPLOY_SERVICE_ACCOUNT" ]; then
+            echo "::error::DEPLOY_SERVICE_ACCOUNT is empty."
+            exit 1
+          fi
+
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - id: image
+        name: Resolve image URI
+        env:
+          INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          set -euo pipefail
+          tag="${INPUT_IMAGE_TAG:-$GITHUB_SHA}"
+          image_uri="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/${IMAGE_NAME}:${tag}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "uri=$image_uri" >> "$GITHUB_OUTPUT"
+          echo "Deploy image: $image_uri"
+
+      - id: auth
+        name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          create_credentials_file: true
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
+      - name: Build backend image
+        run: docker build --platform linux/amd64 -t "${{ steps.image.outputs.uri }}" backend
+
+      - name: Push backend image
+        run: docker push "${{ steps.image.outputs.uri }}"
+
+      - name: Deploy to Cloud Run
+        run: |
+          set -euo pipefail
+          gcloud run deploy "$CLOUD_RUN_SERVICE" \
+            --project "$PROJECT_ID" \
+            --region "$REGION" \
+            --image "${{ steps.image.outputs.uri }}" \
+            --platform managed \
+            --quiet
+
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 20); do
+            status="$(curl -fsS -o /tmp/backend-health.txt -w '%{http_code}' "$BACKEND_HEALTH_URL" || true)"
+            if [ "$status" = "200" ] && grep -qx 'ok' /tmp/backend-health.txt; then
+              echo "Backend health check passed."
+              exit 0
+            fi
+            echo "Waiting for backend health check... attempt=$i status=${status:-none}"
+            sleep 3
+          done
+          echo "::error::Backend health check failed."
+          cat /tmp/backend-health.txt 2>/dev/null || true
+          exit 1
+
+      - name: Deployment summary
+        run: |
+          {
+            echo "### Backend deployment"
+            echo "- Service: \`$CLOUD_RUN_SERVICE\`"
+            echo "- Region: \`$REGION\`"
+            echo "- Image: \`${{ steps.image.outputs.uri }}\`"
+            echo "- Health: \`$BACKEND_HEALTH_URL\`"
+          } >> "$GITHUB_STEP_SUMMARY"
