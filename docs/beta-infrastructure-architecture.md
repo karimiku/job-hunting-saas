@@ -133,6 +133,25 @@ Firebase Authを採用する理由:
 
 Supabase Authも実現可能だが、今回の構成ではFirebase AuthとGo Backendがすでに存在する。Supabaseの強みであるAuth、Storage、Realtime、Edge Functionsをほぼ使わないため、公開βではFirebase Authを継続する。
 
+### Firebase redirect login
+
+FrontendはVercelでホストしているため、Firebase Hosting上の `*.firebaseapp.com` とはoriginが異なる。Firebase Web SDKの `signInWithRedirect()` は認証helperでFirebase Hostingドメインを使うため、`authDomain` を `job-hunting-saas.firebaseapp.com` のままにすると、Chrome M115以降やスマホブラウザのthird-party storage制限でredirect結果を回収できないことがある。
+
+そのため本番では、Firebase SDKの `authDomain` をアプリの同一ドメインに寄せる。
+
+```text
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=entre.kamiriku.com
+```
+
+ただし実体のFirebase認証helperはFirebase Hosting側にあるため、Next.jsで以下をrewriteする。
+
+```text
+https://entre.kamiriku.com/__/auth/*
+  -> https://job-hunting-saas.firebaseapp.com/__/auth/*
+```
+
+このrewriteは302 redirectではなくproxyとして動かす。ブラウザからは `entre.kamiriku.com` の同一originに見える必要がある。
+
 ## Cookie / CORS / CSRF
 
 FrontendとBackendは別hostになる。
