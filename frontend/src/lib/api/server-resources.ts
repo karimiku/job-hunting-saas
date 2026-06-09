@@ -115,6 +115,18 @@ export interface NavCounts {
   inbox: number;
 }
 
+export function buildNavCounts(
+  entries: readonly EntryResponse[],
+  tasks: readonly TaskResponse[],
+  clips: readonly InboxClipResponse[],
+): NavCounts {
+  return {
+    entry: entries.length,
+    task: tasks.filter((t) => t.status === "todo").length,
+    inbox: clips.length,
+  };
+}
+
 // サイドバーのバッジ用カウント。Entry / Inbox は一覧件数、Task は未完了タスク件数。
 // どれか1つの取得に失敗しても 0 にフォールバックしてサイドバー描画は止めない。
 export async function getNavCountsServer(): Promise<NavCounts> {
@@ -123,9 +135,5 @@ export async function getNavCountsServer(): Promise<NavCounts> {
     listInboxClipsServer().catch(() => [] as InboxClipResponse[]),
     listTasksServer().catch(() => [] as TaskResponse[]),
   ]);
-  return {
-    entry: entries.length,
-    task: tasks.filter((t) => t.status === "todo").length,
-    inbox: clips.length,
-  };
+  return buildNavCounts(entries, tasks, clips);
 }

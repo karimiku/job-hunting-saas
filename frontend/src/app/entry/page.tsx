@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUserServer } from "@/lib/auth-server";
 import {
+  buildNavCounts,
   listEntriesWithCompanyNamesServer,
-  getNavCountsServer,
+  listInboxClipsServer,
+  listTasksServer,
 } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { EntryListView } from "@/components/entre/EntryListView";
@@ -15,10 +17,12 @@ export default async function EntryListPage() {
   const user = await getCurrentUserServer();
   if (!user) redirect("/login");
 
-  const [entries, navCounts] = await Promise.all([
+  const [entries, clips, tasks] = await Promise.all([
     listEntriesWithCompanyNamesServer(),
-    getNavCountsServer(),
+    listInboxClipsServer().catch(() => []),
+    listTasksServer().catch(() => []),
   ]);
+  const navCounts = buildNavCounts(entries, tasks, clips);
 
   return (
     <AppShell userName={user.name} userSubtitle={user.email} navCounts={navCounts}>

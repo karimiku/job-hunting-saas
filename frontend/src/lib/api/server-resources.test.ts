@@ -8,6 +8,7 @@ vi.mock("./server", () => ({
 
 import {
   attachCompanyNamesToTasks,
+  buildNavCounts,
   getNavCountsServer,
   listAllTasksServer,
   listTasksServer,
@@ -124,5 +125,27 @@ describe("getNavCountsServer", () => {
     expect(serverFetch).toHaveBeenCalledWith("/api/v1/entries", undefined);
     expect(serverFetch).toHaveBeenCalledWith("/api/v1/inbox/clips", undefined);
     expect(serverFetch).toHaveBeenCalledWith("/api/v1/tasks", undefined);
+  });
+});
+
+describe("buildNavCounts", () => {
+  it("取得済み entries, tasks, clips からサイドバー件数を作る", () => {
+    const navCounts = buildNavCounts(
+      [
+        { id: "e1", companyId: "c1", status: "open" },
+        { id: "e2", companyId: "c2", status: "open" },
+      ],
+      [
+        { id: "t1", entryId: "e1", title: "ES提出", type: "deadline", status: "todo", dueDate: null, memo: "", createdAt: "x", updatedAt: "x" },
+        { id: "t2", entryId: "e2", title: "SPI受験", type: "schedule", status: "done", dueDate: null, memo: "", createdAt: "x", updatedAt: "x" },
+      ],
+      [{ id: "clip1" }],
+    );
+
+    expect(navCounts).toEqual({
+      entry: 2,
+      task: 1,
+      inbox: 1,
+    });
   });
 });
