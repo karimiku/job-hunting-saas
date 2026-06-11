@@ -89,11 +89,26 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 
-      - name: Build backend image
-        run: docker build --platform linux/amd64 -t "${{ steps.image.outputs.uri }}" backend
+      - name: Create Docker Buildx builder
+        run: |
+          set -euo pipefail
+          docker buildx create --name backend-builder --driver docker-container --use
+          docker buildx inspect --bootstrap
 
-      - name: Push backend image
-        run: docker push "${{ steps.image.outputs.uri }}"
+      - name: Build and push backend image
+        env:
+          CACHE_URI: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPOSITORY }}/${{ env.IMAGE_NAME }}:buildcache
+          IMAGE_URI: ${{ steps.image.outputs.uri }}
+        run: |
+          set -euo pipefail
+          docker buildx build \
+            --builder backend-builder \
+            --platform linux/amd64 \
+            --cache-from "type=registry,ref=$CACHE_URI" \
+            --cache-to "type=registry,ref=$CACHE_URI,mode=max" \
+            --tag "$IMAGE_URI" \
+            --push \
+            backend
 
       - name: Deploy to Cloud Run
         run: |
