@@ -10,7 +10,7 @@ import {
 } from "@/lib/auth";
 import { hasFirebaseClientConfig } from "@/lib/firebase";
 
-type LoginPhase = "checking" | "idle" | "submitting";
+type LoginPhase = "checking" | "idle" | "submitting" | "redirecting";
 
 export function LoginClient() {
   const router = useRouter();
@@ -28,6 +28,7 @@ export function LoginClient() {
       .then((user) => {
         if (cancelled) return;
         if (user) {
+          setPhase("redirecting");
           router.replace("/dashboard");
           return;
         }
@@ -75,12 +76,14 @@ export function LoginClient() {
 
   const loading = phase !== "idle";
 
-  // Firebase redirect の戻り結果を確認している間は背景だけを表示する。
-  if (phase === "checking") {
+  if (phase === "checking" || phase === "redirecting") {
     return (
-      <div
-        className="lp-scope"
-        style={{ minHeight: "100vh", background: "var(--lp-cream)" }}
+      <LoginLoadingScreen
+        title={
+          phase === "redirecting"
+            ? "ホームを準備しています"
+            : "Googleログインを確認しています"
+        }
       />
     );
   }
@@ -263,5 +266,88 @@ function GoogleColoredG({ size = 18 }: { size?: number }) {
         fill="#EA4335"
       />
     </svg>
+  );
+}
+
+function LoginLoadingScreen({ title }: { title: string }) {
+  return (
+    <div
+      className="lp-scope"
+      style={{
+        minHeight: "100vh",
+        background: "var(--lp-cream)",
+        color: "var(--lp-ink)",
+        fontFamily: "var(--lp-font-jp)",
+        display: "grid",
+        placeItems: "center",
+        padding: 24,
+      }}
+    >
+      <main
+        aria-live="polite"
+        aria-busy="true"
+        style={{
+          width: "100%",
+          maxWidth: 360,
+          textAlign: "center",
+          animation: "entre-fade-in 0.45s ease-out both",
+        }}
+      >
+        <div
+          style={{
+            display: "inline-grid",
+            placeItems: "center",
+            position: "relative",
+            marginBottom: 22,
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              position: "absolute",
+              width: 132,
+              height: 132,
+              borderRadius: "999px",
+              background: "rgba(79, 110, 88, 0.14)",
+              animation: "entre-pulse-ring 1.6s ease-out infinite",
+            }}
+          />
+          <DeerMascot size={92} mood="sparkle" tilt={-3} />
+        </div>
+
+        <p
+          className="lp-hand"
+          style={{
+            fontSize: 24,
+            color: "var(--lp-sage-2)",
+            lineHeight: 1,
+            marginBottom: 8,
+          }}
+        >
+          one moment
+        </p>
+        <h1
+          className="lp-serif"
+          style={{
+            fontSize: 24,
+            fontWeight: 800,
+            letterSpacing: "0",
+            lineHeight: 1.35,
+            marginBottom: 8,
+          }}
+        >
+          {title}
+        </h1>
+        <p
+          style={{
+            color: "var(--lp-ink-2)",
+            fontSize: 13,
+            lineHeight: 1.7,
+          }}
+        >
+          セッションを安全に作成しています。
+        </p>
+      </main>
+    </div>
   );
 }
