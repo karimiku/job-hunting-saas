@@ -46,20 +46,6 @@ export async function listEntriesWithCompanyNamesServer(
   return entries.map((e) => ({ ...e, companyName: nameById.get(e.companyId) }));
 }
 
-// 単一 entry の会社名を引く。取得失敗時は undefined（UI 側でフォールバック表示）。
-export async function getCompanyNameServer(
-  companyId: string,
-): Promise<string | undefined> {
-  try {
-    const company = await serverFetch<CompanyResponse>(
-      `/api/v1/companies/${companyId}`,
-    );
-    return company.name;
-  } catch {
-    return undefined;
-  }
-}
-
 export async function listInboxClipsServer(): Promise<InboxClipResponse[]> {
   const res = await serverFetch<{ clips: InboxClipResponse[] }>(
     "/api/v1/inbox/clips",

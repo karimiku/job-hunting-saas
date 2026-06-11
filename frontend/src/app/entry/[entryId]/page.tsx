@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUserServer } from "@/lib/auth-server";
 import {
   getEntryServer,
-  getCompanyNameServer,
+  listCompaniesServer,
   listTasksByEntryServer,
 } from "@/lib/api/server-resources";
 import { ApiError } from "@/lib/api/client-types";
@@ -19,21 +19,27 @@ interface Props {
 export default async function EntryDetailPage({ params }: Props) {
   const { entryId } = await params;
 
-  // user / entry / tasks は独立なので並列 fetch。
+  // user / entry / tasks / companies は独立なので並列 fetch。
   // entry の取得失敗 (404 等) は EntryDetailView に渡す initial=null として扱い、UI 側でエラー表示。
-  const [user, entryRaw, tasks] = await Promise.all([
+  // 会社名は entry 取得後に単品 GET すると直列の RTT が1段増えるため、
+  // 一覧を並列で引いて companyId で突き合わせる。
+  const [user, entryRaw, tasks, companies] = await Promise.all([
     getCurrentUserServer(),
     getEntryServer(entryId).catch((e) => {
       if (e instanceof ApiError) return null;
       throw e;
     }),
     listTasksByEntryServer(entryId).catch(() => []),
+    listCompaniesServer().catch(() => []),
   ]);
   if (!user) redirect("/login");
 
-  // entry が取れたら会社名を join する（取得失敗時は UI 側でフォールバック）。
+  // entry が取れたら会社名を join する（見つからなければ UI 側でフォールバック表示）。
   const entry = entryRaw
-    ? { ...entryRaw, companyName: await getCompanyNameServer(entryRaw.companyId) }
+    ? {
+        ...entryRaw,
+        companyName: companies.find((c) => c.id === entryRaw.companyId)?.name,
+      }
     : null;
 
   return (
