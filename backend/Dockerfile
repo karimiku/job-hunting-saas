@@ -1,14 +1,23 @@
-FROM golang:1.26.4 AS builder
+# syntax=docker/dockerfile:1.7
+FROM --platform=$BUILDPLATFORM golang:1.26.4 AS builder
 
 WORKDIR /app
 
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
+    go mod download
 
-COPY . .
-RUN CGO_ENABLED=0 go build -o /server ./cmd/server
+COPY cmd/server ./cmd/server
+COPY internal ./internal
 
-FROM gcr.io/distroless/static-debian12
+ARG TARGETOS
+ARG TARGETARCH
+RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
+    --mount=type=cache,target=/root/.cache/go-build,sharing=locked \
+    CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
+    go build -trimpath -ldflags="-s -w" -o /server ./cmd/server
+
+FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=builder /server /server
 
