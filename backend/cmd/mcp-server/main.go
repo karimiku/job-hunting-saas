@@ -33,17 +33,20 @@ func main() {
 }
 
 func run() error {
-	ctx := context.Background()
-	if token := strings.TrimSpace(os.Getenv("ENTRE_API_TOKEN")); token != "" {
-		app, err := entreapi.NewMCPApplication(os.Getenv("ENTRE_API_BASE_URL"), token, nil)
+	return runWithIO(context.Background(), os.Getenv, os.Stdin, os.Stdout)
+}
+
+func runWithIO(ctx context.Context, getenv func(string) string, in io.Reader, out io.Writer) error {
+	if token := strings.TrimSpace(getenv("ENTRE_API_TOKEN")); token != "" {
+		app, err := entreapi.NewMCPApplication(getenv("ENTRE_API_BASE_URL"), token, nil)
 		if err != nil {
 			return err
 		}
 		log.Println("mcp-server using Entré API bridge")
-		return serve(ctx, app)
+		return serve(ctx, app, in, out)
 	}
 
-	databaseURL := os.Getenv("DATABASE_URL")
+	databaseURL := getenv("DATABASE_URL")
 	if databaseURL == "" {
 		return errors.New("set ENTRE_API_TOKEN for API bridge mode, or DATABASE_URL for direct database mode")
 	}
@@ -55,7 +58,7 @@ func run() error {
 	defer pool.Close()
 
 	userRepo := postgres.NewUserRepository(pool)
-	user, err := resolveMCPUser(ctx, userRepo)
+	user, err := resolveMCPUser(ctx, userRepo, getenv)
 	if err != nil {
 		return fmt.Errorf("resolve MCP user: %w", err)
 	}
@@ -74,26 +77,26 @@ func run() error {
 	)
 
 	log.Println("mcp-server using direct database mode")
-	return serve(ctx, app)
+	return serve(ctx, app, in, out)
 }
 
-func serve(ctx context.Context, app mcphandler.Application) error {
+func serve(ctx context.Context, app mcphandler.Application, in io.Reader, out io.Writer) error {
 	server := mcphandler.NewServer(app)
-	if err := mcphandler.ServeStdio(ctx, os.Stdin, os.Stdout, server); err != nil && !errors.Is(err, io.EOF) {
+	if err := mcphandler.ServeStdio(ctx, in, out, server); err != nil && !errors.Is(err, io.EOF) {
 		return fmt.Errorf("serve MCP: %w", err)
 	}
 	return nil
 }
 
-func resolveMCPUser(ctx context.Context, repo repository.UserRepository) (*entity.User, error) {
-	if raw := strings.TrimSpace(os.Getenv("MCP_USER_ID")); raw != "" {
+func resolveMCPUser(ctx context.Context, repo repository.UserRepository, getenv func(string) string) (*entity.User, error) {
+	if raw := strings.TrimSpace(getenv("MCP_USER_ID")); raw != "" {
 		id, err := uuid.Parse(raw)
 		if err != nil {
 			return nil, fmt.Errorf("invalid MCP_USER_ID: %w", err)
 		}
 		return repo.FindByID(ctx, entity.UserID(id))
 	}
-	if raw := strings.TrimSpace(os.Getenv("MCP_USER_EMAIL")); raw != "" {
+	if raw := strings.TrimSpace(getenv("MCP_USER_EMAIL")); raw != "" {
 		email, err := value.NewEmail(raw)
 		if err != nil {
 			return nil, fmt.Errorf("invalid MCP_USER_EMAIL: %w", err)
