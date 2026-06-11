@@ -21,6 +21,7 @@ const (
 	defaultProtocolVersion = "2024-11-05"
 	serverName             = "job-hunting-saas-mcp"
 	serverVersion          = "0.1.0"
+	serverInstructions     = "Use this server for user-scoped job-hunting data. Read inbox clips, entries, tasks, and ES memos before proposing actions. append_es_memo and create_task only preview changes unless confirm=true; ask the user before confirmed writes. capture_job_email extracts candidates locally and does not call an LLM API."
 )
 
 // Application はMCP handlerが呼び出すユースケース境界。
@@ -29,6 +30,7 @@ type Application interface {
 	GetEntryContext(ctx context.Context, rawEntryID string) (*mcpuc.EntryContextDTO, error)
 	ListOpenTasks(ctx context.Context) ([]mcpuc.TaskDTO, error)
 	ListInboxClips(ctx context.Context) ([]mcpuc.InboxClipDTO, error)
+	ListESMemos(ctx context.Context, limit int32) ([]mcpuc.ESMemoDTO, error)
 	AppendESMemo(ctx context.Context, input mcpuc.AppendESMemoInput) (any, error)
 	CreateTask(ctx context.Context, input mcpuc.CreateTaskInput) (any, error)
 	CaptureJobEmail(input mcpuc.CaptureJobEmailInput) (jobemail.ExtractOutput, error)
@@ -200,6 +202,7 @@ func initialize(params json.RawMessage) any {
 			"name":    serverName,
 			"version": serverVersion,
 		},
+		"instructions": serverInstructions,
 	}
 }
 
@@ -209,6 +212,7 @@ func listResources() any {
 			{"uri": "entries://list", "name": "応募先一覧", "description": "MCP対象ユーザーの応募先一覧", "mimeType": "application/json"},
 			{"uri": "tasks://open", "name": "未完了Task一覧", "description": "未完了の締切・予定", "mimeType": "application/json"},
 			{"uri": "inbox://clips", "name": "Inbox clip一覧", "description": "Chrome拡張等で保存された求人ページ", "mimeType": "application/json"},
+			{"uri": "es-memos://list", "name": "ESメモ一覧", "description": "自己PR・ガクチカ・面接ネタのメモ", "mimeType": "application/json"},
 		},
 	}
 }
@@ -254,6 +258,12 @@ func (s *Server) readResource(ctx context.Context, params json.RawMessage) (any,
 			return nil, err
 		}
 		return resourceJSON(p.URI, clips)
+	case p.URI == "es-memos://list":
+		memos, err := s.app.ListESMemos(ctx, 0)
+		if err != nil {
+			return nil, err
+		}
+		return resourceJSON(p.URI, memos)
 	default:
 		return nil, fmt.Errorf("unknown resource uri %q", p.URI)
 	}
@@ -292,6 +302,18 @@ func listTools() any {
 				"name":        "list_open_tasks",
 				"description": "未完了Task一覧を取得します。",
 				"inputSchema": objectSchema(nil, nil),
+			},
+			{
+				"name":        "list_inbox_clips",
+				"description": "保存箱のInbox clip一覧を取得します。",
+				"inputSchema": objectSchema(nil, nil),
+			},
+			{
+				"name":        "list_es_memos",
+				"description": "ES/自己PR/ガクチカ/面接ネタ用メモの一覧を取得します。",
+				"inputSchema": objectSchema(map[string]any{
+					"limit": map[string]any{"type": "integer", "minimum": 1, "maximum": 100},
+				}, nil),
 			},
 			{
 				"name":        "append_es_memo",
@@ -370,6 +392,17 @@ func (s *Server) callTool(ctx context.Context, params json.RawMessage) (any, err
 		}
 	case "list_open_tasks":
 		value, err = s.app.ListOpenTasks(ctx)
+	case "list_inbox_clips":
+		value, err = s.app.ListInboxClips(ctx)
+	case "list_es_memos":
+		var args struct {
+			Limit int32 `json:"limit"`
+		}
+		if len(p.Arguments) == 0 {
+			value, err = s.app.ListESMemos(ctx, 0)
+		} else if err = json.Unmarshal(p.Arguments, &args); err == nil {
+			value, err = s.app.ListESMemos(ctx, args.Limit)
+		}
 	case "append_es_memo":
 		var args mcpuc.AppendESMemoInput
 		if err = json.Unmarshal(p.Arguments, &args); err == nil {

@@ -52,6 +52,10 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request, entryId
 	if req.Memo != nil {
 		memo = *req.Memo
 	}
+	notify := false
+	if req.Notify != nil {
+		notify = *req.Notify
+	}
 
 	created, err := h.createUseCase.Execute(r.Context(), taskuc.CreateInput{
 		UserID:  middleware.GetUserID(r.Context()),
@@ -60,6 +64,7 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request, entryId
 		Type:    string(req.Type),
 		DueDate: req.DueDate,
 		Memo:    memo,
+		Notify:  notify,
 	})
 	if err != nil {
 		writeError(w, err)

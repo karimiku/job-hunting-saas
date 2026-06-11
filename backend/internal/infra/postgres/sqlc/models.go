@@ -229,6 +229,17 @@ func (ns NullTaskType) Value() (driver.Value, error) {
 	return string(ns.TaskType), nil
 }
 
+type AiAccessToken struct {
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	Name        string
+	TokenHash   string
+	TokenPrefix string
+	CreatedAt   pgtype.Timestamptz
+	LastUsedAt  pgtype.Timestamptz
+	RevokedAt   pgtype.Timestamptz
+}
+
 type Company struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID

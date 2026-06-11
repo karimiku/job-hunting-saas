@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	CreateAIAccessToken(ctx context.Context, arg CreateAIAccessTokenParams) error
 	CreateCompanyAlias(ctx context.Context, arg CreateCompanyAliasParams) error
 	CreateESMemo(ctx context.Context, arg CreateESMemoParams) (EsMemo, error)
 	CreateInboxClip(ctx context.Context, arg CreateInboxClipParams) error
@@ -21,6 +22,7 @@ type Querier interface {
 	DeleteInboxClip(ctx context.Context, arg DeleteInboxClipParams) (int64, error)
 	DeleteTask(ctx context.Context, arg DeleteTaskParams) (int64, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) (int64, error)
+	FindActiveAIAccessTokenByHash(ctx context.Context, tokenHash string) (AiAccessToken, error)
 	FindCompanyAliasByID(ctx context.Context, arg FindCompanyAliasByIDParams) (CompanyAlias, error)
 	FindCompanyByID(ctx context.Context, arg FindCompanyByIDParams) (Company, error)
 	FindEntryByID(ctx context.Context, arg FindEntryByIDParams) (Entry, error)
@@ -31,6 +33,7 @@ type Querier interface {
 	FindUserByEmail(ctx context.Context, email string) (User, error)
 	FindUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	InsertExternalIdentity(ctx context.Context, arg InsertExternalIdentityParams) error
+	ListAIAccessTokensByUserID(ctx context.Context, userID uuid.UUID) ([]AiAccessToken, error)
 	ListCompaniesByUserID(ctx context.Context, userID uuid.UUID) ([]Company, error)
 	ListCompanyAliasesByCompanyID(ctx context.Context, arg ListCompanyAliasesByCompanyIDParams) ([]CompanyAlias, error)
 	ListCompanyAliasesByUserID(ctx context.Context, userID uuid.UUID) ([]CompanyAlias, error)
@@ -44,6 +47,8 @@ type Querier interface {
 	MCPGetEntryContext(ctx context.Context, arg MCPGetEntryContextParams) (MCPGetEntryContextRow, error)
 	MCPListEntries(ctx context.Context, userID uuid.UUID) ([]MCPListEntriesRow, error)
 	MCPListOpenTasks(ctx context.Context, userID uuid.UUID) ([]MCPListOpenTasksRow, error)
+	RevokeAIAccessToken(ctx context.Context, arg RevokeAIAccessTokenParams) (int64, error)
+	TouchAIAccessTokenLastUsed(ctx context.Context, arg TouchAIAccessTokenLastUsedParams) error
 	UpsertCompany(ctx context.Context, arg UpsertCompanyParams) error
 	UpsertEntry(ctx context.Context, arg UpsertEntryParams) error
 	UpsertTask(ctx context.Context, arg UpsertTaskParams) error

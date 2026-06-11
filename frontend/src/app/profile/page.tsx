@@ -4,11 +4,25 @@
 import { redirect } from "next/navigation";
 import { UserCircle } from "lucide-react";
 import { getCurrentUserServer } from "@/lib/auth-server";
+import { serverFetch } from "@/lib/api/server";
+import { ApiError } from "@/lib/api/client-types";
+import type { AiAccessTokenResponse } from "@/lib/api/aiTokens";
 import { AppShell } from "@/components/entre/AppShell";
 import { SignOutButton } from "@/components/entre/SignOutButton";
+import { AiAccessTokenPanel } from "@/components/entre/AiAccessTokenPanel";
 
 export default async function ProfilePage() {
-  const user = await getCurrentUserServer();
+  const [user, tokenResult] = await Promise.all([
+    getCurrentUserServer(),
+    serverFetch<{ tokens: AiAccessTokenResponse[] }>("/api/v1/ai/tokens").catch(
+      (e) => {
+        if (e instanceof ApiError && e.unauthorized) {
+          return { tokens: [] as AiAccessTokenResponse[] };
+        }
+        throw e;
+      },
+    ),
+  ]);
   if (!user) redirect("/login");
 
   return (
@@ -33,6 +47,10 @@ export default async function ProfilePage() {
           </ul>
           <SignOutButton className="mt-5 w-full rounded-lg border border-line bg-surface py-2.5 text-[12px] font-bold text-ink-2 transition-colors hover:bg-line-2" />
         </section>
+
+        <div className="mt-4">
+          <AiAccessTokenPanel tokens={tokenResult.tokens} />
+        </div>
       </div>
     </AppShell>
   );

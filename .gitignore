@@ -4,6 +4,7 @@
 tmp/
 /server
 /backend/server
+/backend/bin/
 .claude/settings.local.json
 
 # Firebase Admin SDK 秘密鍵

@@ -54,6 +54,22 @@ func TestSetUserID_OverwritesPrevious(t *testing.T) {
 	}
 }
 
+// --- SetAuthMethod / GetAuthMethod ---
+
+func TestGetAuthMethod_WhenSet_ReturnsValue(t *testing.T) {
+	ctx := SetAuthMethod(context.Background(), AuthMethodBearer)
+
+	if got := GetAuthMethod(ctx); got != AuthMethodBearer {
+		t.Errorf("GetAuthMethod = %q, want %q", got, AuthMethodBearer)
+	}
+}
+
+func TestGetAuthMethod_WhenNotSet_ReturnsUnknown(t *testing.T) {
+	if got := GetAuthMethod(context.Background()); got != AuthMethodUnknown {
+		t.Errorf("GetAuthMethod = %q, want %q", got, AuthMethodUnknown)
+	}
+}
+
 // --- NewAuth ---
 
 // mockSessionVerifier は FirebaseSessionVerifier のテスト実装。
@@ -63,20 +79,6 @@ type mockSessionVerifier struct {
 
 func (m *mockSessionVerifier) VerifySessionCookie(ctx context.Context, cookie string) (*SessionClaims, error) {
 	return m.verifyFn(ctx, cookie)
-}
-
-// nextAssertingUserID は ServeHTTP まで到達したかと、
-// context にセットされた userID が期待値と一致するかを確認する next handler を返す。
-func nextAssertingUserID(t *testing.T, called *bool, expected entity.UserID) http.Handler {
-	t.Helper()
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		*called = true
-		got := GetUserID(r.Context())
-		if got != expected {
-			t.Errorf("GetUserID in next handler = %v, want %v", got, expected)
-		}
-		w.WriteHeader(http.StatusOK)
-	})
 }
 
 func TestNewAuth_Success(t *testing.T) {
@@ -97,7 +99,18 @@ func TestNewAuth_Success(t *testing.T) {
 	}
 
 	called := false
-	handler := NewAuth(fb, extIDRepo)(nextAssertingUserID(t, &called, userID))
+	handler := NewAuth(fb, extIDRepo)(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			called = true
+			if got := GetUserID(r.Context()); got != userID {
+				t.Errorf("GetUserID in next handler = %v, want %v", got, userID)
+			}
+			if got := GetAuthMethod(r.Context()); got != AuthMethodSession {
+				t.Errorf("GetAuthMethod in next handler = %q, want %q", got, AuthMethodSession)
+			}
+			w.WriteHeader(http.StatusOK)
+		}),
+	)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.AddCookie(&http.Cookie{Name: SessionCookieName, Value: "valid-cookie"})

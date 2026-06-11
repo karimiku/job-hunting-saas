@@ -1,5 +1,6 @@
 .PHONY: help up down logs dev-fe health mcp-server \
         test test-be test-fe test-fe-e2e test-ext build build-be build-fe \
+        build-mcp-server \
         lint lint-be lint-fe fmt fmt-be \
         gen gen-api gen-sql \
         install install-fe install-be \
@@ -41,7 +42,7 @@ dev-fe: ## フロント dev サーバ単独
 health: ## API /health を叩く
 	@curl -sf http://localhost:8080/health && echo " OK" || echo "API unreachable"
 
-mcp-server: ## job-hunting-saas MCP server をstdioで起動（DATABASE_URL + MCP_USER_EMAIL/ID が必要）
+mcp-server: ## job-hunting-saas MCP server をstdioで起動（ENTRE_API_TOKEN or DATABASE_URL + MCP_USER_EMAIL/ID が必要）
 	cd backend && go run ./cmd/mcp-server
 
 # ============================================================
@@ -68,6 +69,9 @@ build-be: ## Go ビルド確認
 
 build-fe: ## Next.js 本番ビルド
 	cd frontend && pnpm build
+
+build-mcp-server: ## MCPクライアント設定用の単一バイナリを backend/bin/mcp-server にビルド
+	cd backend && go build -o bin/mcp-server ./cmd/mcp-server
 
 # ============================================================
 # Lint / Format

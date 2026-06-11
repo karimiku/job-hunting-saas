@@ -63,6 +63,19 @@ type InboxClipDTO struct {
 	CapturedAt *string `json:"capturedAt"`
 }
 
+// ESMemoDTO はMCPクライアントに返すES/自己PR/面接メモ情報。
+type ESMemoDTO struct {
+	ID        string  `json:"id"`
+	EntryID   *string `json:"entryId"`
+	Company   *string `json:"company"`
+	Category  string  `json:"category"`
+	Title     string  `json:"title"`
+	Content   string  `json:"content"`
+	Source    string  `json:"source"`
+	CreatedAt string  `json:"createdAt"`
+	UpdatedAt string  `json:"updatedAt"`
+}
+
 // EntryContextDTO はエントリーと関連タスクをまとめたMCP向け情報。
 type EntryContextDTO struct {
 	Entry EntryDTO  `json:"entry"`
@@ -102,6 +115,7 @@ type Service struct {
 	userID     entity.UserID
 	query      ContextQuery
 	appendMemo *esmemo.Append
+	listMemo   *esmemo.List
 	createTask *taskuc.Create
 	extract    *jobemail.Extract
 	now        func() time.Time
@@ -112,6 +126,7 @@ func NewService(
 	userID entity.UserID,
 	query ContextQuery,
 	appendMemo *esmemo.Append,
+	listMemo *esmemo.List,
 	createTask *taskuc.Create,
 	extract *jobemail.Extract,
 ) *Service {
@@ -119,6 +134,7 @@ func NewService(
 		userID:     userID,
 		query:      query,
 		appendMemo: appendMemo,
+		listMemo:   listMemo,
 		createTask: createTask,
 		extract:    extract,
 		now:        time.Now,
@@ -147,6 +163,26 @@ func (s *Service) ListOpenTasks(ctx context.Context) ([]TaskDTO, error) {
 // ListInboxClips はInbox Clip一覧を返す。
 func (s *Service) ListInboxClips(ctx context.Context) ([]InboxClipDTO, error) {
 	return s.query.ListInboxClips(ctx, s.userID)
+}
+
+// ListESMemos はES/自己PR/面接メモ一覧を返す。
+func (s *Service) ListESMemos(ctx context.Context, limit int32) ([]ESMemoDTO, error) {
+	out, err := s.listMemo.Execute(ctx, esmemo.ListInput{
+		UserID: s.userID,
+		Limit:  limit,
+	})
+	if err != nil {
+		return nil, err
+	}
+	memos := make([]ESMemoDTO, 0, len(out.Memos))
+	for _, memo := range out.Memos {
+		company, err := s.companyForMemo(ctx, memo)
+		if err != nil {
+			return nil, err
+		}
+		memos = append(memos, esMemoDTO(memo, company))
+	}
+	return memos, nil
 }
 
 // AppendESMemo は確認付きでESメモを追記する。
@@ -187,7 +223,7 @@ func (s *Service) AppendESMemo(ctx context.Context, input AppendESMemoInput) (an
 	}
 	return map[string]any{
 		"created": true,
-		"memo":    esMemoDTO(out.Memo),
+		"memo":    esMemoDTO(out.Memo, nil),
 	}, nil
 }
 
@@ -295,6 +331,21 @@ func optionalEntryIDString(id *entity.EntryID) *string {
 	return &value
 }
 
+func (s *Service) companyForMemo(ctx context.Context, memo *entity.ESMemo) (*string, error) {
+	if memo.EntryID() == nil {
+		return nil, nil
+	}
+	entryCtx, err := s.query.GetEntryContext(ctx, s.userID, *memo.EntryID())
+	if err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(entryCtx.Entry.Company) == "" {
+		return nil, nil
+	}
+	company := entryCtx.Entry.Company
+	return &company, nil
+}
+
 func defaultString(value string, fallback string) string {
 	if strings.TrimSpace(value) == "" {
 		return fallback
@@ -324,15 +375,16 @@ func formatTimePtr(t *time.Time) *string {
 	return &value
 }
 
-func esMemoDTO(memo *entity.ESMemo) map[string]any {
-	return map[string]any{
-		"id":        memo.ID().String(),
-		"entryId":   optionalEntryIDString(memo.EntryID()),
-		"category":  memo.Category().String(),
-		"title":     memo.Title().String(),
-		"content":   memo.Content().String(),
-		"source":    memo.Source().String(),
-		"createdAt": memo.CreatedAt().Format(time.RFC3339),
-		"updatedAt": memo.UpdatedAt().Format(time.RFC3339),
+func esMemoDTO(memo *entity.ESMemo, company *string) ESMemoDTO {
+	return ESMemoDTO{
+		ID:        memo.ID().String(),
+		EntryID:   optionalEntryIDString(memo.EntryID()),
+		Company:   company,
+		Category:  memo.Category().String(),
+		Title:     memo.Title().String(),
+		Content:   memo.Content().String(),
+		Source:    memo.Source().String(),
+		CreatedAt: memo.CreatedAt().Format(time.RFC3339),
+		UpdatedAt: memo.UpdatedAt().Format(time.RFC3339),
 	}
 }
