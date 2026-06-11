@@ -11,8 +11,10 @@ import {
   listTasksServer,
 } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
+import { DashboardEntries } from "@/components/entre/DashboardEntries";
 import { DashboardQuests } from "@/components/entre/DashboardQuests";
 import { DashboardNextAction } from "@/components/entre/DashboardNextAction";
+import { DashboardStats } from "@/components/entre/DashboardStats";
 import { SignOutButton } from "@/components/entre/SignOutButton";
 
 export default async function DashboardPage() {
@@ -33,7 +35,7 @@ export default async function DashboardPage() {
 
   return (
     <AppShell userName={user.name} userSubtitle={user.email} navCounts={navCounts}>
-      <div className="mx-auto max-w-[760px] px-5 py-6 md:px-8 md:py-8">
+      <div className="mx-auto max-w-[980px] px-4 py-5 md:px-8 md:py-8">
         <header className="mb-4 flex flex-col gap-3 md:mb-5 md:flex-row md:items-start md:justify-between">
           <div>
             <h1 className="font-serif text-2xl font-extrabold tracking-tight md:text-[28px]">
@@ -58,7 +60,14 @@ export default async function DashboardPage() {
           openTaskCount={openTasks}
         />
 
-        <DashboardQuests tasks={tasks} />
+        <div className="mb-4 md:mb-5">
+          <DashboardStats entries={entries} />
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <DashboardEntries entries={entries} tasks={tasks} />
+          <DashboardQuests tasks={tasks} />
+        </div>
       </div>
     </AppShell>
   );

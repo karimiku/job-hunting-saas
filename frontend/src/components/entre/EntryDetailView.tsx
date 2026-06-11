@@ -14,6 +14,14 @@ import {
   type EntryResponse,
 } from "@/lib/api/entries";
 import {
+  ENTRY_STATUS_LABEL,
+  STAGE_COLOR,
+  STAGE_LABEL,
+  STAGE_ORDER,
+  statusForStage,
+  type StageKind,
+} from "@/lib/entry-stage";
+import {
   createTask,
   deleteTask,
   updateTask,
@@ -21,23 +29,7 @@ import {
 } from "@/lib/api/tasks";
 import { Confetti } from "./Confetti";
 
-const STAGE_ORDER = ["application", "document", "test", "interview", "group", "offer"] as const;
-const STAGE_LABEL: Record<string, string> = {
-  application: "エントリー",
-  document: "書類",
-  test: "テスト",
-  interview: "面接",
-  group: "GD",
-  offer: "内定",
-};
-const STAGE_COLOR: Record<string, string> = {
-  application: "var(--color-stage-entry)",
-  document: "var(--color-stage-doc)",
-  test: "var(--color-stage-es)",
-  interview: "var(--color-stage-interview)",
-  group: "var(--color-stage-interview-deep)",
-  offer: "var(--color-stage-offer)",
-};
+const OUTCOME_STATUS = ["in_progress", "offered", "accepted", "rejected", "withdrawn"] as const;
 
 interface Props {
   initialEntry: EntryResponse | null;
@@ -49,7 +41,13 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
   const router = useRouter();
   const [confetti, setConfetti] = useState(0);
   const [taskError, setTaskError] = useState<string | null>(null);
+  const [entryError, setEntryError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [optimisticEntry, setOptimisticEntry] = useState<{
+    stageKind: string;
+    stageLabel: string;
+    status: string;
+  } | null>(null);
   const [createdTasks, setCreatedTasks] = useState<TaskResponse[]>([]);
   const [deletedTaskIds, setDeletedTaskIds] = useState<Record<string, boolean>>({});
   const [optimisticTaskStatus, setOptimisticTaskStatus] = useState<
@@ -70,24 +68,61 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
     );
   }
 
-  const e = initialEntry;
+  const e = {
+    ...initialEntry,
+    ...(optimisticEntry ?? {}),
+  };
   const sourceUrl = entrySourceUrl(e);
   const currentIdx = STAGE_ORDER.indexOf(e.stageKind as (typeof STAGE_ORDER)[number]);
-  const isOffer = e.stageKind === "offer";
+  const isOffer = e.stageKind === "offer" || e.status === "offered" || e.status === "accepted";
   const tasks = [...initialTasks, ...createdTasks]
     .filter((task) => !deletedTaskIds[task.id])
     .sort(compareTasks);
 
-  const handleAdvance = () => {
-    if (currentIdx < 0 || currentIdx >= STAGE_ORDER.length - 1) return;
-    const nextKind = STAGE_ORDER[currentIdx + 1];
+  const handleSelectStage = (nextKind: StageKind) => {
+    const next = {
+      stageKind: nextKind,
+      stageLabel: STAGE_LABEL[nextKind],
+      status: statusForStage(nextKind),
+    };
+    setEntryError(null);
+    setOptimisticEntry(next);
     startTransition(async () => {
-      await updateEntry(e.id, {
-        stageKind: nextKind,
-        stageLabel: STAGE_LABEL[nextKind],
-      });
-      if (nextKind === "offer") setConfetti((n) => n + 1);
-      router.refresh(); // Server Component を再評価して新しい entry を取得
+      try {
+        await updateEntry(e.id, next);
+        if (nextKind === "offer") setConfetti((n) => n + 1);
+        router.refresh(); // Server Component を再評価して新しい entry を取得
+      } catch {
+        setOptimisticEntry(null);
+        setEntryError("選考ステータスの更新に失敗しました");
+      }
+    });
+  };
+
+  const handleSelectOutcome = (status: string) => {
+    const next =
+      status === "offered" || status === "accepted"
+        ? {
+            stageKind: "offer",
+            stageLabel: STAGE_LABEL.offer,
+            status,
+          }
+        : {
+            stageKind: e.stageKind,
+            stageLabel: e.stageLabel,
+            status,
+          };
+    setEntryError(null);
+    setOptimisticEntry(next);
+    startTransition(async () => {
+      try {
+        await updateEntry(e.id, next);
+        if (status === "offered" || status === "accepted") setConfetti((n) => n + 1);
+        router.refresh();
+      } catch {
+        setOptimisticEntry(null);
+        setEntryError("結果ステータスの更新に失敗しました");
+      }
     });
   };
 
@@ -189,40 +224,66 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
         )}
       </div>
 
-      {/* Stage progression bar */}
+      {/* Stage selector */}
       <section className="mb-3 rounded-xl border border-line bg-surface p-3">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-[10px] font-bold text-ink-2">選考ステータス</p>
-          <button
-            type="button"
-            onClick={handleAdvance}
-            disabled={isPending || isOffer}
-            className="rounded border border-sage px-1.5 py-0.5 text-[9px] font-bold text-sage transition-opacity disabled:opacity-50"
-          >
-            進める →
-          </button>
+          <span className="rounded-full bg-cream px-2 py-0.5 text-[9px] font-black text-ink-3">
+            {ENTRY_STATUS_LABEL[e.status] ?? e.status}
+          </span>
         </div>
-        <div className="flex gap-1">
+        <div className="grid grid-cols-3 gap-1.5 md:grid-cols-6">
           {STAGE_ORDER.map((kind, i) => {
             const reached = i <= currentIdx;
+            const selected = e.stageKind === kind;
             return (
-              <div
+              <button
+                type="button"
                 key={kind}
-                className="grid flex-1 place-items-center rounded-md text-[8px] font-bold transition-colors"
+                onClick={() => handleSelectStage(kind)}
+                disabled={isPending || selected}
+                aria-pressed={selected}
+                className="grid min-h-9 place-items-center rounded-md border text-[10px] font-bold transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:cursor-default"
                 style={{
-                  background: reached ? STAGE_COLOR[kind] : "var(--color-line)",
+                  borderColor: selected ? STAGE_COLOR[kind] : "var(--color-line)",
+                  background: reached ? STAGE_COLOR[kind] : "var(--color-line-2)",
                   color: reached ? "#fff" : "var(--color-ink-3)",
-                  height: 26,
                 }}
               >
                 {STAGE_LABEL[kind]}
-              </div>
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-2 grid grid-cols-5 gap-1">
+          {OUTCOME_STATUS.map((status) => {
+            const selected = e.status === status;
+            return (
+              <button
+                key={status}
+                type="button"
+                onClick={() => handleSelectOutcome(status)}
+                disabled={isPending || selected}
+                aria-pressed={selected}
+                className={`h-7 rounded-md border px-1 text-[9px] font-black transition-colors focus:outline-none focus:ring-2 focus:ring-sage/30 ${
+                  selected
+                    ? "border-sage bg-sage text-white"
+                    : "border-line bg-cream text-ink-3 hover:border-sage hover:text-sage"
+                }`}
+              >
+                {ENTRY_STATUS_LABEL[status]}
+              </button>
             );
           })}
         </div>
         <p className="mt-2 text-[10px] font-bold text-sage">
           現在: <span data-testid="current-stage">{e.stageLabel}</span>
         </p>
+        {entryError && (
+          <p role="alert" className="mt-2 rounded-md bg-pink/40 px-2.5 py-1.5 text-[10px] font-semibold text-ink">
+            {entryError}
+          </p>
+        )}
       </section>
 
       {/* Memo */}

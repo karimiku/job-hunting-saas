@@ -2,7 +2,7 @@
 
 // initialTasks を SSR で受け取り、表示とトグル操作のみ担う Client Component。
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useMemo, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -58,6 +58,7 @@ export function TaskListView({ initialTasks, entries }: Props) {
   const router = useRouter();
   const [confetti, setConfetti] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [selectedEntryId, setSelectedEntryId] = useState<string>("all");
   const [isPending, startTransition] = useTransition();
   const [deletingIds, setDeletingIds] = useState<Record<string, boolean>>({});
   // 楽観更新用に「いまトグル中の taskId → 目標 status」を保持する。
@@ -106,9 +107,22 @@ export function TaskListView({ initialTasks, entries }: Props) {
     });
   };
 
-  const tasks = sortTasksForDisplay(initialTasks).filter(
+  const entryById = useMemo(
+    () => new Map(entries.map((entry) => [entry.id, entry])),
+    [entries],
+  );
+
+  const allVisibleTasks = sortTasksForDisplay(initialTasks).filter(
     (task) => !deletingIds[task.id],
   );
+  const tasks =
+    selectedEntryId === "all"
+      ? allVisibleTasks
+      : allVisibleTasks.filter((task) => task.entryId === selectedEntryId);
+  const groupedTasks = groupTasksByEntry(tasks, entryById);
+  const remainingCount = tasks.filter(
+    (task) => (optimistic[task.id] ?? task.status) === "todo",
+  ).length;
 
   return (
     <div className="relative">
@@ -123,7 +137,7 @@ export function TaskListView({ initialTasks, entries }: Props) {
         </p>
       )}
 
-      {tasks.length === 0 ? (
+      {allVisibleTasks.length === 0 ? (
         <TaskEmptyState hasEntries={entries.length > 0} />
       ) : (
         <div className="space-y-2">
@@ -135,72 +149,221 @@ export function TaskListView({ initialTasks, entries }: Props) {
               </p>
             </div>
             <span className="rounded-md bg-sage-soft px-2 py-1 text-[10px] font-bold text-sage">
-              {tasks.filter((task) => (optimistic[task.id] ?? task.status) === "todo").length}件残り
+              {remainingCount}件残り
             </span>
           </div>
 
-          <ul className="flex flex-col gap-2">
-            {tasks.map((task) => {
-              const status = optimistic[task.id] ?? task.status;
-              const done = status === "done";
-              return (
-                <li
-                  key={task.id}
-                  className={`flex items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2.5 transition-opacity ${
-                    done ? "opacity-50" : ""
-                  }`}
+          <EntryTaskFilter
+            entries={entries}
+            tasks={allVisibleTasks}
+            selectedEntryId={selectedEntryId}
+            onSelect={setSelectedEntryId}
+          />
+
+          {tasks.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-line bg-surface px-4 py-6 text-center">
+              <p className="text-[12px] font-bold text-ink-2">
+                このEntryにはタスクがありません
+              </p>
+              <p className="mt-1 text-[10px] text-ink-3">
+                上のフォームで応募先を選ぶと、このEntryに予定を追加できます。
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {groupedTasks.map((group) => (
+                <section
+                  key={group.entryId}
+                  className="rounded-xl border border-line bg-surface p-2.5"
                 >
-                  <button
-                    type="button"
-                    onClick={() => toggle(task)}
-                    disabled={isPending}
-                    aria-pressed={done}
-                    aria-label={done ? "タスク未完了に戻す" : "タスク完了にする"}
-                    className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] text-white transition-colors focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:opacity-60 ${
-                      done
-                        ? "border-[1.5px] border-sage bg-sage"
-                        : "border-[1.5px] border-line bg-transparent"
-                    }`}
-                  >
-                    {done ? <CheckCircle2 size={15} aria-hidden /> : ""}
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <div
-                      className={`text-[12px] font-semibold ${done ? "line-through" : ""}`}
+                  <div className="mb-2 flex items-center justify-between gap-2 px-0.5">
+                    <Link
+                      href={group.entryId === "unknown" ? "/entry" : `/entry/${group.entryId}`}
+                      className="min-w-0 text-[11px] font-extrabold text-ink hover:text-sage"
                     >
-                      {task.title}
-                    </div>
-                    <div className="mt-0.5 text-[10px] text-ink-3">
-                      {task.companyName ?? "（会社名未設定）"}
-                      {task.memo ? ` · ${task.memo}` : ""}
-                    </div>
+                      <span className="truncate">{group.companyName}</span>
+                    </Link>
+                    <span className="shrink-0 rounded-md bg-cream px-2 py-0.5 text-[9px] font-black text-ink-3">
+                      未完了 {group.openCount}
+                    </span>
                   </div>
-                  <span
-                    className={`shrink-0 rounded-md px-2 py-0.5 font-mono text-[10px] font-bold text-white ${
-                      TYPE_BADGE[task.type] ?? "bg-sage"
-                    }`}
-                  >
-                    {formatDue(task.dueDate)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => deleteTask(task)}
-                    disabled={isPending}
-                    aria-label={`タスク「${task.title}」を削除`}
-                    className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-line text-ink-3 transition-colors hover:border-pink-deep hover:text-pink-deep focus:outline-none focus:ring-2 focus:ring-pink-deep/30 disabled:opacity-60"
-                  >
-                    <Trash2 size={13} aria-hidden />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+                  <ul className="flex flex-col gap-2">
+                    {group.tasks.map((task) => {
+                      const status = optimistic[task.id] ?? task.status;
+                      const done = status === "done";
+                      return (
+                        <TaskRow
+                          key={task.id}
+                          task={task}
+                          done={done}
+                          isPending={isPending}
+                          onToggle={toggle}
+                          onDelete={deleteTask}
+                        />
+                      );
+                    })}
+                  </ul>
+                </section>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       <Confetti trigger={confetti} count={22} />
     </div>
   );
+}
+
+function TaskRow({
+  task,
+  done,
+  isPending,
+  onToggle,
+  onDelete,
+}: {
+  task: TaskWithEntry;
+  done: boolean;
+  isPending: boolean;
+  onToggle: (task: TaskWithEntry) => void;
+  onDelete: (task: TaskWithEntry) => void;
+}) {
+  return (
+    <li
+      className={`flex items-center gap-3 rounded-lg border border-line bg-cream px-3 py-2.5 transition-opacity ${
+        done ? "opacity-50" : ""
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => onToggle(task)}
+        disabled={isPending}
+        aria-pressed={done}
+        aria-label={done ? "タスク未完了に戻す" : "タスク完了にする"}
+        className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] text-white transition-colors focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:opacity-60 ${
+          done
+            ? "border-[1.5px] border-sage bg-sage"
+            : "border-[1.5px] border-line bg-transparent"
+        }`}
+      >
+        {done ? <CheckCircle2 size={15} aria-hidden /> : ""}
+      </button>
+      <div className="min-w-0 flex-1">
+        <div className={`text-[12px] font-semibold ${done ? "line-through" : ""}`}>
+          {task.title}
+        </div>
+        <div className="mt-0.5 text-[10px] text-ink-3">
+          {task.memo ? task.memo : task.type === "deadline" ? "締切タスク" : "予定"}
+        </div>
+      </div>
+      <span
+        className={`shrink-0 rounded-md px-2 py-0.5 font-mono text-[10px] font-bold text-white ${
+          TYPE_BADGE[task.type] ?? "bg-sage"
+        }`}
+      >
+        {formatDue(task.dueDate)}
+      </span>
+      <button
+        type="button"
+        onClick={() => onDelete(task)}
+        disabled={isPending}
+        aria-label={`タスク「${task.title}」を削除`}
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-line text-ink-3 transition-colors hover:border-pink-deep hover:text-pink-deep focus:outline-none focus:ring-2 focus:ring-pink-deep/30 disabled:opacity-60"
+      >
+        <Trash2 size={13} aria-hidden />
+      </button>
+    </li>
+  );
+}
+
+function EntryTaskFilter({
+  entries,
+  tasks,
+  selectedEntryId,
+  onSelect,
+}: {
+  entries: EntryResponse[];
+  tasks: TaskWithEntry[];
+  selectedEntryId: string;
+  onSelect: (entryId: string) => void;
+}) {
+  if (entries.length === 0) return null;
+
+  const taskCountByEntry = new Map<string, number>();
+  for (const task of tasks) {
+    taskCountByEntry.set(task.entryId, (taskCountByEntry.get(task.entryId) ?? 0) + 1);
+  }
+
+  return (
+    <div className="-mx-5 overflow-x-auto px-5 md:mx-0 md:px-0">
+      <div className="flex min-w-max gap-1.5 pb-1">
+        <button
+          type="button"
+          onClick={() => onSelect("all")}
+          aria-pressed={selectedEntryId === "all"}
+          className={`h-8 rounded-full border px-3 text-[10px] font-black transition-colors ${
+            selectedEntryId === "all"
+              ? "border-sage bg-sage text-white"
+              : "border-line bg-surface text-ink-3 hover:border-sage hover:text-sage"
+          }`}
+        >
+          すべて {tasks.length}
+        </button>
+        {entries.map((entry) => {
+          const selected = selectedEntryId === entry.id;
+          const count = taskCountByEntry.get(entry.id) ?? 0;
+          return (
+            <button
+              key={entry.id}
+              type="button"
+              onClick={() => onSelect(entry.id)}
+              aria-pressed={selected}
+              className={`h-8 max-w-[180px] rounded-full border px-3 text-[10px] font-black transition-colors ${
+                selected
+                  ? "border-sage bg-sage text-white"
+                  : "border-line bg-surface text-ink-3 hover:border-sage hover:text-sage"
+              }`}
+            >
+              <span className="inline-block max-w-[120px] truncate align-bottom">
+                {companyDisplayName(entry)}
+              </span>{" "}
+              {count}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+interface TaskGroup {
+  entryId: string;
+  companyName: string;
+  openCount: number;
+  tasks: TaskWithEntry[];
+}
+
+function groupTasksByEntry(
+  tasks: TaskWithEntry[],
+  entryById: Map<string, EntryResponse>,
+): TaskGroup[] {
+  const groups = new Map<string, TaskGroup>();
+  for (const task of tasks) {
+    const entry = entryById.get(task.entryId);
+    const entryId = entry?.id ?? task.entryId ?? "unknown";
+    const current =
+      groups.get(entryId) ??
+      {
+        entryId,
+        companyName: task.companyName ?? (entry ? companyDisplayName(entry) : "（会社名未設定）"),
+        openCount: 0,
+        tasks: [],
+      };
+    current.tasks.push(task);
+    if (task.status === "todo") current.openCount += 1;
+    groups.set(entryId, current);
+  }
+  return [...groups.values()];
 }
 
 function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {

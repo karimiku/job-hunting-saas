@@ -8,15 +8,12 @@ import {
   entrySourceUrl,
   type EntryResponse,
 } from "@/lib/api/entries";
-
-const STAGE_BG: Record<string, string> = {
-  application: "var(--color-stage-entry)",
-  document: "var(--color-stage-doc)",
-  test: "var(--color-stage-es)",
-  interview: "var(--color-stage-interview)",
-  group: "var(--color-stage-interview)",
-  offer: "var(--color-stage-offer)",
-};
+import {
+  ENTRY_STATUS_LABEL,
+  STAGE_BG,
+  STAGE_ORDER,
+  stageIndexOf,
+} from "@/lib/entry-stage";
 
 export function EntryListView({ entries }: { entries: EntryResponse[] }) {
   if (entries.length === 0) {
@@ -56,10 +53,15 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
               key={e.id}
               className="flex items-center gap-2.5 rounded-xl border border-line bg-surface p-3 transition-all hover:translate-x-0.5 hover:border-sage"
             >
-              <Link href={`/entry/${e.id}`} className="flex min-w-0 flex-1 items-center gap-2.5">
+              <Link href={`/entry/${e.id}`} className="flex min-w-0 flex-1 items-start gap-2.5">
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[12px] font-bold">{companyDisplayName(e)}</div>
-                  <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-ink-3">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <div className="truncate text-[12px] font-bold">{companyDisplayName(e)}</div>
+                    <span className="shrink-0 rounded-full bg-cream px-1.5 py-0.5 text-[8px] font-black text-ink-3">
+                      {ENTRY_STATUS_LABEL[e.status] ?? e.status}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[10px] text-ink-3">
                     <span
                       className="rounded-sm px-1.5 py-0.5 text-[8px] font-bold text-white"
                       style={{ background: STAGE_BG[e.stageKind] ?? "var(--color-ink-3)" }}
@@ -69,6 +71,24 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
                     <span>{e.route}</span>
                     <span aria-hidden>·</span>
                     <span className="truncate">{e.source}</span>
+                  </div>
+                  <div
+                    className="mt-2 grid gap-0.5"
+                    style={{ gridTemplateColumns: `repeat(${STAGE_ORDER.length}, minmax(0, 1fr))` }}
+                    aria-label={`選考ステージ ${e.stageLabel}`}
+                  >
+                    {STAGE_ORDER.map((kind, index) => {
+                      const reached = index <= stageIndexOf(e.stageKind);
+                      return (
+                        <span
+                          key={kind}
+                          className="h-1.5 rounded-full"
+                          style={{
+                            background: reached ? STAGE_BG[kind] : "var(--color-line-2)",
+                          }}
+                        />
+                      );
+                    })}
                   </div>
                   {e.memo && <div className="mt-1 text-[10px] text-ink-2">{e.memo}</div>}
                 </div>

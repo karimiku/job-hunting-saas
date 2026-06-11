@@ -103,6 +103,28 @@ describe("TaskListView", () => {
     expect(screen.getByText("5/30")).toBeInTheDocument();
   });
 
+  it("Entryフィルタで対象Entryのタスクだけ表示する", async () => {
+    const user = userEvent.setup();
+    render(
+      <TaskListView
+        initialTasks={[
+          task({ id: "t1", entryId: "e1", title: "ES提出", companyName: "○○商事" }),
+          task({ id: "t2", entryId: "e2", title: "一次面接", companyName: "△△銀行" }),
+        ]}
+        entries={[
+          entry({ id: "e1", companyName: "○○商事" }),
+          entry({ id: "e2", companyName: "△△銀行" }),
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /△△銀行 1/ }));
+
+    expect(screen.queryByText("ES提出")).not.toBeInTheDocument();
+    expect(screen.getByText("一次面接")).toBeInTheDocument();
+    expect(screen.getByText("未完了 1")).toBeInTheDocument();
+  });
+
   it("期日が無いタスクは「期日なし」と表示する", () => {
     render(<TaskListView initialTasks={[task({ dueDate: null })]} entries={[entry()]} />);
     expect(screen.getByText("期日なし")).toBeInTheDocument();

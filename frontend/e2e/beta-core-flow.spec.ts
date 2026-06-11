@@ -60,7 +60,11 @@ test.describe("Beta core flow — 保存箱からEntry/Kanban/Task管理", () =>
     ).toHaveAttribute("href", `https://jobs.example.test/${suffix}`);
 
     await page.goto("/kanban");
-    await expect(page.getByText(company).first()).toBeVisible();
+    const kanban =
+      testInfo.project.name === "mobile"
+        ? page.getByTestId("kanban-mobile-list")
+        : page.getByTestId("kanban-desktop-board");
+    await expect(kanban.getByText(company)).toBeVisible();
 
     await page.goto("/task");
     await page.getByLabel("タスク名").fill(taskTitle);
