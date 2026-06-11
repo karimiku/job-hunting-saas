@@ -72,3 +72,9 @@ PostgreSQL 16。開発環境は docker-compose で起動（ポート 15432）。
 - Entity の ID は UUID v4（`google/uuid`）
 - エラーはドメイン固有エラー（`domain/repository/` で定義）を使い、Handler 層で HTTP ステータスに変換
 - 詳細な技術選定理由は `docs/why-reasons.md` に記載
+
+## Pull Request ルール（必須・厳守）
+
+- **PR 本文は必ず `.github/pull_request_template.md` の見出し構成に従う**（概要 / 変更内容 / 設計判断・意思決定の理由 / 関連issue / レビュー観点 / フロー図(任意) / テスト）。`gh pr create --body` や API 経由で本文を書くとテンプレートは自動適用されないため、自分でこの構成を再現すること。例外なし。
+- テンプレ末尾のテストチェックリストは Go 向けなので、フロントエンド等の PR では実際に実行したコマンド（vitest / Playwright / lint / build 等）に置き換える。
+- **PR タイトルは日本語で書く**。Conventional Commits の prefix（`feat:` / `fix:` / `perf:` 等）は付けてよいが、説明部分は日本語にする（例: `perf: アプリ内ナビゲーションを高速化`）。
