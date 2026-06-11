@@ -1,0 +1,18 @@
+# Production image build allowlist. Keep secrets, local binaries, and dev files
+# out of the Docker build context by default.
+*
+
+!go.mod
+!go.sum
+
+!cmd/
+!cmd/server/
+!cmd/server/**
+
+!internal/
+!internal/**
+
+!Dockerfile
+!.dockerignore
+
+**/*_test.go
