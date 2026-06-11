@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { Check, Copy, KeyRound, Trash2 } from "lucide-react";
+import { Check, Copy, FileJson2, KeyRound, Terminal, Trash2 } from "lucide-react";
 import {
   createAiAccessTokenAction,
   revokeAiAccessTokenAction,
@@ -14,6 +14,9 @@ import type { AiAccessTokenResponse } from "@/lib/api/aiTokens";
 
 const CREATE_INITIAL: CreateAiAccessTokenState = {};
 const REVOKE_INITIAL: RevokeAiAccessTokenState = {};
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
+const MCP_SERVER_PATH_PLACEHOLDER = "/absolute/path/to/backend/bin/mcp-server";
 
 export function AiAccessTokenPanel({
   tokens,
@@ -106,31 +109,96 @@ function IssuedToken({ token, name }: { token: string; name?: string }) {
         <span className="text-[11px] font-extrabold text-sage">
           {name ?? "作成済み"}
         </span>
-        <CopyTokenButton token={token} />
+        <CopyButton text={token} />
       </div>
       <code className="block max-w-full overflow-x-auto rounded-md bg-white px-3 py-2 font-mono text-[11px] font-bold text-ink">
         {token}
       </code>
+      <div className="mt-3 grid gap-2">
+        {buildMCPSnippets(token).map((snippet) => (
+          <ConfigSnippet key={snippet.label} {...snippet} />
+        ))}
+      </div>
     </div>
   );
 }
 
-function CopyTokenButton({ token }: { token: string }) {
+function ConfigSnippet({
+  label,
+  text,
+  kind,
+}: {
+  label: string;
+  text: string;
+  kind: "cli" | "json";
+}) {
+  const Icon = kind === "json" ? FileJson2 : Terminal;
+  return (
+    <div className="rounded-md border border-sage/20 bg-white">
+      <div className="flex items-center justify-between gap-2 border-b border-line px-2.5 py-2">
+        <span className="inline-flex min-w-0 items-center gap-1.5 text-[10px] font-extrabold text-ink-2">
+          <Icon size={12} aria-hidden />
+          <span className="truncate">{label}</span>
+        </span>
+        <CopyButton text={text} label="設定をコピー" />
+      </div>
+      <pre className="max-h-32 overflow-auto px-2.5 py-2 font-mono text-[10px] font-semibold leading-relaxed text-ink">
+        {text}
+      </pre>
+    </div>
+  );
+}
+
+function CopyButton({ text, label = "コピー" }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
       type="button"
       onClick={async () => {
-        await navigator.clipboard.writeText(token);
+        await navigator.clipboard.writeText(text);
         setCopied(true);
         window.setTimeout(() => setCopied(false), 1400);
       }}
       className="inline-flex h-8 items-center gap-1 rounded-md border border-line bg-white px-2 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
     >
       {copied ? <Check size={13} aria-hidden /> : <Copy size={13} aria-hidden />}
-      {copied ? "完了" : "コピー"}
+      {copied ? "完了" : label}
     </button>
   );
+}
+
+function buildMCPSnippets(token: string) {
+  return [
+    {
+      label: "Codex CLI",
+      kind: "cli" as const,
+      text: `codex mcp add entre --env ENTRE_API_BASE_URL=${API_BASE_URL} --env ENTRE_API_TOKEN=${token} -- ${MCP_SERVER_PATH_PLACEHOLDER}`,
+    },
+    {
+      label: "Claude Code",
+      kind: "cli" as const,
+      text: `claude mcp add --transport stdio --scope user entre --env ENTRE_API_BASE_URL=${API_BASE_URL} --env ENTRE_API_TOKEN=${token} -- ${MCP_SERVER_PATH_PLACEHOLDER}`,
+    },
+    {
+      label: "Claude Desktop JSON",
+      kind: "json" as const,
+      text: JSON.stringify(
+        {
+          mcpServers: {
+            entre: {
+              command: MCP_SERVER_PATH_PLACEHOLDER,
+              env: {
+                ENTRE_API_BASE_URL: API_BASE_URL,
+                ENTRE_API_TOKEN: token,
+              },
+            },
+          },
+        },
+        null,
+        2,
+      ),
+    },
+  ];
 }
 
 function TokenRow({ token }: { token: AiAccessTokenResponse }) {

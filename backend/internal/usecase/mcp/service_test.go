@@ -109,12 +109,38 @@ func TestServiceCreateTask_WithConfirmationSaves(t *testing.T) {
 	}
 }
 
+func TestServiceListESMemos_ReturnsCompanyForEntryMemo(t *testing.T) {
+	userID := entity.NewUserID()
+	entryID := entity.NewEntryID()
+	memoRepo := &recordingMemoRepo{
+		items: []*entity.ESMemo{
+			newTestESMemo(t, userID, &entryID, "interview", "面接で話す改善経験", "顧客課題を分解して改善した"),
+		},
+	}
+	service := newTestService(userID, &fakeContextQuery{entryID: entryID, company: "Example Inc."}, memoRepo, &recordingTaskRepo{})
+
+	out, err := service.ListESMemos(context.Background(), 10)
+	if err != nil {
+		t.Fatalf("ListESMemos() failed: %v", err)
+	}
+	if len(out) != 1 {
+		t.Fatalf("len(out) = %d, want 1", len(out))
+	}
+	if out[0].Company == nil || *out[0].Company != "Example Inc." {
+		t.Fatalf("Company = %v, want Example Inc.", out[0].Company)
+	}
+	if out[0].Title != "面接で話す改善経験" {
+		t.Errorf("Title = %q, want 面接で話す改善経験", out[0].Title)
+	}
+}
+
 func newTestService(userID entity.UserID, query ContextQuery, memoRepo *recordingMemoRepo, taskRepo *recordingTaskRepo) *Service {
 	entryRepo := &fakeEntryRepo{userID: userID}
 	return NewService(
 		userID,
 		query,
 		esmemo.NewAppend(memoRepo, entryRepo),
+		esmemo.NewList(memoRepo),
 		taskuc.NewCreate(taskRepo, entryRepo),
 		jobemail.NewExtract(),
 	)
@@ -153,6 +179,7 @@ func (q *fakeContextQuery) ListInboxClips(context.Context, entity.UserID) ([]Inb
 
 type recordingMemoRepo struct {
 	saved *entity.ESMemo
+	items []*entity.ESMemo
 }
 
 func (r *recordingMemoRepo) Save(_ context.Context, memo *entity.ESMemo) error {
@@ -161,7 +188,7 @@ func (r *recordingMemoRepo) Save(_ context.Context, memo *entity.ESMemo) error {
 }
 
 func (r *recordingMemoRepo) ListByUserID(context.Context, entity.UserID, int32) ([]*entity.ESMemo, error) {
-	return []*entity.ESMemo{}, nil
+	return r.items, nil
 }
 
 type recordingTaskRepo struct {
@@ -234,4 +261,25 @@ func (r *fakeEntryRepo) ListByUserID(context.Context, entity.UserID, repository.
 
 func (r *fakeEntryRepo) Delete(context.Context, entity.UserID, entity.EntryID) error {
 	return nil
+}
+
+func newTestESMemo(t *testing.T, userID entity.UserID, entryID *entity.EntryID, category string, title string, content string) *entity.ESMemo {
+	t.Helper()
+	cat, err := value.NewESMemoCategory(category)
+	if err != nil {
+		t.Fatal(err)
+	}
+	memoTitle, err := value.NewESMemoTitle(title)
+	if err != nil {
+		t.Fatal(err)
+	}
+	memoContent, err := value.NewESMemoContent(content)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source, err := value.NewESMemoSource("mcp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return entity.NewESMemo(userID, entryID, cat, memoTitle, memoContent, source)
 }

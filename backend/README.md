@@ -87,23 +87,26 @@ curl http://localhost:8080/health
 Claude Desktop / Codex / Gemini CLI などのMCPクライアントから、就活データを読み書きするためのstdio MCP serverを提供する。
 設計・resources/tools・配布上の注意は [docs/mcp-server.md](../docs/mcp-server.md) を参照。
 
+通常利用は Webアプリの「アカウント」画面で発行するAI連携トークンを使う。
+
 ```bash
-DATABASE_URL=postgres://postgres:postgres@localhost:15432/job_hunting_dev?sslmode=disable \
-MCP_USER_EMAIL=you@example.com \
-go run ./cmd/mcp-server
+make -C .. build-mcp-server
+ENTRE_API_BASE_URL=http://localhost:8080 \
+ENTRE_API_TOKEN=entre_ai_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
+./bin/mcp-server
 ```
 
 リポジトリルートからは次でも起動できる。
 
 ```bash
-DATABASE_URL=postgres://postgres:postgres@localhost:15432/job_hunting_dev?sslmode=disable \
-MCP_USER_EMAIL=you@example.com \
+ENTRE_API_BASE_URL=http://localhost:8080 \
+ENTRE_API_TOKEN=entre_ai_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
 make mcp-server
 ```
 
-`MCP_USER_EMAIL` の代わりに `MCP_USER_ID` でも対象ユーザーを指定できる。multi-user DBを安全に扱うため、どちらか一方は必須。
+開発者向けにDB直結モードも残している。`ENTRE_API_TOKEN` が未設定の場合だけ `DATABASE_URL` と `MCP_USER_EMAIL` または `MCP_USER_ID` で対象ユーザーを指定する。multi-user DBを安全に扱うため、DB直結モードではユーザー指定が必須。
 
-`append_es_memo` と `create_task` は `confirm: true` を渡したときだけDBへ保存する。`capture_job_email` はメール本文をルールベースで構造化し、LLM APIは呼ばない。
+`append_es_memo` と `create_task` は `confirm: true` を渡したときだけDBへ保存する。`list_inbox_clips` と `list_es_memos` で保存箱・ESメモを参照できる。`capture_job_email` はメール本文をルールベースで構造化し、LLM APIは呼ばない。
 
 ### 認証 / Chrome拡張向け Cookie 設定
 

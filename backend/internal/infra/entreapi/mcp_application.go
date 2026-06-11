@@ -132,6 +132,34 @@ func (a *MCPApplication) ListInboxClips(ctx context.Context) ([]mcpuc.InboxClipD
 	return out, nil
 }
 
+// ListESMemos returns ES/self PR/interview memos.
+func (a *MCPApplication) ListESMemos(ctx context.Context, limit int32) ([]mcpuc.ESMemoDTO, error) {
+	path := "/api/v1/es-memos"
+	if limit > 0 {
+		path += "?limit=" + url.QueryEscape(fmt.Sprintf("%d", limit))
+	}
+	var memos listESMemosResponse
+	if err := a.get(ctx, path, &memos); err != nil {
+		return nil, err
+	}
+	entryCompanies := map[string]string{}
+	for _, memo := range memos.Memos {
+		if memo.EntryID != nil {
+			var err error
+			entryCompanies, err = a.entryCompanyNames(ctx)
+			if err != nil {
+				return nil, err
+			}
+			break
+		}
+	}
+	out := make([]mcpuc.ESMemoDTO, 0, len(memos.Memos))
+	for _, memo := range memos.Memos {
+		out = append(out, memo.toMCP(entryCompanies))
+	}
+	return out, nil
+}
+
 // AppendESMemo previews or saves an ES memo through the REST API.
 func (a *MCPApplication) AppendESMemo(ctx context.Context, input mcpuc.AppendESMemoInput) (any, error) {
 	title := strings.TrimSpace(input.Title)
@@ -480,6 +508,10 @@ func (c inboxClipResponse) toMCP() mcpuc.InboxClipDTO {
 	}
 }
 
+type listESMemosResponse struct {
+	Memos []esMemoResponse `json:"memos"`
+}
+
 type createTaskRequest struct {
 	Title   string  `json:"title"`
 	Type    string  `json:"type"`
@@ -517,5 +549,25 @@ func (m esMemoResponse) toMap() map[string]any {
 		"source":    m.Source,
 		"createdAt": m.CreatedAt,
 		"updatedAt": m.UpdatedAt,
+	}
+}
+
+func (m esMemoResponse) toMCP(entryCompanies map[string]string) mcpuc.ESMemoDTO {
+	var company *string
+	if m.EntryID != nil {
+		if value := strings.TrimSpace(entryCompanies[*m.EntryID]); value != "" {
+			company = &value
+		}
+	}
+	return mcpuc.ESMemoDTO{
+		ID:        m.ID,
+		EntryID:   m.EntryID,
+		Company:   company,
+		Category:  m.Category,
+		Title:     m.Title,
+		Content:   m.Content,
+		Source:    m.Source,
+		CreatedAt: m.CreatedAt,
+		UpdatedAt: m.UpdatedAt,
 	}
 }

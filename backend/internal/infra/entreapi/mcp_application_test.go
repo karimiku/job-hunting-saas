@@ -144,6 +144,67 @@ func TestMCPApplication_AppendESMemoWithConfirmation(t *testing.T) {
 	}
 }
 
+func TestMCPApplication_ListESMemosAddsCompany(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/es-memos", func(w http.ResponseWriter, r *http.Request) {
+		assertBearer(t, r)
+		if r.Method != http.MethodGet {
+			t.Fatalf("method = %s, want GET", r.Method)
+		}
+		if got := r.URL.Query().Get("limit"); got != "25" {
+			t.Fatalf("limit = %q, want 25", got)
+		}
+		entryID := "entry-1"
+		writeTestJSON(t, w, map[string]any{
+			"memos": []map[string]any{{
+				"id":        "memo-1",
+				"entryId":   entryID,
+				"category":  "interview",
+				"title":     "改善経験",
+				"content":   "顧客課題を分解した",
+				"source":    "mcp",
+				"createdAt": "2026-06-11T00:00:00Z",
+				"updatedAt": "2026-06-11T00:00:00Z",
+			}},
+		})
+	})
+	mux.HandleFunc("/api/v1/entries", func(w http.ResponseWriter, r *http.Request) {
+		assertBearer(t, r)
+		writeTestJSON(t, w, map[string]any{
+			"entries": []map[string]any{{
+				"id":        "entry-1",
+				"companyId": "company-1",
+			}},
+		})
+	})
+	mux.HandleFunc("/api/v1/companies", func(w http.ResponseWriter, r *http.Request) {
+		assertBearer(t, r)
+		writeTestJSON(t, w, map[string]any{
+			"companies": []map[string]any{{
+				"id":   "company-1",
+				"name": "Example Inc.",
+			}},
+		})
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	app, err := NewMCPApplication(server.URL, "test-token", server.Client())
+	if err != nil {
+		t.Fatalf("NewMCPApplication() failed: %v", err)
+	}
+	memos, err := app.ListESMemos(t.Context(), 25)
+	if err != nil {
+		t.Fatalf("ListESMemos() failed: %v", err)
+	}
+	if len(memos) != 1 {
+		t.Fatalf("len(memos) = %d, want 1", len(memos))
+	}
+	if memos[0].Company == nil || *memos[0].Company != "Example Inc." {
+		t.Fatalf("Company = %v, want Example Inc.", memos[0].Company)
+	}
+}
+
 func assertBearer(t *testing.T, r *http.Request) {
 	t.Helper()
 	if got := r.Header.Get("Authorization"); got != "Bearer test-token" {

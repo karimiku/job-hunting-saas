@@ -26,16 +26,63 @@ MCP server も既存APIと同じ Clean Architecture の境界に合わせる。
 
 通常利用は `ENTRE_API_TOKEN` を使う API bridge mode を使う。Webアプリの「アカウント」画面で AI連携トークンを作成し、MCPクライアント設定の環境変数に渡す。
 
+まずローカルMCPサーバーの単一バイナリを作る。
+
+```bash
+make build-mcp-server
+```
+
+出力先は `backend/bin/mcp-server`。Claude Desktop などGUIアプリから起動する場合は、`go run` ではなくこのバイナリの絶対パスを設定に入れる。
+
 ```bash
 cd backend
 ENTRE_API_BASE_URL=http://localhost:8080 \
 ENTRE_API_TOKEN=entre_ai_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
-go run ./cmd/mcp-server
+./bin/mcp-server
 ```
 
 `ENTRE_API_BASE_URL` は省略時 `http://localhost:8080`。本番配布では hosted API のURLを指定する。
 
-Claude Desktop などの設定例:
+## Client setup
+
+### Codex CLI / Codex IDE
+
+Codex は `codex mcp add` か `~/.codex/config.toml` で stdio MCP server を設定する。CLI と IDE extension は同じ設定を読む。
+
+```bash
+codex mcp add entre \
+  --env ENTRE_API_BASE_URL=https://api.example.com \
+  --env ENTRE_API_TOKEN=entre_ai_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
+  -- /absolute/path/to/backend/bin/mcp-server
+```
+
+`config.toml` に直接書く場合:
+
+```toml
+[mcp_servers.entre]
+command = "/absolute/path/to/backend/bin/mcp-server"
+
+[mcp_servers.entre.env]
+ENTRE_API_BASE_URL = "https://api.example.com"
+ENTRE_API_TOKEN = "entre_ai_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+```
+
+### Claude Code
+
+Claude Code は `claude mcp add` で stdio MCP server を追加する。個人利用のMVP検証では `--scope user` が扱いやすい。
+
+```bash
+claude mcp add --transport stdio --scope user entre \
+  --env ENTRE_API_BASE_URL=https://api.example.com \
+  --env ENTRE_API_TOKEN=entre_ai_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
+  -- /absolute/path/to/backend/bin/mcp-server
+```
+
+確認は `claude mcp list` または Claude Code 内の `/mcp`。
+
+### Claude Desktop
+
+Claude Desktop などJSON設定型のクライアントでは、次の形で stdio server を登録する。
 
 ```json
 {
@@ -50,6 +97,11 @@ Claude Desktop などの設定例:
   }
 }
 ```
+
+### References
+
+- Codex MCP: <https://developers.openai.com/codex/mcp>
+- Claude Code MCP: <https://docs.anthropic.com/en/docs/claude-code/mcp>
 
 開発者向けにDB直結モードも残している。`ENTRE_API_TOKEN` が未設定で `DATABASE_URL` がある場合だけ direct database mode で起動する。
 
@@ -70,6 +122,7 @@ go run ./cmd/mcp-server
 | `entries://{entryId}` | 応募先1件と紐づくTask |
 | `tasks://open` | 未完了Task一覧 |
 | `inbox://clips` | 保存箱のInbox clip一覧 |
+| `es-memos://list` | ES/自己PR/面接ネタ用メモ一覧 |
 
 ## Tools
 
@@ -78,6 +131,8 @@ go run ./cmd/mcp-server
 | `list_entries` | 応募先一覧を返す |
 | `get_entry_context` | Entry詳細と紐づくTaskを返す |
 | `list_open_tasks` | 未完了Task一覧を返す |
+| `list_inbox_clips` | 保存箱のInbox clip一覧を返す |
+| `list_es_memos` | ES/自己PR/面接ネタ用メモ一覧を返す |
 | `append_es_memo` | ES/自己PR/面接ネタ用メモを保存する |
 | `create_task` | Entryに紐づくTaskを作成する |
 | `capture_job_email` | 選考メール本文からTask候補などをルールベースで抽出する |

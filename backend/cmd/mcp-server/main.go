@@ -68,6 +68,7 @@ func run() error {
 		user.ID(),
 		query,
 		esmemo.NewAppend(memoRepo, entryRepo),
+		esmemo.NewList(memoRepo),
 		taskuc.NewCreate(taskRepo, entryRepo),
 		jobemail.NewExtract(),
 	)
