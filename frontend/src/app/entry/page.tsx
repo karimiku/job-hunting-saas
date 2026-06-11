@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUserServer } from "@/lib/auth-server";
+import { ApiError } from "@/lib/api/client-types";
 import {
   buildNavCounts,
   listEntriesWithCompanyNamesServer,
@@ -14,14 +15,18 @@ import { EntryListView } from "@/components/entre/EntryListView";
 import { Plus } from "lucide-react";
 
 export default async function EntryListPage() {
-  const user = await getCurrentUserServer();
-  if (!user) redirect("/login");
-
-  const [entries, clips, tasks] = await Promise.all([
-    listEntriesWithCompanyNamesServer(),
+  // user とデータは独立なので並列取得 (auth を待ってから始めると backend RTT が1段増える)。
+  // entries はメインリソースなので 401 (未ログイン → 下で redirect) 以外は throw して error.tsx に拾わせる。
+  const [user, entries, clips, tasks] = await Promise.all([
+    getCurrentUserServer(),
+    listEntriesWithCompanyNamesServer().catch((e) => {
+      if (e instanceof ApiError && e.unauthorized) return [];
+      throw e;
+    }),
     listInboxClipsServer().catch(() => []),
     listTasksServer().catch(() => []),
   ]);
+  if (!user) redirect("/login");
   const navCounts = buildNavCounts(entries, tasks, clips);
 
   return (

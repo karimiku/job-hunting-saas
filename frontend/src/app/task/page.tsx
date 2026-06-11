@@ -12,14 +12,14 @@ import { AppShell } from "@/components/entre/AppShell";
 import { TaskListView } from "@/components/entre/TaskListView";
 
 export default async function TaskPage() {
-  const user = await getCurrentUserServer();
-  if (!user) redirect("/login");
-
-  const [entries, rawTasks, clips] = await Promise.all([
+  // user / entries / tasks / clips は独立なので並列取得 (auth を待ってから始めると RTT が1段増える)
+  const [user, entries, rawTasks, clips] = await Promise.all([
+    getCurrentUserServer(),
     listEntriesWithCompanyNamesServer().catch(() => []),
     listTasksServer().catch(() => []),
     listInboxClipsServer().catch(() => []),
   ]);
+  if (!user) redirect("/login");
   const tasks = attachCompanyNamesToTasks(rawTasks, entries);
 
   const navCounts = {

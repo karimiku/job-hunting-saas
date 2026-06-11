@@ -18,18 +18,18 @@ interface Props {
 
 export default async function EntryDetailPage({ params }: Props) {
   const { entryId } = await params;
-  const user = await getCurrentUserServer();
-  if (!user) redirect("/login");
 
-  // entry + tasks は独立なので並列 fetch。
-  // 取得失敗 (404 等) は EntryDetailView に渡す initial=null として扱い、UI 側でエラー表示。
-  const [entryRaw, tasks] = await Promise.all([
+  // user / entry / tasks は独立なので並列 fetch。
+  // entry の取得失敗 (404 等) は EntryDetailView に渡す initial=null として扱い、UI 側でエラー表示。
+  const [user, entryRaw, tasks] = await Promise.all([
+    getCurrentUserServer(),
     getEntryServer(entryId).catch((e) => {
       if (e instanceof ApiError) return null;
       throw e;
     }),
     listTasksByEntryServer(entryId).catch(() => []),
   ]);
+  if (!user) redirect("/login");
 
   // entry が取れたら会社名を join する（取得失敗時は UI 側でフォールバック）。
   const entry = entryRaw

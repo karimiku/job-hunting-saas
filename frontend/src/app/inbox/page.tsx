@@ -4,6 +4,7 @@
 
 import { redirect } from "next/navigation";
 import { getCurrentUserServer } from "@/lib/auth-server";
+import { ApiError } from "@/lib/api/client-types";
 import {
   buildNavCounts,
   listInboxClipsServer,
@@ -15,15 +16,19 @@ import { AppShell } from "@/components/entre/AppShell";
 import { InboxList } from "@/components/entre/InboxList";
 
 export default async function InboxPage() {
-  const user = await getCurrentUserServer();
-  if (!user) redirect("/login");
-
-  const [clips, companies, entries, tasks] = await Promise.all([
-    listInboxClipsServer(),
+  // user とデータは独立なので並列取得 (auth を待ってから始めると backend RTT が1段増える)。
+  // clips はメインリソースなので 401 (未ログイン → 下で redirect) 以外は throw して error.tsx に拾わせる。
+  const [user, clips, companies, entries, tasks] = await Promise.all([
+    getCurrentUserServer(),
+    listInboxClipsServer().catch((e) => {
+      if (e instanceof ApiError && e.unauthorized) return [];
+      throw e;
+    }),
     listCompaniesServer().catch(() => []),
     listEntriesServer().catch(() => []),
     listTasksServer().catch(() => []),
   ]);
+  if (!user) redirect("/login");
   const navCounts = buildNavCounts(entries, tasks, clips);
 
   return (
