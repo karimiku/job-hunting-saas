@@ -220,6 +220,16 @@ func (e ListEntriesParamsStageKind) Valid() bool {
 	}
 }
 
+// AiAccessTokenResponse defines model for AiAccessTokenResponse.
+type AiAccessTokenResponse struct {
+	CreatedAt   time.Time          `json:"createdAt"`
+	Id          openapi_types.UUID `json:"id"`
+	LastUsedAt  *time.Time         `json:"lastUsedAt"`
+	Name        string             `json:"name"`
+	RevokedAt   *time.Time         `json:"revokedAt"`
+	TokenPrefix string             `json:"tokenPrefix"`
+}
+
 // CompanyAliasResponse defines model for CompanyAliasResponse.
 type CompanyAliasResponse struct {
 	Alias     string             `json:"alias"`
@@ -235,6 +245,17 @@ type CompanyResponse struct {
 	Memo      string             `json:"memo"`
 	Name      string             `json:"name"`
 	UpdatedAt time.Time          `json:"updatedAt"`
+}
+
+// CreateAiAccessTokenRequest defines model for CreateAiAccessTokenRequest.
+type CreateAiAccessTokenRequest struct {
+	Name string `json:"name"`
+}
+
+// CreateAiAccessTokenResponse defines model for CreateAiAccessTokenResponse.
+type CreateAiAccessTokenResponse struct {
+	AccessToken AiAccessTokenResponse `json:"accessToken"`
+	Token       string                `json:"token"`
 }
 
 // CreateCompanyAliasRequest defines model for CreateCompanyAliasRequest.
@@ -255,6 +276,15 @@ type CreateEntryRequest struct {
 	Route     string             `json:"route"`
 	Source    string             `json:"source"`
 	SourceUrl *string            `json:"sourceUrl,omitempty"`
+}
+
+// CreateEsMemoRequest defines model for CreateEsMemoRequest.
+type CreateEsMemoRequest struct {
+	Category *string             `json:"category,omitempty"`
+	Content  string              `json:"content"`
+	EntryId  *openapi_types.UUID `json:"entryId,omitempty"`
+	Source   *string             `json:"source,omitempty"`
+	Title    string              `json:"title"`
 }
 
 // CreateInboxClipRequest defines model for CreateInboxClipRequest.
@@ -279,6 +309,7 @@ type CreateStageHistoryRequestStageKind string
 type CreateTaskRequest struct {
 	DueDate *time.Time            `json:"dueDate,omitempty"`
 	Memo    *string               `json:"memo,omitempty"`
+	Notify  *bool                 `json:"notify,omitempty"`
 	Title   string                `json:"title"`
 	Type    CreateTaskRequestType `json:"type"`
 }
@@ -304,6 +335,18 @@ type EntryResponse struct {
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
 	Message string `json:"message"`
+}
+
+// EsMemoResponse defines model for EsMemoResponse.
+type EsMemoResponse struct {
+	Category  string              `json:"category"`
+	Content   string              `json:"content"`
+	CreatedAt time.Time           `json:"createdAt"`
+	EntryId   *openapi_types.UUID `json:"entryId"`
+	Id        openapi_types.UUID  `json:"id"`
+	Source    string              `json:"source"`
+	Title     string              `json:"title"`
+	UpdatedAt time.Time           `json:"updatedAt"`
 }
 
 // InboxClipResponse defines model for InboxClipResponse.
@@ -378,6 +421,9 @@ type UpdateTaskRequestStatus string
 // UpdateTaskRequestType defines model for UpdateTaskRequest.Type.
 type UpdateTaskRequestType string
 
+// AiAccessTokenId defines model for AiAccessTokenId.
+type AiAccessTokenId = openapi_types.UUID
+
 // AliasId defines model for AliasId.
 type AliasId = openapi_types.UUID
 
@@ -406,6 +452,14 @@ type ListEntriesParamsStatus string
 // ListEntriesParamsStageKind defines parameters for ListEntries.
 type ListEntriesParamsStageKind string
 
+// ListEsMemosParams defines parameters for ListEsMemos.
+type ListEsMemosParams struct {
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
+// CreateAiAccessTokenJSONRequestBody defines body for CreateAiAccessToken for application/json ContentType.
+type CreateAiAccessTokenJSONRequestBody = CreateAiAccessTokenRequest
+
 // CreateCompanyJSONRequestBody defines body for CreateCompany for application/json ContentType.
 type CreateCompanyJSONRequestBody = CreateCompanyRequest
 
@@ -427,6 +481,9 @@ type CreateStageHistoryJSONRequestBody = CreateStageHistoryRequest
 // CreateTaskJSONRequestBody defines body for CreateTask for application/json ContentType.
 type CreateTaskJSONRequestBody = CreateTaskRequest
 
+// CreateEsMemoJSONRequestBody defines body for CreateEsMemo for application/json ContentType.
+type CreateEsMemoJSONRequestBody = CreateEsMemoRequest
+
 // CreateInboxClipJSONRequestBody defines body for CreateInboxClip for application/json ContentType.
 type CreateInboxClipJSONRequestBody = CreateInboxClipRequest
 
@@ -435,6 +492,15 @@ type UpdateTaskJSONRequestBody = UpdateTaskRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// AI/MCP連携用アクセストークン一覧を取得する
+	// (GET /api/v1/ai/tokens)
+	ListAiAccessTokens(w http.ResponseWriter, r *http.Request)
+	// AI/MCP連携用アクセストークンを発行する
+	// (POST /api/v1/ai/tokens)
+	CreateAiAccessToken(w http.ResponseWriter, r *http.Request)
+	// AI/MCP連携用アクセストークンを失効する
+	// (DELETE /api/v1/ai/tokens/{aiAccessTokenId})
+	RevokeAiAccessToken(w http.ResponseWriter, r *http.Request, aiAccessTokenId AiAccessTokenId)
 	// 企業の別名を削除する
 	// (DELETE /api/v1/aliases/{aliasId})
 	DeleteCompanyAlias(w http.ResponseWriter, r *http.Request, aliasId AliasId)
@@ -489,6 +555,12 @@ type ServerInterface interface {
 	// タスクを新規登録する
 	// (POST /api/v1/entries/{entryId}/tasks)
 	CreateTask(w http.ResponseWriter, r *http.Request, entryId EntryId)
+	// ES/自己PR/面接ネタ用メモ一覧を取得する
+	// (GET /api/v1/es-memos)
+	ListEsMemos(w http.ResponseWriter, r *http.Request, params ListEsMemosParams)
+	// ES/自己PR/面接ネタ用メモを作成する
+	// (POST /api/v1/es-memos)
+	CreateEsMemo(w http.ResponseWriter, r *http.Request)
 	// 自分のページクリップ一覧を返す
 	// (GET /api/v1/inbox/clips)
 	ListInboxClips(w http.ResponseWriter, r *http.Request)
@@ -515,6 +587,24 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// AI/MCP連携用アクセストークン一覧を取得する
+// (GET /api/v1/ai/tokens)
+func (_ Unimplemented) ListAiAccessTokens(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AI/MCP連携用アクセストークンを発行する
+// (POST /api/v1/ai/tokens)
+func (_ Unimplemented) CreateAiAccessToken(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AI/MCP連携用アクセストークンを失効する
+// (DELETE /api/v1/ai/tokens/{aiAccessTokenId})
+func (_ Unimplemented) RevokeAiAccessToken(w http.ResponseWriter, r *http.Request, aiAccessTokenId AiAccessTokenId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // 企業の別名を削除する
 // (DELETE /api/v1/aliases/{aliasId})
@@ -624,6 +714,18 @@ func (_ Unimplemented) CreateTask(w http.ResponseWriter, r *http.Request, entryI
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// ES/自己PR/面接ネタ用メモ一覧を取得する
+// (GET /api/v1/es-memos)
+func (_ Unimplemented) ListEsMemos(w http.ResponseWriter, r *http.Request, params ListEsMemosParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ES/自己PR/面接ネタ用メモを作成する
+// (POST /api/v1/es-memos)
+func (_ Unimplemented) CreateEsMemo(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // 自分のページクリップ一覧を返す
 // (GET /api/v1/inbox/clips)
 func (_ Unimplemented) ListInboxClips(w http.ResponseWriter, r *http.Request) {
@@ -674,6 +776,59 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ListAiAccessTokens operation middleware
+func (siw *ServerInterfaceWrapper) ListAiAccessTokens(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAiAccessTokens(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateAiAccessToken operation middleware
+func (siw *ServerInterfaceWrapper) CreateAiAccessToken(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateAiAccessToken(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeAiAccessToken operation middleware
+func (siw *ServerInterfaceWrapper) RevokeAiAccessToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "aiAccessTokenId" -------------
+	var aiAccessTokenId AiAccessTokenId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "aiAccessTokenId", chi.URLParam(r, "aiAccessTokenId"), &aiAccessTokenId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "aiAccessTokenId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeAiAccessToken(w, r, aiAccessTokenId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // DeleteCompanyAlias operation middleware
 func (siw *ServerInterfaceWrapper) DeleteCompanyAlias(w http.ResponseWriter, r *http.Request) {
@@ -1110,6 +1265,47 @@ func (siw *ServerInterfaceWrapper) CreateTask(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// ListEsMemos operation middleware
+func (siw *ServerInterfaceWrapper) ListEsMemos(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListEsMemosParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListEsMemos(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateEsMemo operation middleware
+func (siw *ServerInterfaceWrapper) CreateEsMemo(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateEsMemo(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListInboxClips operation middleware
 func (siw *ServerInterfaceWrapper) ListInboxClips(w http.ResponseWriter, r *http.Request) {
 
@@ -1366,6 +1562,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/ai/tokens", wrapper.ListAiAccessTokens)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/ai/tokens", wrapper.CreateAiAccessToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v1/ai/tokens/{aiAccessTokenId}", wrapper.RevokeAiAccessToken)
+	})
+	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v1/aliases/{aliasId}", wrapper.DeleteCompanyAlias)
 	})
 	r.Group(func(r chi.Router) {
@@ -1418,6 +1623,12 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v1/entries/{entryId}/tasks", wrapper.CreateTask)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/es-memos", wrapper.ListEsMemos)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/es-memos", wrapper.CreateEsMemo)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v1/inbox/clips", wrapper.ListInboxClips)

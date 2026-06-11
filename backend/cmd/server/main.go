@@ -20,9 +20,11 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/infra/inmemory"
 	"github.com/karimiku/job-hunting-saas/internal/infra/postgres"
 	"github.com/karimiku/job-hunting-saas/internal/middleware"
+	aiaccesstokenuc "github.com/karimiku/job-hunting-saas/internal/usecase/ai_access_token"
 	companyuc "github.com/karimiku/job-hunting-saas/internal/usecase/company"
 	companyaliasuc "github.com/karimiku/job-hunting-saas/internal/usecase/company_alias"
 	entryuc "github.com/karimiku/job-hunting-saas/internal/usecase/entry"
+	esmemo "github.com/karimiku/job-hunting-saas/internal/usecase/es_memo"
 	inboxclipuc "github.com/karimiku/job-hunting-saas/internal/usecase/inbox_clip"
 	stagehistoryuc "github.com/karimiku/job-hunting-saas/internal/usecase/stage_history"
 	taskuc "github.com/karimiku/job-hunting-saas/internal/usecase/task"
@@ -55,6 +57,8 @@ func run() error {
 		userRepo         repository.UserRepository
 		extIDRepo        repository.ExternalIdentityRepository
 		inboxClipRepo    repository.InboxClipRepository
+		esMemoRepo       repository.ESMemoRepository
+		aiTokenRepo      repository.AIAccessTokenRepository
 	)
 
 	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
@@ -72,6 +76,8 @@ func run() error {
 		userRepo = postgres.NewUserRepository(pool)
 		extIDRepo = postgres.NewExternalIdentityRepository(pool)
 		inboxClipRepo = postgres.NewInboxClipRepository(pool)
+		esMemoRepo = postgres.NewESMemoRepository(pool)
+		aiTokenRepo = postgres.NewAIAccessTokenRepository(pool)
 		log.Println("using PostgreSQL repositories")
 	} else {
 		// DATABASE_URL 未設定 = 開発・ローカルテストモード。auth middleware も配線できないため
@@ -91,6 +97,8 @@ func run() error {
 		taskRepo = inmemory.NewTaskRepository(inMemoryEntryRepo)
 		stageHistoryRepo = inmemory.NewStageHistoryRepository()
 		inboxClipRepo = inmemory.NewInboxClipRepository()
+		esMemoRepo = inmemory.NewESMemoRepository()
+		aiTokenRepo = inmemory.NewAIAccessTokenRepository()
 		log.Println("using in-memory repositories (ALLOW_INSECURE_NO_AUTH=true) — auth endpoints disabled, all data shared across users")
 	}
 
@@ -125,7 +133,11 @@ func run() error {
 			CookieSecure:   os.Getenv("COOKIE_SECURE") == "true",
 			CookieSameSite: cookieSameSite,
 		})
-		authMiddleware = middleware.NewAuth(sessionVerifier, extIDRepo)
+		authMiddleware = middleware.NewAuthWithBearer(
+			sessionVerifier,
+			extIDRepo,
+			aiaccesstokenuc.NewVerify(aiTokenRepo),
+		)
 		log.Println("firebase auth wired")
 	}
 
@@ -172,13 +184,26 @@ func run() error {
 		inboxclipuc.NewDelete(inboxClipRepo),
 	)
 
+	aiTokenHandler := handler.NewAiAccessTokenHandler(
+		aiaccesstokenuc.NewCreate(aiTokenRepo),
+		aiaccesstokenuc.NewList(aiTokenRepo),
+		aiaccesstokenuc.NewRevoke(aiTokenRepo),
+	)
+
+	esMemoHandler := handler.NewESMemoHandler(
+		esmemo.NewAppend(esMemoRepo, entryRepo),
+		esmemo.NewList(esMemoRepo),
+	)
+
 	h := &handler.Handler{
-		CompanyHandler:      companyHandler,
-		CompanyAliasHandler: companyAliasHandler,
-		EntryHandler:        entryHandler,
-		TaskHandler:         taskHandler,
-		StageHistoryHandler: stageHistoryHandler,
-		InboxClipHandler:    inboxClipHandler,
+		CompanyHandler:       companyHandler,
+		CompanyAliasHandler:  companyAliasHandler,
+		EntryHandler:         entryHandler,
+		TaskHandler:          taskHandler,
+		StageHistoryHandler:  stageHistoryHandler,
+		InboxClipHandler:     inboxClipHandler,
+		AiAccessTokenHandler: aiTokenHandler,
+		ESMemoHandler:        esMemoHandler,
 	}
 
 	router := chi.NewRouter()

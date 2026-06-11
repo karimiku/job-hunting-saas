@@ -39,6 +39,9 @@ type InboxClipID uuid.UUID
 // ESMemoID は ES / 自己PR / 面接ネタ用メモを一意に識別するための ID 型。
 type ESMemoID uuid.UUID
 
+// AIAccessTokenID は AI / MCP 連携用アクセストークンを一意に識別するための ID 型。
+type AIAccessTokenID uuid.UUID
+
 // --- Constructors ---
 
 // NewUserID は新しい UserID を生成する。
@@ -70,6 +73,9 @@ func NewInboxClipID() InboxClipID { return InboxClipID(uuid.New()) }
 
 // NewESMemoID は新しい ESMemoID を生成する。
 func NewESMemoID() ESMemoID { return ESMemoID(uuid.New()) }
+
+// NewAIAccessTokenID は新しい AIAccessTokenID を生成する。
+func NewAIAccessTokenID() AIAccessTokenID { return AIAccessTokenID(uuid.New()) }
 
 // --- String ---
 
@@ -103,6 +109,9 @@ func (id InboxClipID) String() string { return uuid.UUID(id).String() }
 // String は ESMemoID を文字列表現で返す。
 func (id ESMemoID) String() string { return uuid.UUID(id).String() }
 
+// String は AIAccessTokenID を文字列表現で返す。
+func (id AIAccessTokenID) String() string { return uuid.UUID(id).String() }
+
 // --- IsZero: IDが未設定（ゼロ値）かどうかを判定する ---
 
 // IsZero は UserID がゼロ値 (未設定) かを返す。
@@ -134,3 +143,6 @@ func (id InboxClipID) IsZero() bool { return uuid.UUID(id) == uuid.Nil }
 
 // IsZero は ESMemoID がゼロ値 (未設定) かを返す。
 func (id ESMemoID) IsZero() bool { return uuid.UUID(id) == uuid.Nil }
+
+// IsZero は AIAccessTokenID がゼロ値 (未設定) かを返す。
+func (id AIAccessTokenID) IsZero() bool { return uuid.UUID(id) == uuid.Nil }
