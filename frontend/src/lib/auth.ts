@@ -1,5 +1,5 @@
 // 認証フロー:
-//   1. Firebase popup で Google サインイン → ID Token 取得
+//   1. Firebase redirect で Google サインイン → ID Token 取得
 //   2. ID Token をバックエンドに POST → 検証 + Session Cookie 発行
 //   3. 以降のリクエストは httpOnly Cookie で認証
 //
@@ -16,11 +16,43 @@ import type { AuthUser } from "./api/client-types";
 
 export type { AuthUser };
 
+const authPerfPrefix = "entre.auth.google_redirect";
+
+function now(): number {
+  return typeof performance === "undefined" ? Date.now() : performance.now();
+}
+
+function mark(name: string): void {
+  if (typeof performance === "undefined" || typeof performance.mark !== "function") return;
+  performance.mark(`${authPerfPrefix}.${name}`);
+}
+
+function measure(name: string, start: string, end: string): void {
+  if (typeof performance === "undefined" || typeof performance.measure !== "function") return;
+  performance.measure(
+    `${authPerfPrefix}.${name}`,
+    `${authPerfPrefix}.${start}`,
+    `${authPerfPrefix}.${end}`,
+  );
+}
+
+function logAuthPerf(label: string, startedAt: number): void {
+  const enabled =
+    process.env.NODE_ENV !== "production" ||
+    (typeof localStorage !== "undefined" &&
+      localStorage.getItem("entre.authPerf") === "1");
+  if (!enabled) return;
+
+  console.info(`[auth] ${label}: ${Math.round(now() - startedAt)}ms`);
+}
+
 async function createBackendSession(idToken: string): Promise<AuthUser> {
+  const startedAt = now();
   const res = await apiFetch("/auth/session", {
     method: "POST",
     body: JSON.stringify({ idToken }),
   });
+  logAuthPerf("POST /auth/session", startedAt);
 
   if (!res.ok) {
     // バックエンド側に Session Cookie が作れなかった場合は Firebase 側も残さない。
@@ -47,11 +79,31 @@ export async function startGoogleRedirectSignIn(): Promise<void> {
  * バックエンドの Session Cookie に交換する。
  */
 export async function completeGoogleRedirectSignIn(): Promise<AuthUser | null> {
-  const result = await getRedirectResult(getFirebaseAuth());
-  if (!result) return null;
+  mark("start");
+  const startedAt = now();
 
+  const redirectStartedAt = now();
+  const result = await getRedirectResult(getFirebaseAuth());
+  mark("redirect_result");
+  measure("getRedirectResult", "start", "redirect_result");
+  logAuthPerf("Firebase getRedirectResult", redirectStartedAt);
+  if (!result) {
+    logAuthPerf("Google redirect completion without result", startedAt);
+    return null;
+  }
+
+  const tokenStartedAt = now();
   const idToken = await result.user.getIdToken();
-  return createBackendSession(idToken);
+  mark("id_token");
+  measure("getIdToken", "redirect_result", "id_token");
+  logAuthPerf("Firebase getIdToken", tokenStartedAt);
+
+  const user = await createBackendSession(idToken);
+  mark("backend_session");
+  measure("createBackendSession", "id_token", "backend_session");
+  measure("total", "start", "backend_session");
+  logAuthPerf("Google redirect completion total", startedAt);
+  return user;
 }
 
 /**

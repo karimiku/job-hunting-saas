@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -132,6 +133,17 @@ func TestCreateSession_Success_NewUser(t *testing.T) {
 	}
 	if cookies[0].SameSite != http.SameSiteLaxMode {
 		t.Errorf("SameSite = %v, want Lax", cookies[0].SameSite)
+	}
+	serverTiming := w.Result().Header.Get("Server-Timing")
+	for _, name := range []string{
+		"firebase_verify_id_token",
+		"user_authenticate",
+		"firebase_session_cookie",
+		"total",
+	} {
+		if !strings.Contains(serverTiming, name) {
+			t.Errorf("Server-Timing = %q, want metric %q", serverTiming, name)
+		}
 	}
 }
 

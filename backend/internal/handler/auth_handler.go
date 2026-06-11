@@ -6,8 +6,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -92,6 +94,27 @@ type authUserResponse struct {
 	Name  string `json:"name"`
 }
 
+type serverTimingMetric struct {
+	name     string
+	duration time.Duration
+}
+
+func appendServerTimingMetric(metrics []serverTimingMetric, name string, startedAt time.Time) []serverTimingMetric {
+	return append(metrics, serverTimingMetric{name: name, duration: time.Since(startedAt)})
+}
+
+func setServerTimingHeader(w http.ResponseWriter, metrics []serverTimingMetric) {
+	if len(metrics) == 0 {
+		return
+	}
+
+	parts := make([]string, 0, len(metrics))
+	for _, metric := range metrics {
+		parts = append(parts, fmt.Sprintf("%s;dur=%.1f", metric.name, float64(metric.duration.Microseconds())/1000))
+	}
+	w.Header().Set("Server-Timing", strings.Join(parts, ", "))
+}
+
 // CreateSession は Firebase ID Token を検証し、User を upsert して Session Cookie を発行する。
 func (h *AuthHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -102,8 +125,14 @@ func (h *AuthHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	requestStartedAt := time.Now()
+	var timingMetrics []serverTimingMetric
+
+	stepStartedAt := time.Now()
 	claims, err := h.firebaseAuth.VerifyIDToken(ctx, body.IDToken)
+	timingMetrics = appendServerTimingMetric(timingMetrics, "firebase_verify_id_token", stepStartedAt)
 	if err != nil {
+		setServerTimingHeader(w, timingMetrics)
 		log.Printf("auth: VerifyIDToken failed: %v", err)
 		http.Error(w, "invalid id token", http.StatusUnauthorized)
 		return
@@ -111,6 +140,7 @@ func (h *AuthHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 
 	// Firebase 推奨: 鮮度チェック。古いトークンでのセッション作成を拒否する。
 	if time.Since(claims.AuthTime) > idTokenFreshness {
+		setServerTimingHeader(w, timingMetrics)
 		http.Error(w, "recent sign-in required", http.StatusUnauthorized)
 		return
 	}
@@ -121,20 +151,26 @@ func (h *AuthHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 		name = claims.Email
 	}
 
+	stepStartedAt = time.Now()
 	out, err := h.authenticate.Execute(ctx, useruc.AuthenticateInput{
 		Provider: "google",
 		Subject:  claims.UID,
 		Email:    claims.Email,
 		Name:     name,
 	})
+	timingMetrics = appendServerTimingMetric(timingMetrics, "user_authenticate", stepStartedAt)
 	if err != nil {
+		setServerTimingHeader(w, timingMetrics)
 		log.Printf("auth: Authenticate failed: %v", err)
 		http.Error(w, "authentication failed", http.StatusInternalServerError)
 		return
 	}
 
+	stepStartedAt = time.Now()
 	sessionCookie, err := h.firebaseAuth.SessionCookie(ctx, body.IDToken, sessionMaxAge)
+	timingMetrics = appendServerTimingMetric(timingMetrics, "firebase_session_cookie", stepStartedAt)
 	if err != nil {
+		setServerTimingHeader(w, timingMetrics)
 		log.Printf("auth: SessionCookie failed: %v", err)
 		http.Error(w, "failed to create session", http.StatusInternalServerError)
 		return
@@ -150,6 +186,8 @@ func (h *AuthHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 		Secure:   h.cfg.CookieSecure,
 		SameSite: h.cookieSameSite(),
 	})
+	timingMetrics = appendServerTimingMetric(timingMetrics, "total", requestStartedAt)
+	setServerTimingHeader(w, timingMetrics)
 
 	writeJSON(w, http.StatusOK, authUserResponse{
 		ID:    out.User.ID().String(),
