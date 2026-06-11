@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -82,5 +83,44 @@ func TestListAndRevokeAiAccessToken(t *testing.T) {
 	h.RevokeAiAccessToken(deleteW, deleteReq, openapi.AiAccessTokenId(created.Token.ID()))
 	if deleteW.Code != http.StatusNoContent {
 		t.Fatalf("delete status = %d, want 204", deleteW.Code)
+	}
+}
+
+func TestAiAccessTokenManagement_RejectsBearerAuth(t *testing.T) {
+	h, repo := setupAiAccessTokenHandler()
+	userID := entity.NewUserID()
+	created, err := aiaccesstokenuc.NewCreate(repo).Execute(
+		context.Background(),
+		aiaccesstokenuc.CreateInput{UserID: userID, Name: "Existing token"},
+	)
+	if err != nil {
+		t.Fatalf("seed token: %v", err)
+	}
+
+	ctx := middleware.SetAuthMethod(
+		middleware.SetUserID(context.Background(), userID),
+		middleware.AuthMethodBearer,
+	)
+	body, _ := json.Marshal(openapi.CreateAiAccessTokenRequest{Name: "Should be denied"})
+
+	createReq := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body)).WithContext(ctx)
+	createW := httptest.NewRecorder()
+	h.CreateAiAccessToken(createW, createReq)
+	if createW.Code != http.StatusForbidden {
+		t.Fatalf("create status = %d, want 403", createW.Code)
+	}
+
+	listReq := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx)
+	listW := httptest.NewRecorder()
+	h.ListAiAccessTokens(listW, listReq)
+	if listW.Code != http.StatusForbidden {
+		t.Fatalf("list status = %d, want 403", listW.Code)
+	}
+
+	deleteReq := httptest.NewRequest(http.MethodDelete, "/", nil).WithContext(ctx)
+	deleteW := httptest.NewRecorder()
+	h.RevokeAiAccessToken(deleteW, deleteReq, openapi.AiAccessTokenId(created.Token.ID()))
+	if deleteW.Code != http.StatusForbidden {
+		t.Fatalf("delete status = %d, want 403", deleteW.Code)
 	}
 }

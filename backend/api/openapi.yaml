@@ -544,6 +544,12 @@ paths:
                       $ref: "#/components/schemas/AiAccessTokenResponse"
                 required:
                   - tokens
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     post:
       operationId: createAiAccessToken
       summary: AI/MCP連携用アクセストークンを発行する
@@ -566,6 +572,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /api/v1/ai/tokens/{aiAccessTokenId}:
     parameters:
@@ -578,6 +590,12 @@ paths:
           description: No Content
         "404":
           description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
           content:
             application/json:
               schema:

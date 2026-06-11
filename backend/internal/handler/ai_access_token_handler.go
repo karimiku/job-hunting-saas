@@ -36,6 +36,10 @@ const maxAiAccessTokenBodyBytes = 8 * 1024
 
 // CreateAiAccessToken は POST /api/v1/ai/tokens のハンドラ。
 func (h *AiAccessTokenHandler) CreateAiAccessToken(w http.ResponseWriter, r *http.Request) {
+	if rejectBearerTokenManagement(w, r) {
+		return
+	}
+
 	r.Body = http.MaxBytesReader(w, r.Body, maxAiAccessTokenBodyBytes)
 
 	var req openapi.CreateAiAccessTokenRequest
@@ -65,6 +69,10 @@ func (h *AiAccessTokenHandler) CreateAiAccessToken(w http.ResponseWriter, r *htt
 
 // ListAiAccessTokens は GET /api/v1/ai/tokens のハンドラ。
 func (h *AiAccessTokenHandler) ListAiAccessTokens(w http.ResponseWriter, r *http.Request) {
+	if rejectBearerTokenManagement(w, r) {
+		return
+	}
+
 	out, err := h.listUseCase.Execute(r.Context(), aiaccesstokenuc.ListInput{
 		UserID: middleware.GetUserID(r.Context()),
 	})
@@ -81,6 +89,10 @@ func (h *AiAccessTokenHandler) ListAiAccessTokens(w http.ResponseWriter, r *http
 
 // RevokeAiAccessToken は DELETE /api/v1/ai/tokens/{aiAccessTokenId} のハンドラ。
 func (h *AiAccessTokenHandler) RevokeAiAccessToken(w http.ResponseWriter, r *http.Request, aiAccessTokenId openapi.AiAccessTokenId) {
+	if rejectBearerTokenManagement(w, r) {
+		return
+	}
+
 	err := h.revokeUseCase.Execute(r.Context(), aiaccesstokenuc.RevokeInput{
 		UserID:  middleware.GetUserID(r.Context()),
 		TokenID: entity.AIAccessTokenID(aiAccessTokenId),
@@ -90,6 +102,16 @@ func (h *AiAccessTokenHandler) RevokeAiAccessToken(w http.ResponseWriter, r *htt
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func rejectBearerTokenManagement(w http.ResponseWriter, r *http.Request) bool {
+	if middleware.GetAuthMethod(r.Context()) != middleware.AuthMethodBearer {
+		return false
+	}
+	writeJSON(w, http.StatusForbidden, openapi.ErrorResponse{
+		Message: "AI access token management requires session authentication",
+	})
+	return true
 }
 
 func toAiAccessTokenResponse(t *entity.AIAccessToken) openapi.AiAccessTokenResponse {

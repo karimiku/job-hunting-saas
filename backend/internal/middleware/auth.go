@@ -17,9 +17,22 @@ import (
 type contextKey string
 
 const userIDKey contextKey = "userID"
+const authMethodKey contextKey = "authMethod"
 
 // SessionCookieName は Auth ミドルウェアと AuthHandler で共有する Cookie 名。
 const SessionCookieName = "session"
+
+// AuthMethod は認証済みリクエストがどの方式で認証されたかを表す。
+type AuthMethod string
+
+const (
+	// AuthMethodUnknown は認証方式が context に無い状態。
+	AuthMethodUnknown AuthMethod = ""
+	// AuthMethodSession はブラウザ向け Session Cookie 認証。
+	AuthMethodSession AuthMethod = "session"
+	// AuthMethodBearer は AI / MCP 連携用 Bearer token 認証。
+	AuthMethodBearer AuthMethod = "bearer"
+)
 
 // SetUserID は認証済みユーザーのIDをcontextに埋め込む。
 func SetUserID(ctx context.Context, userID entity.UserID) context.Context {
@@ -34,6 +47,20 @@ func GetUserID(ctx context.Context) entity.UserID {
 		return entity.UserID{}
 	}
 	return userID
+}
+
+// SetAuthMethod は認証方式をcontextに埋め込む。
+func SetAuthMethod(ctx context.Context, method AuthMethod) context.Context {
+	return context.WithValue(ctx, authMethodKey, method)
+}
+
+// GetAuthMethod はcontextから認証方式を取り出す。
+func GetAuthMethod(ctx context.Context) AuthMethod {
+	method, found := ctx.Value(authMethodKey).(AuthMethod)
+	if !found {
+		return AuthMethodUnknown
+	}
+	return method
 }
 
 // SessionClaims は Session Cookie から取り出した認証クレーム。
@@ -92,7 +119,7 @@ func NewAuthWithBearer(
 					http.Error(w, "unauthenticated", http.StatusUnauthorized)
 					return
 				}
-				ctx = SetUserID(ctx, userID)
+				ctx = SetAuthMethod(SetUserID(ctx, userID), AuthMethodBearer)
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
@@ -122,7 +149,7 @@ func NewAuthWithBearer(
 				return
 			}
 
-			ctx = SetUserID(ctx, identity.UserID())
+			ctx = SetAuthMethod(SetUserID(ctx, identity.UserID()), AuthMethodSession)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

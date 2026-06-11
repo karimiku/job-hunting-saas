@@ -31,7 +31,16 @@ func TestNewAuthWithBearer_Success(t *testing.T) {
 	bearer := &mockBearerVerifier{userID: userID}
 	called := false
 	handler := NewAuthWithBearer(&mockSessionVerifier{}, inmemory.NewExternalIdentityRepository(), bearer)(
-		nextAssertingUserID(t, &called, userID),
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			called = true
+			if got := GetUserID(r.Context()); got != userID {
+				t.Errorf("GetUserID = %v, want %v", got, userID)
+			}
+			if got := GetAuthMethod(r.Context()); got != AuthMethodBearer {
+				t.Errorf("GetAuthMethod = %q, want %q", got, AuthMethodBearer)
+			}
+			w.WriteHeader(http.StatusOK)
+		}),
 	)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
