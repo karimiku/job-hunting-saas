@@ -43,7 +43,7 @@ describe("EntryDetailView", () => {
     expect(screen.getByText("テストメモ")).toBeInTheDocument();
   });
 
-  it("「進める →」クリックで PATCH が走り stageKind が次に進む", async () => {
+  it("ステージボタンの選択で PATCH が走り stageKind を任意更新できる", async () => {
     let patchedBody: Record<string, unknown> | null = null;
     server.use(
       http.patch(`${API}/api/v1/entries/e1`, async ({ request }) => {
@@ -53,11 +53,29 @@ describe("EntryDetailView", () => {
     );
 
     render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
-    const advance = screen.getByRole("button", { name: /進める/ });
-    await userEvent.click(advance);
+    await userEvent.click(screen.getByRole("button", { name: "GD" }));
 
     await waitFor(() => expect(patchedBody).not.toBeNull());
-    expect(patchedBody).toMatchObject({ stageKind: "group" });
+    expect(patchedBody).toMatchObject({
+      stageKind: "group",
+      stageLabel: "GD",
+      status: "in_progress",
+    });
+  });
+
+  it("結果ステータスで落選を選択できる", async () => {
+    let patchedBody: Record<string, unknown> | null = null;
+    server.use(
+      http.patch(`${API}/api/v1/entries/e1`, async ({ request }) => {
+        patchedBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json(sample({ status: "rejected" }));
+      }),
+    );
+
+    render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
+    await userEvent.click(screen.getByRole("button", { name: "落選" }));
+
+    await waitFor(() => expect(patchedBody).toMatchObject({ status: "rejected" }));
   });
 
   it("内定到達時はスタンプを表示する", () => {

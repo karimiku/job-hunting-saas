@@ -55,7 +55,7 @@ describe("KanbanBoard", () => {
         initialEntries={[{ ...e("application", "リクナビ"), companyName: "テスト商事" }]}
       />,
     );
-    expect(screen.getByText("テスト商事")).toBeInTheDocument();
+    expect(screen.getAllByText("テスト商事").length).toBeGreaterThan(0);
   });
 
   it("応募元URLがあるカードは元ページへのリンクを表示する", () => {

@@ -170,7 +170,16 @@ export function KanbanBoard({ initialEntries }: Props) {
         </p>
       )}
 
-      <div className="grid gap-2.5 md:grid-cols-5 grid-cols-[repeat(5,minmax(220px,1fr))] overflow-x-auto pb-2">
+      <div data-testid="kanban-mobile-list" className="flex flex-col gap-2.5 md:hidden">
+        {COLUMNS.map((col) => (
+          <MobileKanbanSection key={col.kind} col={col} cards={byKind.get(col.kind) ?? []} />
+        ))}
+      </div>
+
+      <div
+        data-testid="kanban-desktop-board"
+        className="hidden gap-2.5 overflow-x-auto pb-2 md:grid md:grid-cols-5"
+      >
         {COLUMNS.map((col) => (
           <KanbanColumn key={col.kind} col={col} cards={byKind.get(col.kind) ?? []} activeId={activeId} />
         ))}
@@ -181,6 +190,44 @@ export function KanbanBoard({ initialEntries }: Props) {
         {activeEntry ? <KanbanCardPreview entry={activeEntry} /> : null}
       </DragOverlay>
     </DndContext>
+  );
+}
+
+function MobileKanbanSection({
+  col,
+  cards,
+}: {
+  col: (typeof COLUMNS)[number];
+  cards: EntryResponse[];
+}) {
+  return (
+    <section className="rounded-xl border border-line bg-surface p-3">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="block h-2 w-2 rounded-full" style={{ background: col.color }} />
+        <h2 className="text-[12px] font-extrabold">{col.label}</h2>
+        <span className="ml-auto rounded-md bg-cream px-2 py-0.5 font-mono text-[10px] font-bold text-ink-3">
+          {cards.length}
+        </span>
+      </div>
+      {cards.length === 0 ? (
+        <p className="rounded-md border border-dashed border-line bg-cream px-3 py-3 text-center text-[10px] text-ink-3">
+          このフェーズは0件
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-1.5">
+          {cards.map((entry) => (
+            <li key={entry.id}>
+              <Link
+                href={`/entry/${entry.id}`}
+                className="block rounded-lg border border-line bg-cream p-2.5 transition-colors hover:border-sage"
+              >
+                <CardContent entry={entry} showSourceLink={false} />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -271,7 +318,13 @@ function KanbanCardPreview({ entry }: { entry: EntryResponse }) {
   );
 }
 
-function CardContent({ entry }: { entry: EntryResponse }) {
+function CardContent({
+  entry,
+  showSourceLink = true,
+}: {
+  entry: EntryResponse;
+  showSourceLink?: boolean;
+}) {
   const sourceUrl = entrySourceUrl(entry);
   return (
     <>
@@ -282,7 +335,7 @@ function CardContent({ entry }: { entry: EntryResponse }) {
         </span>
         <span aria-hidden>⇆</span>
       </div>
-      {sourceUrl && (
+      {showSourceLink && sourceUrl && (
         <a
           href={sourceUrl}
           target="_blank"
