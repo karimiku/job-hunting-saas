@@ -16,11 +16,11 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import {
-  updateEntry,
   companyDisplayName,
   entrySourceUrl,
   type EntryResponse,
 } from "@/lib/api/entries";
+import { updateEntryAction } from "@/app/entry/actions";
 
 const COLUMNS = [
   { kind: "application", label: "エントリー", color: "var(--color-stage-entry)" },
@@ -43,12 +43,12 @@ interface Props {
 }
 
 /** Entry を stageKind ごとに振り分けるカンバン。
- *  initialEntries は SSR で取得した snapshot。ドラッグで列間移動 → PATCH /entries/{id}
- *  で永続化、楽観的更新 (overrides) で UI を即時反映する。
- *  API 成功後は router.refresh() で Server Component を再評価して整合させる (overrides は clear)。
+ *  initialEntries は SSR で取得した snapshot。ドラッグで列間移動 → Server Action 経由で
+ *  PATCH /entries/{id} を永続化、楽観的更新 (overrides) で UI を即時反映する。
+ *  Action 内の revalidatePath("/kanban") がレスポンスに更新済み RSC ツリーを含めるため
+ *  router.refresh() は不要 (overrides は成功時に clear)。
  *  API 失敗時は overrides を消してロールバック。 */
 export function KanbanBoard({ initialEntries }: Props) {
-  const router = useRouter();
   // entryId → 楽観的に上書きされた stageKind。API 成功で消し、失敗で消してロールバック。
   const [overrides, setOverrides] = useState<Record<string, string>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -101,32 +101,23 @@ export function KanbanBoard({ initialEntries }: Props) {
     setError(null);
     setOverrides((prev) => ({ ...prev, [entryId]: targetKind }));
 
-    try {
-      await updateEntry(entryId, {
-        stageKind: targetKind,
-        stageLabel: STAGE_LABEL[targetKind] ?? targetKind,
-      });
-      // 自分が最新のリクエストのときだけ Server Component を再評価し override clear する。
-      // そうでない場合は後続のドラッグが進行中なので、その完了に任せる。
-      if (requestIdsRef.current.get(entryId) === requestId) {
-        router.refresh();
-        setOverrides((prev) => {
-          const next = { ...prev };
-          delete next[entryId];
-          return next;
-        });
-      }
-    } catch {
-      // 失敗 — 自分が最新のリクエストのときだけロールバックする。
-      if (requestIdsRef.current.get(entryId) === requestId) {
-        setError("選考フェーズの更新に失敗しました。通信状態を確認して、もう一度動かしてください。");
-        setOverrides((prev) => {
-          const next = { ...prev };
-          delete next[entryId];
-          return next;
-        });
-      }
+    const result = await updateEntryAction(entryId, {
+      stageKind: targetKind,
+      stageLabel: STAGE_LABEL[targetKind] ?? targetKind,
+    });
+    // 自分が最新のリクエストのときだけ override を clear / ロールバックする。
+    // そうでない場合は後続のドラッグが進行中なので、その完了に任せる。
+    if (requestIdsRef.current.get(entryId) !== requestId) return;
+    if (!result.ok) {
+      setError("選考フェーズの更新に失敗しました。通信状態を確認して、もう一度動かしてください。");
     }
+    // 成功時は action レスポンスの revalidate 済みツリーが initialEntries を更新しているので
+    // override を消しても表示は維持される。
+    setOverrides((prev) => {
+      const next = { ...prev };
+      delete next[entryId];
+      return next;
+    });
   }
 
   return (

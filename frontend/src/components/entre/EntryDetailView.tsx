@@ -1,14 +1,13 @@
 "use client";
 
 // Server から initialEntry / initialTasks を受け取る Client Component。
-// 「進める →」ボタンで PATCH したあと router.refresh() で SSR を再評価する
-// (SWR 的な戻し方をするわけではなく、Next.js の RSC 再フェッチに任せる)。
+// 更新は Server Action 経由 (同一 origin なので CORS preflight が乗らない)。
+// Action 内の revalidatePath がレスポンスに更新済み RSC ツリーを含めるため、
+// router.refresh() による二重フルレンダーは不要。
 
 import { useState, useTransition, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { CheckCircle2, ExternalLink, Plus, Trash2 } from "lucide-react";
 import {
-  updateEntry,
   companyDisplayName,
   entrySourceUrl,
   type EntryResponse,
@@ -21,12 +20,12 @@ import {
   statusForStage,
   type StageKind,
 } from "@/lib/entry-stage";
+import { type TaskResponse } from "@/lib/api/tasks";
 import {
-  createTask,
-  deleteTask,
-  updateTask,
-  type TaskResponse,
-} from "@/lib/api/tasks";
+  createTaskForEntryAction,
+  updateEntryAction,
+} from "@/app/entry/actions";
+import { deleteTaskAction, setTaskStatusAction } from "@/app/task/actions";
 import { Confetti } from "./Confetti";
 
 const OUTCOME_STATUS = ["in_progress", "offered", "accepted", "rejected", "withdrawn"] as const;
@@ -38,7 +37,6 @@ interface Props {
 
 /** Entry 詳細 — ステージ進捗バー + 「進める →」 + 内定スタンプ + Tasks 表示。 */
 export function EntryDetailView({ initialEntry, initialTasks }: Props) {
-  const router = useRouter();
   const [confetti, setConfetti] = useState(0);
   const [taskError, setTaskError] = useState<string | null>(null);
   const [entryError, setEntryError] = useState<string | null>(null);
@@ -75,7 +73,12 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
   const sourceUrl = entrySourceUrl(e);
   const currentIdx = STAGE_ORDER.indexOf(e.stageKind as (typeof STAGE_ORDER)[number]);
   const isOffer = e.stageKind === "offer" || e.status === "offered" || e.status === "accepted";
-  const tasks = [...initialTasks, ...createdTasks]
+  // revalidate 後は作成済みタスクが initialTasks 側にも現れるため、id で重複排除する。
+  const initialTaskIds = new Set(initialTasks.map((task) => task.id));
+  const tasks = [
+    ...initialTasks,
+    ...createdTasks.filter((task) => !initialTaskIds.has(task.id)),
+  ]
     .filter((task) => !deletedTaskIds[task.id])
     .sort(compareTasks);
 
@@ -88,14 +91,13 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
     setEntryError(null);
     setOptimisticEntry(next);
     startTransition(async () => {
-      try {
-        await updateEntry(e.id, next);
-        if (nextKind === "offer") setConfetti((n) => n + 1);
-        router.refresh(); // Server Component を再評価して新しい entry を取得
-      } catch {
+      const result = await updateEntryAction(e.id, next);
+      if (!result.ok) {
         setOptimisticEntry(null);
-        setEntryError("選考ステータスの更新に失敗しました");
+        setEntryError(result.error ?? "選考ステータスの更新に失敗しました");
+        return;
       }
+      if (nextKind === "offer") setConfetti((n) => n + 1);
     });
   };
 
@@ -115,14 +117,13 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
     setEntryError(null);
     setOptimisticEntry(next);
     startTransition(async () => {
-      try {
-        await updateEntry(e.id, next);
-        if (status === "offered" || status === "accepted") setConfetti((n) => n + 1);
-        router.refresh();
-      } catch {
+      const result = await updateEntryAction(e.id, next);
+      if (!result.ok) {
         setOptimisticEntry(null);
-        setEntryError("結果ステータスの更新に失敗しました");
+        setEntryError(result.error ?? "結果ステータスの更新に失敗しました");
+        return;
       }
+      if (status === "offered" || status === "accepted") setConfetti((n) => n + 1);
     });
   };
 
@@ -135,19 +136,19 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
     }
     setTaskError(null);
     startTransition(async () => {
-      try {
-        const created = await createTask(e.id, {
-          title,
-          type: taskForm.type,
-          dueDate: taskForm.dueDate ? `${taskForm.dueDate}T00:00:00.000Z` : undefined,
-          memo: taskForm.memo.trim() || undefined,
-        });
-        setCreatedTasks((prev) => [created, ...prev]);
-        setTaskForm({ title: "", type: taskForm.type, dueDate: "", memo: "" });
-        router.refresh();
-      } catch {
-        setTaskError("タスクの追加に失敗しました");
+      const result = await createTaskForEntryAction(e.id, {
+        title,
+        type: taskForm.type,
+        dueDate: taskForm.dueDate ? `${taskForm.dueDate}T00:00:00.000Z` : undefined,
+        memo: taskForm.memo.trim() || undefined,
+      });
+      if (!result.ok || !result.task) {
+        setTaskError(result.error ?? "タスクの追加に失敗しました");
+        return;
       }
+      const created = result.task;
+      setCreatedTasks((prev) => [created, ...prev]);
+      setTaskForm({ title: "", type: taskForm.type, dueDate: "", memo: "" });
     });
   };
 
@@ -157,18 +158,17 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
     setTaskError(null);
     setOptimisticTaskStatus((prev) => ({ ...prev, [task.id]: next }));
     startTransition(async () => {
-      try {
-        await updateTask(task.id, { status: next });
-        if (next === "done") setConfetti((n) => n + 1);
-        router.refresh();
-      } catch {
+      const result = await setTaskStatusAction(task.id, next, e.id);
+      if (!result.ok) {
         setOptimisticTaskStatus((prev) => {
           const copy = { ...prev };
           delete copy[task.id];
           return copy;
         });
-        setTaskError("タスクの更新に失敗しました");
+        setTaskError(result.error ?? "タスクの更新に失敗しました");
+        return;
       }
+      if (next === "done") setConfetti((n) => n + 1);
     });
   };
 
@@ -177,16 +177,14 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
     setTaskError(null);
     setDeletedTaskIds((prev) => ({ ...prev, [task.id]: true }));
     startTransition(async () => {
-      try {
-        await deleteTask(task.id);
-        router.refresh();
-      } catch {
+      const result = await deleteTaskAction(task.id, e.id);
+      if (!result.ok) {
         setDeletedTaskIds((prev) => {
           const copy = { ...prev };
           delete copy[task.id];
           return copy;
         });
-        setTaskError("タスクの削除に失敗しました");
+        setTaskError(result.error ?? "タスクの削除に失敗しました");
       }
     });
   };

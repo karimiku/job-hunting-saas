@@ -32,13 +32,17 @@ export interface CreateTaskFormState {
   };
 }
 
-export async function deleteTaskAction(taskId: string): Promise<DeleteTaskResult> {
+export async function deleteTaskAction(
+  taskId: string,
+  entryId?: string,
+): Promise<DeleteTaskResult> {
   try {
     await serverFetch<void>(`/api/v1/tasks/${taskId}`, {
       method: "DELETE",
     });
     revalidatePath("/task");
     revalidatePath("/dashboard");
+    if (entryId) revalidatePath(`/entry/${entryId}`);
     return { ok: true };
   } catch {
     return { ok: false, error: "タスクの削除に失敗しました" };
@@ -53,6 +57,7 @@ function readField(form: FormData, name: string, fallback = ""): string {
 export async function setTaskStatusAction(
   taskId: string,
   status: TaskResponse["status"],
+  entryId?: string,
 ): Promise<SetTaskStatusResult> {
   try {
     const updated = await serverFetch<TaskResponse>(`/api/v1/tasks/${taskId}`, {
@@ -60,6 +65,7 @@ export async function setTaskStatusAction(
       body: JSON.stringify({ status }),
     });
     revalidatePath("/task");
+    if (entryId) revalidatePath(`/entry/${entryId}`);
     return { ok: true, status: updated.status };
   } catch {
     return { ok: false, error: "タスクの更新に失敗しました" };

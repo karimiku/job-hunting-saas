@@ -70,7 +70,7 @@ export function TaskListView({ initialTasks, entries }: Props) {
     setOptimistic((prev) => ({ ...prev, [task.id]: next }));
 
     startTransition(async () => {
-      const result = await setTaskStatusAction(task.id, next);
+      const result = await setTaskStatusAction(task.id, next, task.entryId);
       if (!result.ok) {
         setOptimistic((prev) => {
           const next = { ...prev };
@@ -92,7 +92,7 @@ export function TaskListView({ initialTasks, entries }: Props) {
     setError(null);
     setDeletingIds((prev) => ({ ...prev, [task.id]: true }));
     startTransition(async () => {
-      const result = await deleteTaskAction(task.id);
+      const result = await deleteTaskAction(task.id, task.entryId);
       if (!result.ok) {
         setDeletingIds((prev) => {
           const next = { ...prev };

@@ -1,13 +1,22 @@
-import { http, HttpResponse } from "msw";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { server } from "@/test/msw-server";
 import { EntryDetailView } from "./EntryDetailView";
 import type { EntryResponse } from "@/lib/api/entries";
 import type { TaskResponse } from "@/lib/api/tasks";
 
-const API = "http://localhost:8080";
+// 更新系は Server Action 経由になったため、actions モジュールをモックして
+// 呼び出し引数と楽観更新の UI を検証する (HTTP レイヤは actions 側のテストで担保)。
+const { updateEntryAction, createTaskForEntryAction, setTaskStatusAction, deleteTaskAction } =
+  vi.hoisted(() => ({
+    updateEntryAction: vi.fn(),
+    createTaskForEntryAction: vi.fn(),
+    setTaskStatusAction: vi.fn(),
+    deleteTaskAction: vi.fn(),
+  }));
+
+vi.mock("@/app/entry/actions", () => ({ updateEntryAction, createTaskForEntryAction }));
+vi.mock("@/app/task/actions", () => ({ setTaskStatusAction, deleteTaskAction }));
 
 const sample = (overrides: Partial<EntryResponse> = {}): EntryResponse => ({
   id: "e1",
@@ -37,45 +46,53 @@ const task = (overrides: Partial<TaskResponse> = {}): TaskResponse => ({
 });
 
 describe("EntryDetailView", () => {
+  beforeEach(() => {
+    updateEntryAction.mockReset().mockResolvedValue({ ok: true });
+    createTaskForEntryAction.mockReset();
+    setTaskStatusAction.mockReset().mockResolvedValue({ ok: true, status: "done" });
+    deleteTaskAction.mockReset().mockResolvedValue({ ok: true });
+  });
+
   it("initialEntry を表示する", () => {
     render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
     expect(screen.getByText("一次面接")).toBeInTheDocument();
     expect(screen.getByText("テストメモ")).toBeInTheDocument();
   });
 
-  it("ステージボタンの選択で PATCH が走り stageKind を任意更新できる", async () => {
-    let patchedBody: Record<string, unknown> | null = null;
-    server.use(
-      http.patch(`${API}/api/v1/entries/e1`, async ({ request }) => {
-        patchedBody = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json(sample({ stageKind: "group", stageLabel: "GD" }));
+  it("ステージボタンの選択で更新 action が走り stageKind を任意更新できる", async () => {
+    render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
+    await userEvent.click(screen.getByRole("button", { name: "GD" }));
+
+    await waitFor(() =>
+      expect(updateEntryAction).toHaveBeenCalledWith("e1", {
+        stageKind: "group",
+        stageLabel: "GD",
+        status: "in_progress",
       }),
     );
+    expect(screen.getByTestId("current-stage")).toHaveTextContent("GD");
+  });
+
+  it("結果ステータスで落選を選択できる", async () => {
+    render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
+    await userEvent.click(screen.getByRole("button", { name: "落選" }));
+
+    await waitFor(() =>
+      expect(updateEntryAction).toHaveBeenCalledWith(
+        "e1",
+        expect.objectContaining({ status: "rejected" }),
+      ),
+    );
+  });
+
+  it("更新 action が失敗したら楽観更新をロールバックしてエラーを表示する", async () => {
+    updateEntryAction.mockResolvedValue({ ok: false, error: "選考ステータスの更新に失敗しました" });
 
     render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
     await userEvent.click(screen.getByRole("button", { name: "GD" }));
 
-    await waitFor(() => expect(patchedBody).not.toBeNull());
-    expect(patchedBody).toMatchObject({
-      stageKind: "group",
-      stageLabel: "GD",
-      status: "in_progress",
-    });
-  });
-
-  it("結果ステータスで落選を選択できる", async () => {
-    let patchedBody: Record<string, unknown> | null = null;
-    server.use(
-      http.patch(`${API}/api/v1/entries/e1`, async ({ request }) => {
-        patchedBody = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json(sample({ status: "rejected" }));
-      }),
-    );
-
-    render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
-    await userEvent.click(screen.getByRole("button", { name: "落選" }));
-
-    await waitFor(() => expect(patchedBody).toMatchObject({ status: "rejected" }));
+    expect(await screen.findByText("選考ステータスの更新に失敗しました")).toBeInTheDocument();
+    expect(screen.getByTestId("current-stage")).toHaveTextContent("一次面接");
   });
 
   it("内定到達時はスタンプを表示する", () => {
@@ -120,60 +137,43 @@ describe("EntryDetailView", () => {
   });
 
   it("Entry詳細からタスクを追加できる", async () => {
-    let postedBody: Record<string, unknown> | null = null;
-    server.use(
-      http.post(`${API}/api/v1/entries/e1/tasks`, async ({ request }) => {
-        postedBody = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json(task({ id: "t-new", title: String(postedBody.title) }), {
-          status: 201,
-        });
-      }),
-    );
+    createTaskForEntryAction.mockResolvedValue({
+      ok: true,
+      task: task({ id: "t-new", title: "一次面接準備" }),
+    });
 
     render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
 
     await userEvent.type(screen.getByLabelText("タスク名"), "一次面接準備");
     await userEvent.click(screen.getByRole("button", { name: "追加" }));
 
-    await waitFor(() => expect(postedBody).not.toBeNull());
-    expect(postedBody).toMatchObject({
-      title: "一次面接準備",
-      type: "deadline",
-    });
+    await waitFor(() =>
+      expect(createTaskForEntryAction).toHaveBeenCalledWith("e1", {
+        title: "一次面接準備",
+        type: "deadline",
+        dueDate: undefined,
+        memo: undefined,
+      }),
+    );
     expect(await screen.findByText("一次面接準備")).toBeInTheDocument();
   });
 
   it("Entry詳細でタスクの完了状態を切り替えられる", async () => {
-    let patchedBody: Record<string, unknown> | null = null;
-    server.use(
-      http.patch(`${API}/api/v1/tasks/t1`, async ({ request }) => {
-        patchedBody = (await request.json()) as Record<string, unknown>;
-        return HttpResponse.json(task({ status: "done" }));
-      }),
-    );
-
     render(<EntryDetailView initialEntry={sample()} initialTasks={[task()]} />);
 
     await userEvent.click(screen.getByRole("button", { name: "タスク完了にする" }));
 
-    await waitFor(() => expect(patchedBody).toMatchObject({ status: "done" }));
+    await waitFor(() => expect(setTaskStatusAction).toHaveBeenCalledWith("t1", "done", "e1"));
   });
 
   it("Entry詳細でタスクを削除できる", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    let deleted = false;
-    server.use(
-      http.delete(`${API}/api/v1/tasks/t1`, () => {
-        deleted = true;
-        return new HttpResponse(null, { status: 204 });
-      }),
-    );
 
     render(<EntryDetailView initialEntry={sample()} initialTasks={[task()]} />);
 
     await userEvent.click(screen.getByRole("button", { name: /タスク「ES提出」を削除/ }));
 
-    await waitFor(() => expect(deleted).toBe(true));
+    await waitFor(() => expect(deleteTaskAction).toHaveBeenCalledWith("t1", "e1"));
     await waitFor(() => expect(screen.queryByText("ES提出")).not.toBeInTheDocument());
   });
 });
