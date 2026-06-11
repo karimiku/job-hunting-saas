@@ -16,6 +16,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 	mcphandler "github.com/karimiku/job-hunting-saas/internal/handler/mcp"
+	"github.com/karimiku/job-hunting-saas/internal/infra/entreapi"
 	"github.com/karimiku/job-hunting-saas/internal/infra/postgres"
 	esmemo "github.com/karimiku/job-hunting-saas/internal/usecase/es_memo"
 	jobemail "github.com/karimiku/job-hunting-saas/internal/usecase/job_email"
@@ -33,9 +34,18 @@ func main() {
 
 func run() error {
 	ctx := context.Background()
+	if token := strings.TrimSpace(os.Getenv("ENTRE_API_TOKEN")); token != "" {
+		app, err := entreapi.NewMCPApplication(os.Getenv("ENTRE_API_BASE_URL"), token, nil)
+		if err != nil {
+			return err
+		}
+		log.Println("mcp-server using Entré API bridge")
+		return serve(ctx, app)
+	}
+
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
-		return errors.New("DATABASE_URL is required")
+		return errors.New("set ENTRE_API_TOKEN for API bridge mode, or DATABASE_URL for direct database mode")
 	}
 
 	pool, err := pgxpool.New(ctx, databaseURL)
@@ -62,6 +72,11 @@ func run() error {
 		jobemail.NewExtract(),
 	)
 
+	log.Println("mcp-server using direct database mode")
+	return serve(ctx, app)
+}
+
+func serve(ctx context.Context, app mcphandler.Application) error {
 	server := mcphandler.NewServer(app)
 	if err := mcphandler.ServeStdio(ctx, os.Stdin, os.Stdout, server); err != nil && !errors.Is(err, io.EOF) {
 		return fmt.Errorf("serve MCP: %w", err)

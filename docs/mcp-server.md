@@ -16,29 +16,48 @@ MCP server も既存APIと同じ Clean Architecture の境界に合わせる。
 
 | 層 | 実装 | 責務 |
 | --- | --- | --- |
-| cmd | `backend/cmd/mcp-server` | 環境変数読み込み、DB接続、DI |
+| cmd | `backend/cmd/mcp-server` | 環境変数読み込み、API bridge / DB direct のDI |
 | Handler | `backend/internal/handler/mcp` | MCP JSON-RPC over stdio、resources/tools の入出力変換 |
 | UseCase | `backend/internal/usecase/mcp`, `es_memo`, `job_email`, `task` | user scoped な操作、保存前preview、メール抽出 |
 | Domain | `backend/internal/domain/entity`, `value`, `repository` | ESMemo entity/value object、Repository interface |
-| Infra | `backend/internal/infra/postgres` | sqlc query / repository 実装 |
+| Infra | `backend/internal/infra/entreapi`, `backend/internal/infra/postgres` | Hosted API client / sqlc query / repository 実装 |
 
 ## Run
 
-開発中は backend を起動し、DB migration が適用された状態で MCP server を stdio 起動する。
+通常利用は `ENTRE_API_TOKEN` を使う API bridge mode を使う。Webアプリの「アカウント」画面で AI連携トークンを作成し、MCPクライアント設定の環境変数に渡す。
+
+```bash
+cd backend
+ENTRE_API_BASE_URL=http://localhost:8080 \
+ENTRE_API_TOKEN=entre_ai_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
+go run ./cmd/mcp-server
+```
+
+`ENTRE_API_BASE_URL` は省略時 `http://localhost:8080`。本番配布では hosted API のURLを指定する。
+
+Claude Desktop などの設定例:
+
+```json
+{
+  "mcpServers": {
+    "entre": {
+      "command": "/absolute/path/to/mcp-server",
+      "env": {
+        "ENTRE_API_BASE_URL": "https://api.example.com",
+        "ENTRE_API_TOKEN": "entre_ai_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    }
+  }
+}
+```
+
+開発者向けにDB直結モードも残している。`ENTRE_API_TOKEN` が未設定で `DATABASE_URL` がある場合だけ direct database mode で起動する。
 
 ```bash
 cd backend
 DATABASE_URL=postgres://postgres:postgres@localhost:15432/job_hunting_dev?sslmode=disable \
 MCP_USER_EMAIL=you@example.com \
 go run ./cmd/mcp-server
-```
-
-root からは次でも起動できる。
-
-```bash
-DATABASE_URL=postgres://postgres:postgres@localhost:15432/job_hunting_dev?sslmode=disable \
-MCP_USER_EMAIL=you@example.com \
-make mcp-server
 ```
 
 `MCP_USER_EMAIL` または `MCP_USER_ID` のどちらかが必須。multi-user DBの別ユーザー情報を誤って渡さないため、MCP server は必ず1ユーザーにscopeして起動する。
@@ -67,4 +86,6 @@ make mcp-server
 
 ## Distribution note
 
-現状は開発者・セルフホスト向けに `go run ./cmd/mcp-server` を提供する段階。非エンジニア向け配布では、Go toolchain を要求しない単一バイナリ、Docker image、またはWebアプリ側で生成するMCPクライアント設定ファイルが必要になる。
+Local MCP の配布は API bridge mode を標準にする。ユーザーPCにはDB接続情報を置かず、AI連携トークンだけを置く。
+
+非エンジニア向け配布では、Go toolchain を要求しない単一バイナリ、Docker image、またはWebアプリ側で生成するMCPクライアント設定ファイルが必要になる。
