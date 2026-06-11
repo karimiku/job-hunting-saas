@@ -4,7 +4,6 @@
 
 import { useActionState, useMemo, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CalendarPlus, CheckCircle2, ClipboardList, Plus, Trash2 } from "lucide-react";
 import {
@@ -55,7 +54,6 @@ export function sortTasksForDisplay(tasks: TaskWithEntry[]): TaskWithEntry[] {
 }
 
 export function TaskListView({ initialTasks, entries }: Props) {
-  const router = useRouter();
   const [confetti, setConfetti] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [selectedEntryId, setSelectedEntryId] = useState<string>("all");
@@ -84,7 +82,8 @@ export function TaskListView({ initialTasks, entries }: Props) {
       }
       // 成功後にだけ祝福する (失敗→ロールバック時に祝福が出るのを防ぐ)。
       if (next === "done") setConfetti((n) => n + 1);
-      router.refresh();
+      // action 内の revalidatePath("/task") がレスポンスに更新済み RSC ツリーを含めるため
+      // router.refresh() は不要 (呼ぶと同じページをもう一度フルレンダーしてしまう)。
     });
   };
 
@@ -103,7 +102,6 @@ export function TaskListView({ initialTasks, entries }: Props) {
         setError(result.error ?? "タスクの削除に失敗しました");
         return;
       }
-      router.refresh();
     });
   };
 

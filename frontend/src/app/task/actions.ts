@@ -1,8 +1,9 @@
 "use server";
 
 // Server Action — タスクのステータスを切り替える。
-// PATCH /api/v1/tasks/{taskId} を server cookie 付きで叩き、成功後に /task を revalidate する
-// (Client Component 側は router.refresh() で SSR を再評価し、最新の tasks を受け取る)。
+// PATCH /api/v1/tasks/{taskId} を server cookie 付きで叩き、成功後に /task を revalidate する。
+// revalidatePath は action レスポンスに更新済み RSC ツリーを含めるため、Client 側の
+// router.refresh() は不要 (二重フルレンダーになる)。
 
 import { revalidatePath } from "next/cache";
 import { serverFetch } from "@/lib/api/server";
