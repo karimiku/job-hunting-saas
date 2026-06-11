@@ -76,7 +76,13 @@ func (h *ESMemoHandler) CreateEsMemo(w http.ResponseWriter, r *http.Request) {
 func (h *ESMemoHandler) ListEsMemos(w http.ResponseWriter, r *http.Request, params openapi.ListEsMemosParams) {
 	limit := int32(0)
 	if params.Limit != nil {
-		limit = int32(*params.Limit)
+		requested := *params.Limit
+		if requested > 100 {
+			requested = 100
+		}
+		if requested > 0 {
+			limit = int32(requested) //nolint:gosec // requested is clamped to 100 before conversion.
+		}
 	}
 	out, err := h.listUseCase.Execute(r.Context(), esmemo.ListInput{
 		UserID: middleware.GetUserID(r.Context()),

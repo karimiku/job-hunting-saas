@@ -21,10 +21,14 @@ const (
 )
 
 var (
-	ErrAIAccessTokenNameEmpty   = errors.New("AI access token name must not be empty")
+	// ErrAIAccessTokenNameEmpty はトークン表示名が空のときに返される。
+	ErrAIAccessTokenNameEmpty = errors.New("AI access token name must not be empty")
+	// ErrAIAccessTokenNameTooLong はトークン表示名が上限長を超えたときに返される。
 	ErrAIAccessTokenNameTooLong = errors.New("AI access token name is too long")
+	// ErrAIAccessTokenNameInvalid はトークン表示名に制御文字など不正な文字があるときに返される。
 	ErrAIAccessTokenNameInvalid = errors.New("AI access token name format is invalid")
-	ErrAIAccessTokenInvalid     = errors.New("AI access token is invalid")
+	// ErrAIAccessTokenInvalid は平文トークンの形式不正または検証失敗時に返される。
+	ErrAIAccessTokenInvalid = errors.New("AI access token is invalid")
 )
 
 // AIAccessTokenName は AI / MCP 連携用トークンのユーザー向け表示名。

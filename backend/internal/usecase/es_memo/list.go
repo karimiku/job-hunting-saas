@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	DefaultListLimit = 50
-	MaxListLimit     = 100
+	defaultListLimit = 50
+	maxListLimit     = 100
 )
 
 // ListInput はESメモ一覧ユースケースへの入力。
@@ -37,10 +37,10 @@ func NewList(memoRepo repository.ESMemoRepository) *List {
 func (uc *List) Execute(ctx context.Context, input ListInput) (*ListOutput, error) {
 	limit := input.Limit
 	if limit <= 0 {
-		limit = DefaultListLimit
+		limit = defaultListLimit
 	}
-	if limit > MaxListLimit {
-		limit = MaxListLimit
+	if limit > maxListLimit {
+		limit = maxListLimit
 	}
 	memos, err := uc.memoRepo.ListByUserID(ctx, input.UserID, limit)
 	if err != nil {

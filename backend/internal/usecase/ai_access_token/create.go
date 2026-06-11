@@ -11,6 +11,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
 
+// ErrUserIDRequired は認証済み userID が入力されていないときに返される。
 var ErrUserIDRequired = errors.New("userID is required")
 
 // CreateInput は AI 連携トークン作成への入力。

@@ -316,7 +316,9 @@ func (a *MCPApplication) do(ctx context.Context, method string, path string, bod
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		return apiError(res)
 	}
