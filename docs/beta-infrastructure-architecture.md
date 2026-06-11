@@ -387,8 +387,8 @@ terraform plan
 CD:
 
 ```text
-workflow_dispatch
-manual approval
+push to main (backend/** 変更時に自動実行)
+workflow_dispatch (rollback / 任意タグ再デプロイ用、要確認入力)
 docker push to Artifact Registry
 deploy to Cloud Run
 smoke test /health

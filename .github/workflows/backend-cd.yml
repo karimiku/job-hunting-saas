@@ -1,6 +1,13 @@
 name: Backend CD
 
 on:
+  # main の backend 変更で自動デプロイする。
+  # rollback や任意タグの再デプロイ用に workflow_dispatch (要確認入力) も残す。
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-cd.yml"
   workflow_dispatch:
     inputs:
       confirm_production_deploy:
@@ -42,7 +49,8 @@ jobs:
             echo "::error::Production backend deploys must run from main. Current ref: $GITHUB_REF"
             exit 1
           fi
-          if [ "${{ inputs.confirm_production_deploy }}" != "deploy-production" ]; then
+          # 手動実行のときだけ確認入力を要求する (push 起点の自動デプロイは確認不要)。
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "${{ inputs.confirm_production_deploy }}" != "deploy-production" ]; then
             echo "::error::Type deploy-production in confirm_production_deploy to run a production backend deploy."
             exit 1
           fi
