@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUserServer } from "@/lib/auth-server";
 import {
   getEntryServer,
+  getNavCountsServer,
   listCompaniesServer,
   listTasksByEntryServer,
 } from "@/lib/api/server-resources";
@@ -23,7 +24,7 @@ export default async function EntryDetailPage({ params }: Props) {
   // entry の取得失敗 (404 等) は EntryDetailView に渡す initial=null として扱い、UI 側でエラー表示。
   // 会社名は entry 取得後に単品 GET すると直列の RTT が1段増えるため、
   // 一覧を並列で引いて companyId で突き合わせる。
-  const [user, entryRaw, tasks, companies] = await Promise.all([
+  const [user, entryRaw, tasks, companies, navCounts] = await Promise.all([
     getCurrentUserServer(),
     getEntryServer(entryId).catch((e) => {
       if (e instanceof ApiError) return null;
@@ -31,6 +32,7 @@ export default async function EntryDetailPage({ params }: Props) {
     }),
     listTasksByEntryServer(entryId).catch(() => []),
     listCompaniesServer().catch(() => []),
+    getNavCountsServer(),
   ]);
   if (!user) redirect("/login");
 
@@ -43,7 +45,7 @@ export default async function EntryDetailPage({ params }: Props) {
     : null;
 
   return (
-    <AppShell userName={user.name} userSubtitle={user.email}>
+    <AppShell userName={user.name} userSubtitle={user.email} navCounts={navCounts}>
       <div className="mx-auto max-w-[700px] px-5 py-6 md:px-8 md:py-7">
         <Link
           href="/entry"
