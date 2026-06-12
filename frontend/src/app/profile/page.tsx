@@ -11,17 +11,15 @@ import { AppShell } from "@/components/entre/AppShell";
 import { SignOutButton } from "@/components/entre/SignOutButton";
 import { AiAccessTokenPanel } from "@/components/entre/AiAccessTokenPanel";
 
+interface AiAccessTokenLoadResult {
+  tokens: AiAccessTokenResponse[];
+  error?: string;
+}
+
 export default async function ProfilePage() {
   const [user, tokenResult] = await Promise.all([
     getCurrentUserServer(),
-    serverFetch<{ tokens: AiAccessTokenResponse[] }>("/api/v1/ai/tokens").catch(
-      (e) => {
-        if (e instanceof ApiError && e.unauthorized) {
-          return { tokens: [] as AiAccessTokenResponse[] };
-        }
-        throw e;
-      },
-    ),
+    loadAiAccessTokens(),
   ]);
   if (!user) redirect("/login");
 
@@ -49,11 +47,25 @@ export default async function ProfilePage() {
         </section>
 
         <div className="mt-4">
-          <AiAccessTokenPanel tokens={tokenResult.tokens} />
+          <AiAccessTokenPanel tokens={tokenResult.tokens} loadError={tokenResult.error} />
         </div>
       </div>
     </AppShell>
   );
+}
+
+async function loadAiAccessTokens(): Promise<AiAccessTokenLoadResult> {
+  try {
+    return await serverFetch<{ tokens: AiAccessTokenResponse[] }>("/api/v1/ai/tokens");
+  } catch (e) {
+    if (e instanceof ApiError && e.unauthorized) {
+      return { tokens: [] };
+    }
+    return {
+      tokens: [],
+      error: "AI連携トークンを読み込めませんでした。時間をおいて再読み込みしてください。",
+    };
+  }
 }
 
 function SettingsRow({ label, value }: { label: string; value: string }) {
