@@ -19,8 +19,10 @@ const API_BASE_URL =
 const MCP_SERVER_PATH_PLACEHOLDER = "/absolute/path/to/backend/bin/mcp-server";
 
 export function AiAccessTokenPanel({
+  loadError,
   tokens,
 }: {
+  loadError?: string;
   tokens: AiAccessTokenResponse[];
 }) {
   const [createState, createAction] = useActionState(
@@ -51,19 +53,25 @@ export function AiAccessTokenPanel({
         </span>
       </div>
 
-      <form action={createAction} className="mb-4 grid gap-2 md:grid-cols-[1fr_auto]">
-        <label className="min-w-0">
-          <span className="sr-only">トークン名</span>
-          <input
-            name="name"
-            defaultValue={createState.values?.name ?? ""}
-            placeholder="Claude Desktop"
-            className="h-10 w-full rounded-lg border border-line bg-white px-3 text-[12px] font-semibold outline-none transition-colors focus:border-sage"
-            maxLength={80}
-          />
-        </label>
-        <CreateButton />
-      </form>
+      {loadError ? (
+        <p role="alert" className="mb-4 rounded-md bg-pink/40 px-3 py-2 text-[11px] font-semibold text-pink-deep">
+          {loadError}
+        </p>
+      ) : (
+        <form action={createAction} className="mb-4 grid gap-2 md:grid-cols-[1fr_auto]">
+          <label className="min-w-0">
+            <span className="sr-only">トークン名</span>
+            <input
+              name="name"
+              defaultValue={createState.values?.name ?? ""}
+              placeholder="Claude Desktop"
+              className="h-10 w-full rounded-lg border border-line bg-white px-3 text-[12px] font-semibold outline-none transition-colors focus:border-sage"
+              maxLength={80}
+            />
+          </label>
+          <CreateButton />
+        </form>
+      )}
 
       {createState.error && (
         <p role="alert" className="mb-3 rounded-md bg-pink/40 px-3 py-2 text-[11px] font-semibold">
@@ -78,7 +86,7 @@ export function AiAccessTokenPanel({
       <div className="mt-4 divide-y divide-line rounded-lg border border-line bg-white">
         {tokens.length === 0 ? (
           <div className="px-3 py-4 text-[12px] font-semibold text-ink-3">
-            まだありません
+            {loadError ? "読み込み待ちです" : "まだありません"}
           </div>
         ) : (
           tokens.map((token) => <TokenRow key={token.id} token={token} />)
