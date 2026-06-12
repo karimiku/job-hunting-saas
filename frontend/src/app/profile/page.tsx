@@ -6,6 +6,7 @@ import { UserCircle } from "lucide-react";
 import { getCurrentUserServer } from "@/lib/auth-server";
 import { serverFetch } from "@/lib/api/server";
 import { ApiError } from "@/lib/api/client-types";
+import { getNavCountsServer } from "@/lib/api/server-resources";
 import type { AiAccessTokenResponse } from "@/lib/api/aiTokens";
 import { AppShell } from "@/components/entre/AppShell";
 import { SignOutButton } from "@/components/entre/SignOutButton";
@@ -17,14 +18,15 @@ interface AiAccessTokenLoadResult {
 }
 
 export default async function ProfilePage() {
-  const [user, tokenResult] = await Promise.all([
+  const [user, tokenResult, navCounts] = await Promise.all([
     getCurrentUserServer(),
     loadAiAccessTokens(),
+    getNavCountsServer(),
   ]);
   if (!user) redirect("/login");
 
   return (
-    <AppShell userName={user.name} userSubtitle={user.email}>
+    <AppShell userName={user.name} userSubtitle={user.email} navCounts={navCounts}>
       <div className="mx-auto max-w-[800px] px-5 py-6 md:px-8 md:py-7">
         <header className="mb-5 flex items-center gap-3">
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-line bg-surface text-sage">

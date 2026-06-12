@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { Check, Copy, FileJson2, KeyRound, Terminal, Trash2 } from "lucide-react";
+import { Check, Copy, EyeOff, FileJson2, KeyRound, Terminal, Trash2 } from "lucide-react";
 import {
   createAiAccessTokenAction,
   revokeAiAccessTokenAction,
@@ -111,20 +111,53 @@ function CreateButton() {
 }
 
 function IssuedToken({ token, name }: { token: string; name?: string }) {
+  const [hiddenToken, setHiddenToken] = useState<string | null>(null);
+  const visible = hiddenToken !== token;
+
+  if (!visible) {
+    return (
+      <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-sage/25 bg-sage-wash px-3 py-2">
+        <span className="text-[11px] font-extrabold text-sage">
+          トークンをコピーしました
+        </span>
+        <span className="rounded-md bg-white px-2 py-1 text-[10px] font-bold text-ink-3">
+          再表示不可
+        </span>
+      </div>
+    );
+  }
+
+  const hideSoon = () => {
+    window.setTimeout(() => setHiddenToken(token), 800);
+  };
+
   return (
     <div className="mb-3 rounded-lg border border-sage/25 bg-sage-wash p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="text-[11px] font-extrabold text-sage">
           {name ?? "作成済み"}
         </span>
-        <CopyButton text={token} />
+        <div className="flex items-center gap-1.5">
+          <CopyButton text={token} label="コピーして隠す" onCopied={hideSoon} />
+          <button
+            type="button"
+            onClick={() => setHiddenToken(token)}
+            className="inline-flex h-8 items-center gap-1 rounded-md border border-line bg-white px-2 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+          >
+            <EyeOff size={13} aria-hidden />
+            隠す
+          </button>
+        </div>
       </div>
       <code className="block max-w-full overflow-x-auto rounded-md bg-white px-3 py-2 font-mono text-[11px] font-bold text-ink">
         {token}
       </code>
+      <p className="mt-2 text-[10px] font-bold text-ink-3">
+        この値は今だけ表示されます。
+      </p>
       <div className="mt-3 grid gap-2">
         {buildMCPSnippets(token).map((snippet) => (
-          <ConfigSnippet key={snippet.label} {...snippet} />
+          <ConfigSnippet key={snippet.label} {...snippet} onCopied={hideSoon} />
         ))}
       </div>
     </div>
@@ -135,10 +168,12 @@ function ConfigSnippet({
   label,
   text,
   kind,
+  onCopied,
 }: {
   label: string;
   text: string;
   kind: "cli" | "json";
+  onCopied?: () => void;
 }) {
   const Icon = kind === "json" ? FileJson2 : Terminal;
   return (
@@ -148,7 +183,7 @@ function ConfigSnippet({
           <Icon size={12} aria-hidden />
           <span className="truncate">{label}</span>
         </span>
-        <CopyButton text={text} label="設定をコピー" />
+        <CopyButton text={text} label="設定をコピー" onCopied={onCopied} />
       </div>
       <pre className="max-h-32 overflow-auto px-2.5 py-2 font-mono text-[10px] font-semibold leading-relaxed text-ink">
         {text}
@@ -157,7 +192,15 @@ function ConfigSnippet({
   );
 }
 
-function CopyButton({ text, label = "コピー" }: { text: string; label?: string }) {
+function CopyButton({
+  label = "コピー",
+  onCopied,
+  text,
+}: {
+  label?: string;
+  onCopied?: () => void;
+  text: string;
+}) {
   const [copied, setCopied] = useState(false);
   return (
     <button
@@ -165,6 +208,7 @@ function CopyButton({ text, label = "コピー" }: { text: string; label?: strin
       onClick={async () => {
         await navigator.clipboard.writeText(text);
         setCopied(true);
+        onCopied?.();
         window.setTimeout(() => setCopied(false), 1400);
       }}
       className="inline-flex h-8 items-center gap-1 rounded-md border border-line bg-white px-2 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
@@ -231,6 +275,7 @@ function TokenRow({ token }: { token: AiAccessTokenResponse }) {
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-semibold text-ink-3">
           <span className="font-mono">{token.tokenPrefix}...</span>
+          <span>再表示不可</span>
           <span>作成 {formatDate(token.createdAt)}</span>
           <span>利用 {token.lastUsedAt ? formatDate(token.lastUsedAt) : "-"}</span>
         </div>
@@ -271,10 +316,19 @@ function RevokeButton({ name }: { name: string }) {
 }
 
 function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("ja-JP", {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  const parts = new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(value));
+    hour12: false,
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  return `${get("month")}/${get("day")} ${get("hour")}:${get("minute")}`;
 }
