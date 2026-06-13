@@ -319,7 +319,9 @@ func (a *remoteApplication) doJSON(ctx context.Context, method, path string, bod
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		var errBody struct {
 			Message string `json:"message"`

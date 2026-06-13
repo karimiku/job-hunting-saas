@@ -16,7 +16,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/middleware"
 )
 
-const defaultAIAccessTokenName = "AI連携トークン"
+const defaultAIIntegrationLabel = "AI連携トークン"
 
 // AIAccessTokenHandler はAI連携用アクセストークンのHTTP handler。
 type AIAccessTokenHandler struct {
@@ -64,7 +64,7 @@ func (h *AIAccessTokenHandler) CreateAIAccessToken(w http.ResponseWriter, r *htt
 	}
 	name := strings.TrimSpace(valueOrEmpty(req.Name))
 	if name == "" {
-		name = defaultAIAccessTokenName
+		name = defaultAIIntegrationLabel
 	}
 	if len([]rune(name)) > 80 {
 		writeJSON(w, http.StatusBadRequest, openapi.ErrorResponse{Message: "name must be 80 characters or less"})

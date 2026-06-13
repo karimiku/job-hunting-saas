@@ -439,11 +439,14 @@ func debugMCP(format string, args ...any) {
 	if path == "" {
 		return
 	}
+	// #nosec G304 -- ENTRE_MCP_DEBUG_LOG is an explicit local debug log path controlled by the operator.
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
 	if err != nil {
 		return
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 	message := fmt.Sprintf(format, args...)
 	_, _ = fmt.Fprintf(f, "%s %s\n", time.Now().Format(time.RFC3339Nano), message)
 }

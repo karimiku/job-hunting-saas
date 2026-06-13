@@ -24,7 +24,9 @@ const authMethodKey contextKey = "authMethod"
 type AuthMethod string
 
 const (
-	AuthMethodSession       AuthMethod = "session"
+	// AuthMethodSession はセッションCookieで認証されたリクエストを表す。
+	AuthMethodSession AuthMethod = "session"
+	// AuthMethodAIAccessToken はAI連携アクセストークンで認証されたリクエストを表す。
 	AuthMethodAIAccessToken AuthMethod = "ai_access_token"
 )
 
