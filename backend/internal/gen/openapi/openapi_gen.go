@@ -249,7 +249,7 @@ type CompanyResponse struct {
 
 // CreateAiAccessTokenRequest defines model for CreateAiAccessTokenRequest.
 type CreateAiAccessTokenRequest struct {
-	Name string `json:"name"`
+	Name *string `json:"name,omitempty"`
 }
 
 // CreateAiAccessTokenResponse defines model for CreateAiAccessTokenResponse.

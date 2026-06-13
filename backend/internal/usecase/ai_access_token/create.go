@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
@@ -13,6 +14,8 @@ import (
 
 // ErrUserIDRequired は認証済み userID が入力されていないときに返される。
 var ErrUserIDRequired = errors.New("userID is required")
+
+const defaultAIIntegrationLabel = "AI連携トークン"
 
 // CreateInput は AI 連携トークン作成への入力。
 type CreateInput struct {
@@ -41,7 +44,11 @@ func (uc *Create) Execute(ctx context.Context, input CreateInput) (*CreateOutput
 	if input.UserID.IsZero() {
 		return nil, ErrUserIDRequired
 	}
-	name, err := value.NewAIAccessTokenName(input.Name)
+	tokenName := strings.TrimSpace(input.Name)
+	if tokenName == "" {
+		tokenName = defaultAIIntegrationLabel
+	}
+	name, err := value.NewAIAccessTokenName(tokenName)
 	if err != nil {
 		return nil, err
 	}

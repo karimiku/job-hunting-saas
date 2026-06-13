@@ -26,13 +26,23 @@ MCP server も既存APIと同じ Clean Architecture の境界に合わせる。
 
 通常利用は `ENTRE_API_TOKEN` を使う API bridge mode を使う。Webアプリの「アカウント」画面で AI連携トークンを作成し、MCPクライアント設定の環境変数に渡す。
 
+Codex など公式SDK準拠のstdioを期待するクライアントでは、Node wrapper `backend/cmd/mcp-remote/entre-mcp.mjs` を使う。Go製 `backend/cmd/mcp-server` はDB直結モードや既存検証用として残す。
+
+```bash
+ENTRE_API_BASE_URL=https://api.example.com \
+ENTRE_API_TOKEN=entre_ai_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
+node backend/cmd/mcp-remote/entre-mcp.mjs
+```
+
+wrapperは `frontend` の依存に入っている `@modelcontextprotocol/sdk` を使うため、初回は `cd frontend && pnpm install` を実行しておく。
+
 まずローカルMCPサーバーの単一バイナリを作る。
 
 ```bash
 make build-mcp-server
 ```
 
-出力先は `backend/bin/mcp-server`。Claude Desktop などGUIアプリから起動する場合は、`go run` ではなくこのバイナリの絶対パスを設定に入れる。
+出力先は `backend/bin/mcp-server`。Go版をGUIアプリから起動する場合は、`go run` ではなくこのバイナリの絶対パスを設定に入れる。
 
 ```bash
 cd backend
@@ -53,14 +63,15 @@ Codex は `codex mcp add` か `~/.codex/config.toml` で stdio MCP server を設
 codex mcp add entre \
   --env ENTRE_API_BASE_URL=https://api.example.com \
   --env ENTRE_API_TOKEN=entre_ai_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
-  -- /absolute/path/to/backend/bin/mcp-server
+  -- node /absolute/path/to/backend/cmd/mcp-remote/entre-mcp.mjs
 ```
 
 `config.toml` に直接書く場合:
 
 ```toml
 [mcp_servers.entre]
-command = "/absolute/path/to/backend/bin/mcp-server"
+command = "node"
+args = ["/absolute/path/to/backend/cmd/mcp-remote/entre-mcp.mjs"]
 
 [mcp_servers.entre.env]
 ENTRE_API_BASE_URL = "https://api.example.com"

@@ -83,3 +83,16 @@ func TestCreate_RequiresUserID(t *testing.T) {
 		t.Fatalf("error = %v, want ErrUserIDRequired", err)
 	}
 }
+
+func TestCreate_UsesDefaultNameWhenBlank(t *testing.T) {
+	created, err := NewCreate(inmemory.NewAIAccessTokenRepository()).Execute(context.Background(), CreateInput{
+		UserID: entity.NewUserID(),
+		Name:   " \t ",
+	})
+	if err != nil {
+		t.Fatalf("Create.Execute() failed: %v", err)
+	}
+	if got := created.Token.Name().String(); got != defaultAIIntegrationLabel {
+		t.Fatalf("Name = %q, want %q", got, defaultAIIntegrationLabel)
+	}
+}
