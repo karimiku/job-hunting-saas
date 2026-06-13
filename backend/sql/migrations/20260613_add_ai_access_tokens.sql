@@ -16,3 +16,10 @@ CREATE INDEX IF NOT EXISTS idx_ai_access_tokens_user_created_at
 CREATE INDEX IF NOT EXISTS idx_ai_access_tokens_active_hash
     ON ai_access_tokens(token_hash)
     WHERE revoked_at IS NULL;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'runtime_user') THEN
+        EXECUTE 'GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE ai_access_tokens TO runtime_user';
+    END IF;
+END $$;

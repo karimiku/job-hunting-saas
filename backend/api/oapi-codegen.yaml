@@ -1,5 +1,5 @@
 package: openapi
-output: internal/gen/openapi/openapi_gen.go
+output: ../internal/gen/openapi/openapi_gen.go
 generate:
   chi-server: true
   models: true
