@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"io"
 	"net/textproto"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	jobemail "github.com/karimiku/job-hunting-saas/internal/usecase/job_email"
 	mcpuc "github.com/karimiku/job-hunting-saas/internal/usecase/mcp"
@@ -83,25 +85,33 @@ func NewServer(app Application) *Server {
 func ServeStdio(ctx context.Context, in io.Reader, out io.Writer, s *Server) error {
 	reader := bufio.NewReader(in)
 	writer := bufio.NewWriter(out)
+	debugMCP("stdio server started")
 	for {
 		payload, err := readMCPMessage(reader)
 		if err != nil {
+			debugMCP("read error: %v", err)
 			return err
 		}
 		var req rpcRequest
 		if err := json.Unmarshal(payload, &req); err != nil {
+			debugMCP("json unmarshal error: %v", err)
 			continue
 		}
 		if req.ID == nil {
+			debugMCP("notification ignored: method=%s", req.Method)
 			continue
 		}
+		debugMCP("request received: method=%s", req.Method)
 		resp := s.handle(ctx, req)
 		if err := writeMCPMessage(writer, resp); err != nil {
+			debugMCP("write error: method=%s error=%v", req.Method, err)
 			return err
 		}
 		if err := writer.Flush(); err != nil {
+			debugMCP("flush error: method=%s error=%v", req.Method, err)
 			return err
 		}
+		debugMCP("response sent: method=%s", req.Method)
 	}
 }
 
@@ -174,6 +184,8 @@ func (s *Server) dispatch(ctx context.Context, req rpcRequest) (any, error) {
 		return listTools(), nil
 	case "tools/call":
 		return s.callTool(ctx, req.Params)
+	case "prompts/list":
+		return map[string]any{"prompts": []any{}}, nil
 	case "ping":
 		return map[string]any{}, nil
 	default:
@@ -204,6 +216,9 @@ func initialize(params json.RawMessage) any {
 }
 
 func listResources() any {
+	if strings.TrimSpace(os.Getenv("ENTRE_API_BASE_URL")) != "" {
+		return map[string]any{"resources": []map[string]any{}}
+	}
 	return map[string]any{
 		"resources": []map[string]any{
 			{"uri": "entries://list", "name": "応募先一覧", "description": "MCP対象ユーザーの応募先一覧", "mimeType": "application/json"},
@@ -214,6 +229,9 @@ func listResources() any {
 }
 
 func listResourceTemplates() any {
+	if strings.TrimSpace(os.Getenv("ENTRE_API_BASE_URL")) != "" {
+		return map[string]any{"resourceTemplates": []map[string]any{}}
+	}
 	return map[string]any{
 		"resourceTemplates": []map[string]any{
 			{"uriTemplate": "entries://{entryId}", "name": "応募先詳細", "description": "応募先1件の文脈", "mimeType": "application/json"},
@@ -414,4 +432,21 @@ func marshalPretty(value any) (string, error) {
 		return "", err
 	}
 	return strings.TrimRight(buf.String(), "\n"), nil
+}
+
+func debugMCP(format string, args ...any) {
+	path := strings.TrimSpace(os.Getenv("ENTRE_MCP_DEBUG_LOG"))
+	if path == "" {
+		return
+	}
+	// #nosec G304 -- ENTRE_MCP_DEBUG_LOG is an explicit local debug log path controlled by the operator.
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+	message := fmt.Sprintf(format, args...)
+	_, _ = fmt.Fprintf(f, "%s %s\n", time.Now().Format(time.RFC3339Nano), message)
 }

@@ -220,6 +220,16 @@ func (e ListEntriesParamsStageKind) Valid() bool {
 	}
 }
 
+// AIAccessTokenResponse defines model for AIAccessTokenResponse.
+type AIAccessTokenResponse struct {
+	CreatedAt    time.Time          `json:"createdAt"`
+	Id           openapi_types.UUID `json:"id"`
+	LastUsedAt   *time.Time         `json:"lastUsedAt,omitempty"`
+	Name         string             `json:"name"`
+	RevokedAt    *time.Time         `json:"revokedAt,omitempty"`
+	TokenPreview string             `json:"tokenPreview"`
+}
+
 // CompanyAliasResponse defines model for CompanyAliasResponse.
 type CompanyAliasResponse struct {
 	Alias     string             `json:"alias"`
@@ -235,6 +245,17 @@ type CompanyResponse struct {
 	Memo      string             `json:"memo"`
 	Name      string             `json:"name"`
 	UpdatedAt time.Time          `json:"updatedAt"`
+}
+
+// CreateAIAccessTokenRequest defines model for CreateAIAccessTokenRequest.
+type CreateAIAccessTokenRequest struct {
+	Name *string `json:"name,omitempty"`
+}
+
+// CreateAIAccessTokenResponse defines model for CreateAIAccessTokenResponse.
+type CreateAIAccessTokenResponse struct {
+	Item  AIAccessTokenResponse `json:"item"`
+	Token string                `json:"token"`
 }
 
 // CreateCompanyAliasRequest defines model for CreateCompanyAliasRequest.
@@ -378,6 +399,9 @@ type UpdateTaskRequestStatus string
 // UpdateTaskRequestType defines model for UpdateTaskRequest.Type.
 type UpdateTaskRequestType string
 
+// AIAccessTokenId defines model for AIAccessTokenId.
+type AIAccessTokenId = openapi_types.UUID
+
 // AliasId defines model for AliasId.
 type AliasId = openapi_types.UUID
 
@@ -405,6 +429,9 @@ type ListEntriesParamsStatus string
 
 // ListEntriesParamsStageKind defines parameters for ListEntries.
 type ListEntriesParamsStageKind string
+
+// CreateAIAccessTokenJSONRequestBody defines body for CreateAIAccessToken for application/json ContentType.
+type CreateAIAccessTokenJSONRequestBody = CreateAIAccessTokenRequest
 
 // CreateCompanyJSONRequestBody defines body for CreateCompany for application/json ContentType.
 type CreateCompanyJSONRequestBody = CreateCompanyRequest
@@ -435,6 +462,15 @@ type UpdateTaskJSONRequestBody = UpdateTaskRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// AI連携用アクセストークン一覧を取得する
+	// (GET /api/v1/ai-access-tokens)
+	ListAIAccessTokens(w http.ResponseWriter, r *http.Request)
+	// AI連携用アクセストークンを発行する
+	// (POST /api/v1/ai-access-tokens)
+	CreateAIAccessToken(w http.ResponseWriter, r *http.Request)
+	// AI連携用アクセストークンを失効する
+	// (DELETE /api/v1/ai-access-tokens/{tokenId})
+	RevokeAIAccessToken(w http.ResponseWriter, r *http.Request, tokenId AIAccessTokenId)
 	// 企業の別名を削除する
 	// (DELETE /api/v1/aliases/{aliasId})
 	DeleteCompanyAlias(w http.ResponseWriter, r *http.Request, aliasId AliasId)
@@ -515,6 +551,24 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// AI連携用アクセストークン一覧を取得する
+// (GET /api/v1/ai-access-tokens)
+func (_ Unimplemented) ListAIAccessTokens(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AI連携用アクセストークンを発行する
+// (POST /api/v1/ai-access-tokens)
+func (_ Unimplemented) CreateAIAccessToken(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// AI連携用アクセストークンを失効する
+// (DELETE /api/v1/ai-access-tokens/{tokenId})
+func (_ Unimplemented) RevokeAIAccessToken(w http.ResponseWriter, r *http.Request, tokenId AIAccessTokenId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // 企業の別名を削除する
 // (DELETE /api/v1/aliases/{aliasId})
@@ -674,6 +728,59 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ListAIAccessTokens operation middleware
+func (siw *ServerInterfaceWrapper) ListAIAccessTokens(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAIAccessTokens(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateAIAccessToken operation middleware
+func (siw *ServerInterfaceWrapper) CreateAIAccessToken(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateAIAccessToken(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RevokeAIAccessToken operation middleware
+func (siw *ServerInterfaceWrapper) RevokeAIAccessToken(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "tokenId" -------------
+	var tokenId AIAccessTokenId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tokenId", chi.URLParam(r, "tokenId"), &tokenId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tokenId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RevokeAIAccessToken(w, r, tokenId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // DeleteCompanyAlias operation middleware
 func (siw *ServerInterfaceWrapper) DeleteCompanyAlias(w http.ResponseWriter, r *http.Request) {
@@ -1365,6 +1472,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/ai-access-tokens", wrapper.ListAIAccessTokens)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/ai-access-tokens", wrapper.CreateAIAccessToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v1/ai-access-tokens/{tokenId}", wrapper.RevokeAIAccessToken)
+	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v1/aliases/{aliasId}", wrapper.DeleteCompanyAlias)
 	})

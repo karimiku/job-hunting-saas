@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -33,6 +34,15 @@ func main() {
 
 func run() error {
 	ctx := context.Background()
+
+	if usesRemoteAPIEnv() {
+		app, err := newRemoteApplicationFromEnv()
+		if err != nil {
+			return err
+		}
+		return serveMCP(ctx, app)
+	}
+
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
 		return errors.New("DATABASE_URL is required")
@@ -45,7 +55,8 @@ func run() error {
 	defer pool.Close()
 
 	userRepo := postgres.NewUserRepository(pool)
-	user, err := resolveMCPUser(ctx, userRepo)
+	tokenRepo := postgres.NewAIAccessTokenRepository(pool)
+	user, err := resolveMCPUser(ctx, userRepo, tokenRepo)
 	if err != nil {
 		return fmt.Errorf("resolve MCP user: %w", err)
 	}
@@ -62,6 +73,10 @@ func run() error {
 		jobemail.NewExtract(),
 	)
 
+	return serveMCP(ctx, app)
+}
+
+func serveMCP(ctx context.Context, app mcphandler.Application) error {
 	server := mcphandler.NewServer(app)
 	if err := mcphandler.ServeStdio(ctx, os.Stdin, os.Stdout, server); err != nil && !errors.Is(err, io.EOF) {
 		return fmt.Errorf("serve MCP: %w", err)
@@ -69,20 +84,42 @@ func run() error {
 	return nil
 }
 
-func resolveMCPUser(ctx context.Context, repo repository.UserRepository) (*entity.User, error) {
+func resolveMCPUser(
+	ctx context.Context,
+	userRepo repository.UserRepository,
+	tokenRepo repository.AIAccessTokenRepository,
+) (*entity.User, error) {
+	if raw := strings.TrimSpace(os.Getenv("MCP_API_KEY")); raw != "" {
+		secret, err := value.NewAIAccessTokenSecret(raw)
+		if err != nil {
+			return nil, fmt.Errorf("invalid MCP_API_KEY: %w", err)
+		}
+		token, err := tokenRepo.FindActiveByHash(ctx, secret.Hash())
+		if err != nil {
+			if errors.Is(err, repository.ErrNotFound) {
+				return nil, errors.New("invalid MCP_API_KEY")
+			}
+			return nil, fmt.Errorf("find MCP_API_KEY: %w", err)
+		}
+		if err := tokenRepo.TouchLastUsed(ctx, token.ID(), time.Now()); err != nil {
+			return nil, fmt.Errorf("touch MCP_API_KEY: %w", err)
+		}
+		return userRepo.FindByID(ctx, token.UserID())
+	}
+
 	if raw := strings.TrimSpace(os.Getenv("MCP_USER_ID")); raw != "" {
 		id, err := uuid.Parse(raw)
 		if err != nil {
 			return nil, fmt.Errorf("invalid MCP_USER_ID: %w", err)
 		}
-		return repo.FindByID(ctx, entity.UserID(id))
+		return userRepo.FindByID(ctx, entity.UserID(id))
 	}
 	if raw := strings.TrimSpace(os.Getenv("MCP_USER_EMAIL")); raw != "" {
 		email, err := value.NewEmail(raw)
 		if err != nil {
 			return nil, fmt.Errorf("invalid MCP_USER_EMAIL: %w", err)
 		}
-		return repo.FindByEmail(ctx, email)
+		return userRepo.FindByEmail(ctx, email)
 	}
-	return nil, errors.New("set MCP_USER_EMAIL or MCP_USER_ID")
+	return nil, errors.New("set MCP_API_KEY, MCP_USER_EMAIL, or MCP_USER_ID")
 }

@@ -55,6 +55,7 @@ func run() error {
 		userRepo         repository.UserRepository
 		extIDRepo        repository.ExternalIdentityRepository
 		inboxClipRepo    repository.InboxClipRepository
+		aiTokenRepo      repository.AIAccessTokenRepository
 	)
 
 	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
@@ -72,6 +73,7 @@ func run() error {
 		userRepo = postgres.NewUserRepository(pool)
 		extIDRepo = postgres.NewExternalIdentityRepository(pool)
 		inboxClipRepo = postgres.NewInboxClipRepository(pool)
+		aiTokenRepo = postgres.NewAIAccessTokenRepository(pool)
 		log.Println("using PostgreSQL repositories")
 	} else {
 		// DATABASE_URL 未設定 = 開発・ローカルテストモード。auth middleware も配線できないため
@@ -125,7 +127,7 @@ func run() error {
 			CookieSecure:   os.Getenv("COOKIE_SECURE") == "true",
 			CookieSameSite: cookieSameSite,
 		})
-		authMiddleware = middleware.NewAuth(sessionVerifier, extIDRepo)
+		authMiddleware = middleware.NewAuth(sessionVerifier, extIDRepo, aiTokenRepo)
 		log.Println("firebase auth wired")
 	}
 
@@ -171,14 +173,16 @@ func run() error {
 		inboxclipuc.NewList(inboxClipRepo),
 		inboxclipuc.NewDelete(inboxClipRepo),
 	)
+	aiTokenHandler := handler.NewAIAccessTokenHandler(aiTokenRepo)
 
 	h := &handler.Handler{
-		CompanyHandler:      companyHandler,
-		CompanyAliasHandler: companyAliasHandler,
-		EntryHandler:        entryHandler,
-		TaskHandler:         taskHandler,
-		StageHistoryHandler: stageHistoryHandler,
-		InboxClipHandler:    inboxClipHandler,
+		CompanyHandler:       companyHandler,
+		CompanyAliasHandler:  companyAliasHandler,
+		EntryHandler:         entryHandler,
+		TaskHandler:          taskHandler,
+		StageHistoryHandler:  stageHistoryHandler,
+		InboxClipHandler:     inboxClipHandler,
+		AIAccessTokenHandler: aiTokenHandler,
 	}
 
 	router := chi.NewRouter()

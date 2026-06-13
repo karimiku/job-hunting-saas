@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { UserCircle } from "lucide-react";
 import { getCurrentUserServer } from "@/lib/auth-server";
 import { AppShell } from "@/components/entre/AppShell";
+import { AIAccessTokenPanel } from "@/components/entre/AIAccessTokenPanel";
 import { SignOutButton } from "@/components/entre/SignOutButton";
 
 export default async function ProfilePage() {
@@ -33,6 +34,10 @@ export default async function ProfilePage() {
           </ul>
           <SignOutButton className="mt-5 w-full rounded-lg border border-line bg-surface py-2.5 text-[12px] font-bold text-ink-2 transition-colors hover:bg-line-2" />
         </section>
+
+        <div className="mt-5">
+          <AIAccessTokenPanel />
+        </div>
       </div>
     </AppShell>
   );

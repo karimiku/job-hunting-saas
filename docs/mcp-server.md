@@ -22,9 +22,45 @@ MCP server も既存APIと同じ Clean Architecture の境界に合わせる。
 | Domain | `backend/internal/domain/entity`, `value`, `repository` | ESMemo entity/value object、Repository interface |
 | Infra | `backend/internal/infra/postgres` | sqlc query / repository 実装 |
 
-## Run
+## Token
+
+AI連携トークンは `/profile` から発行する。画面ではtoken全文だけを一度表示し、クライアント別の設定コマンドは出さない。
+tokenはユーザーに紐づき、DBには平文ではなくSHA-256 hashだけを保存する。漏れた・失くした場合は同じ画面で失効して作り直す。
+
+CLIで生成・登録する場合は次を使う。既存トークンを渡さずに実行すると、新しい `entre_ai_...` トークンを生成して一度だけ表示する。
+
+```bash
+cd backend
+AI_ACCESS_TOKEN='entre_ai_...' \
+DATABASE_URL=postgres://postgres:postgres@localhost:15432/job_hunting_dev?sslmode=disable \
+go run ./cmd/ai-token -email you@example.com -name "AI連携"
+```
+
+## Run: local DB MCP server
 
 開発中は backend を起動し、DB migration が適用された状態で MCP server を stdio 起動する。
+ローカルDBを直接読む場合は、MCP client 側の環境変数に `MCP_API_KEY` として渡す。
+
+```bash
+cd backend
+DATABASE_URL=postgres://postgres:postgres@localhost:15432/job_hunting_dev?sslmode=disable \
+MCP_API_KEY='entre_ai_...' \
+go run ./cmd/mcp-server
+```
+
+root からは次でも登録・起動できる。
+
+```bash
+AI_ACCESS_TOKEN='entre_ai_...' \
+DATABASE_URL=postgres://postgres:postgres@localhost:15432/job_hunting_dev?sslmode=disable \
+make ai-token ARGS='-email you@example.com -name AI連携'
+
+DATABASE_URL=postgres://postgres:postgres@localhost:15432/job_hunting_dev?sslmode=disable \
+MCP_API_KEY='entre_ai_...' \
+make mcp-server
+```
+
+開発用には、ユーザーを明示して起動する方法も使える。
 
 ```bash
 cd backend
@@ -41,7 +77,19 @@ MCP_USER_EMAIL=you@example.com \
 make mcp-server
 ```
 
-`MCP_USER_EMAIL` または `MCP_USER_ID` のどちらかが必須。multi-user DBの別ユーザー情報を誤って渡さないため、MCP server は必ず1ユーザーにscopeして起動する。
+`MCP_API_KEY`、`MCP_USER_EMAIL`、`MCP_USER_ID` のいずれかが必須。`MCP_API_KEY` がある場合はこれを優先する。multi-user DBの別ユーザー情報を誤って渡さないため、MCP server は必ず1ユーザーにscopeして起動する。
+
+## Run: remote API wrapper
+
+本番APIへ接続するlocal MCP wrapperは `backend/cmd/mcp-remote/entre-mcp.mjs` を使う。
+MCP clientからはこのNode scriptをstdio serverとして起動し、環境変数でAPI base URLとtokenを渡す。
+
+| 変数 | 内容 |
+| --- | --- |
+| `ENTRE_API_BASE_URL` | Entré APIのbase URL |
+| `ENTRE_API_TOKEN` | `/profile` 等で発行した `entre_ai_...` token |
+
+remote wrapperはCLIに内部UUIDやtimestampを出さない。`list_entries` は `entry-1` のような一時refを返し、詳細取得やTask作成もそのrefで扱う。
 
 ## Resources
 

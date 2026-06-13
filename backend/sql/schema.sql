@@ -124,6 +124,18 @@ CREATE TABLE es_memos (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE ai_access_tokens (
+    id            UUID        PRIMARY KEY,
+    user_id       UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name          TEXT        NOT NULL,
+    token_hash    TEXT        NOT NULL UNIQUE,
+    token_preview TEXT        NOT NULL,
+    last_used_at  TIMESTAMPTZ,
+    revoked_at    TIMESTAMPTZ,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ============================================================
 -- インデックス
 -- ============================================================
@@ -152,3 +164,8 @@ CREATE INDEX idx_inbox_clips_user_captured_at ON inbox_clips(user_id, captured_a
 CREATE INDEX idx_es_memos_user_created_at ON es_memos(user_id, created_at DESC);
 
 CREATE INDEX idx_es_memos_user_entry ON es_memos(user_id, entry_id);
+
+CREATE INDEX idx_ai_access_tokens_user_created_at ON ai_access_tokens(user_id, created_at DESC);
+
+CREATE INDEX idx_ai_access_tokens_active_hash ON ai_access_tokens(token_hash)
+    WHERE revoked_at IS NULL;

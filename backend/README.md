@@ -82,10 +82,29 @@ docker compose up
 curl http://localhost:8080/health
 ```
 
-### MCP server
+### MCP server / AI連携トークン
 
 Claude Desktop / Codex / Gemini CLI などのMCPクライアントから、就活データを読み書きするためのstdio MCP serverを提供する。
 設計・resources/tools・配布上の注意は [docs/mcp-server.md](../docs/mcp-server.md) を参照。
+
+Webアプリの `/profile` からAI連携トークンを発行できる。UIではtoken全文だけを一度表示し、クライアント別の設定コマンドは表示しない。
+tokenはユーザーに紐づき、DBには平文ではなくSHA-256 hashだけを保存する。失効は同じ画面から行う。
+
+生成済みの `entre_ai_...` トークンを使う場合:
+
+```bash
+AI_ACCESS_TOKEN='entre_ai_...' \
+DATABASE_URL=postgres://postgres:postgres@localhost:15432/job_hunting_dev?sslmode=disable \
+go run ./cmd/ai-token -email you@example.com -name "AI連携"
+
+DATABASE_URL=postgres://postgres:postgres@localhost:15432/job_hunting_dev?sslmode=disable \
+MCP_API_KEY='entre_ai_...' \
+go run ./cmd/mcp-server
+```
+
+`AI_ACCESS_TOKEN` は登録時だけ使う。DBにはトークン平文ではなくハッシュのみ保存される。
+
+開発用にユーザーを直接指定する場合:
 
 ```bash
 DATABASE_URL=postgres://postgres:postgres@localhost:15432/job_hunting_dev?sslmode=disable \
@@ -101,7 +120,7 @@ MCP_USER_EMAIL=you@example.com \
 make mcp-server
 ```
 
-`MCP_USER_EMAIL` の代わりに `MCP_USER_ID` でも対象ユーザーを指定できる。multi-user DBを安全に扱うため、どちらか一方は必須。
+`MCP_API_KEY`、`MCP_USER_EMAIL`、`MCP_USER_ID` のいずれかで対象ユーザーを指定できる。multi-user DBを安全に扱うため、いずれか一つは必須。
 
 `append_es_memo` と `create_task` は `confirm: true` を渡したときだけDBへ保存する。`capture_job_email` はメール本文をルールベースで構造化し、LLM APIは呼ばない。
 

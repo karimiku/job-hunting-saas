@@ -11,6 +11,7 @@ type Handler struct {
 	*TaskHandler
 	*StageHistoryHandler
 	*InboxClipHandler
+	*AIAccessTokenHandler
 }
 
 var _ openapi.ServerInterface = (*Handler)(nil)
