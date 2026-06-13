@@ -6,6 +6,8 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
@@ -16,6 +18,15 @@ import (
 type contextKey string
 
 const userIDKey contextKey = "userID"
+const authMethodKey contextKey = "authMethod"
+
+// AuthMethod はリクエストがどの認証経路で通ったかを表す。
+type AuthMethod string
+
+const (
+	AuthMethodSession       AuthMethod = "session"
+	AuthMethodAIAccessToken AuthMethod = "ai_access_token"
+)
 
 // SessionCookieName は Auth ミドルウェアと AuthHandler で共有する Cookie 名。
 const SessionCookieName = "session"
@@ -23,6 +34,12 @@ const SessionCookieName = "session"
 // SetUserID は認証済みユーザーのIDをcontextに埋め込む。
 func SetUserID(ctx context.Context, userID entity.UserID) context.Context {
 	return context.WithValue(ctx, userIDKey, userID)
+}
+
+// SetAuth は認証済みユーザーIDと認証方法をcontextに埋め込む。
+func SetAuth(ctx context.Context, userID entity.UserID, method AuthMethod) context.Context {
+	ctx = SetUserID(ctx, userID)
+	return context.WithValue(ctx, authMethodKey, method)
 }
 
 // GetUserID はcontextから認証済みユーザーのIDを取り出す。
@@ -33,6 +50,15 @@ func GetUserID(ctx context.Context) entity.UserID {
 		return entity.UserID{}
 	}
 	return userID
+}
+
+// GetAuthMethod はcontextから認証方法を取り出す。
+func GetAuthMethod(ctx context.Context) AuthMethod {
+	method, found := ctx.Value(authMethodKey).(AuthMethod)
+	if !found {
+		return ""
+	}
+	return method
 }
 
 // SessionClaims は Session Cookie から取り出した認証クレーム。
@@ -47,17 +73,47 @@ type FirebaseSessionVerifier interface {
 	VerifySessionCookie(ctx context.Context, sessionCookie string) (*SessionClaims, error)
 }
 
-// NewAuth は Session Cookie を検証して userID を context に埋め込む chi ミドルウェアを返す。
+// NewAuth は Session Cookie または AI access token を検証して userID を context に埋め込む chi ミドルウェアを返す。
 //
 // フロー:
-//  1. Cookie 取得 → なければ 401
-//  2. Firebase Admin SDK で Session Cookie 検証 → 失敗は 401
-//  3. Firebase UID → external_identities → users の順で UserID を解決
+//  1. Authorization: Bearer entre_ai_... があれば token hash から UserID を解決
+//  2. なければ Cookie 取得 → なければ 401
+//  3. Firebase Admin SDK で Session Cookie 検証 → 失敗は 401
+//  4. Firebase UID → external_identities → users の順で UserID を解決
 //  4. context に UserID をセットして次へ
-func NewAuth(fbAuth FirebaseSessionVerifier, extIDRepo repository.ExternalIdentityRepository) func(http.Handler) http.Handler {
+func NewAuth(
+	fbAuth FirebaseSessionVerifier,
+	extIDRepo repository.ExternalIdentityRepository,
+	tokenRepo repository.AIAccessTokenRepository,
+) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
+
+			if tokenRepo != nil {
+				if raw := bearerToken(r.Header.Get("Authorization")); raw != "" {
+					secret, err := value.NewAIAccessTokenSecret(raw)
+					if err != nil {
+						http.Error(w, "unauthenticated", http.StatusUnauthorized)
+						return
+					}
+					token, err := tokenRepo.FindActiveByHash(ctx, secret.Hash())
+					if err != nil {
+						if !errors.Is(err, repository.ErrNotFound) {
+							log.Printf("auth middleware: FindActiveByHash: %v", err)
+							http.Error(w, "internal error", http.StatusInternalServerError)
+							return
+						}
+						http.Error(w, "unauthenticated", http.StatusUnauthorized)
+						return
+					}
+					if err := tokenRepo.TouchLastUsed(ctx, token.ID(), time.Now()); err != nil {
+						log.Printf("auth middleware: TouchLastUsed: %v", err)
+					}
+					next.ServeHTTP(w, r.WithContext(SetAuth(ctx, token.UserID(), AuthMethodAIAccessToken)))
+					return
+				}
+			}
 
 			cookie, err := r.Cookie(SessionCookieName)
 			if err != nil || cookie.Value == "" {
@@ -84,8 +140,15 @@ func NewAuth(fbAuth FirebaseSessionVerifier, extIDRepo repository.ExternalIdenti
 				return
 			}
 
-			ctx = SetUserID(ctx, identity.UserID())
-			next.ServeHTTP(w, r.WithContext(ctx))
+			next.ServeHTTP(w, r.WithContext(SetAuth(ctx, identity.UserID(), AuthMethodSession)))
 		})
 	}
+}
+
+func bearerToken(header string) string {
+	scheme, token, ok := strings.Cut(strings.TrimSpace(header), " ")
+	if !ok || !strings.EqualFold(scheme, "Bearer") {
+		return ""
+	}
+	return strings.TrimSpace(token)
 }

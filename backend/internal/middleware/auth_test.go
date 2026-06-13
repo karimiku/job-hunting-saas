@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
@@ -54,6 +55,18 @@ func TestSetUserID_OverwritesPrevious(t *testing.T) {
 	}
 }
 
+func TestSetAuth_SetsUserIDAndMethod(t *testing.T) {
+	userID := entity.NewUserID()
+	ctx := SetAuth(context.Background(), userID, AuthMethodSession)
+
+	if got := GetUserID(ctx); got != userID {
+		t.Errorf("GetUserID = %v, want %v", got, userID)
+	}
+	if got := GetAuthMethod(ctx); got != AuthMethodSession {
+		t.Errorf("GetAuthMethod = %q, want %q", got, AuthMethodSession)
+	}
+}
+
 // --- NewAuth ---
 
 // mockSessionVerifier は FirebaseSessionVerifier のテスト実装。
@@ -97,7 +110,7 @@ func TestNewAuth_Success(t *testing.T) {
 	}
 
 	called := false
-	handler := NewAuth(fb, extIDRepo)(nextAssertingUserID(t, &called, userID))
+	handler := NewAuth(fb, extIDRepo, nil)(nextAssertingUserID(t, &called, userID))
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.AddCookie(&http.Cookie{Name: SessionCookieName, Value: "valid-cookie"})
@@ -114,7 +127,7 @@ func TestNewAuth_Success(t *testing.T) {
 
 func TestNewAuth_NoCookie(t *testing.T) {
 	called := false
-	handler := NewAuth(&mockSessionVerifier{}, inmemory.NewExternalIdentityRepository())(
+	handler := NewAuth(&mockSessionVerifier{}, inmemory.NewExternalIdentityRepository(), nil)(
 		http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) { called = true }),
 	)
 
@@ -132,7 +145,7 @@ func TestNewAuth_NoCookie(t *testing.T) {
 
 func TestNewAuth_EmptyCookie(t *testing.T) {
 	called := false
-	handler := NewAuth(&mockSessionVerifier{}, inmemory.NewExternalIdentityRepository())(
+	handler := NewAuth(&mockSessionVerifier{}, inmemory.NewExternalIdentityRepository(), nil)(
 		http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) { called = true }),
 	)
 
@@ -156,7 +169,7 @@ func TestNewAuth_InvalidSessionCookie(t *testing.T) {
 		},
 	}
 	called := false
-	handler := NewAuth(fb, inmemory.NewExternalIdentityRepository())(
+	handler := NewAuth(fb, inmemory.NewExternalIdentityRepository(), nil)(
 		http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) { called = true }),
 	)
 
@@ -181,7 +194,7 @@ func TestNewAuth_IdentityNotFound(t *testing.T) {
 		},
 	}
 	called := false
-	handler := NewAuth(fb, inmemory.NewExternalIdentityRepository())(
+	handler := NewAuth(fb, inmemory.NewExternalIdentityRepository(), nil)(
 		http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) { called = true }),
 	)
 
@@ -225,7 +238,7 @@ func TestNewAuth_RepoUnexpectedError(t *testing.T) {
 	}
 
 	called := false
-	handler := NewAuth(fb, repo)(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) { called = true }))
+	handler := NewAuth(fb, repo, nil)(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) { called = true }))
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.AddCookie(&http.Cookie{Name: SessionCookieName, Value: "valid"})
@@ -238,4 +251,91 @@ func TestNewAuth_RepoUnexpectedError(t *testing.T) {
 	if called {
 		t.Error("next handler should NOT be called on internal error")
 	}
+}
+
+func TestNewAuth_BearerAIAccessToken(t *testing.T) {
+	userID := entity.NewUserID()
+	secret, err := value.GenerateAIAccessTokenSecret()
+	if err != nil {
+		t.Fatalf("GenerateAIAccessTokenSecret failed: %v", err)
+	}
+	token := entity.NewAIAccessToken(userID, "AI token", secret.Hash(), secret.Preview())
+	tokenRepo := &fakeAIAccessTokenRepo{token: token}
+
+	called := false
+	handler := NewAuth(&mockSessionVerifier{}, inmemory.NewExternalIdentityRepository(), tokenRepo)(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			called = true
+			if got := GetUserID(r.Context()); got != userID {
+				t.Errorf("GetUserID = %v, want %v", got, userID)
+			}
+			if got := GetAuthMethod(r.Context()); got != AuthMethodAIAccessToken {
+				t.Errorf("GetAuthMethod = %q, want %q", got, AuthMethodAIAccessToken)
+			}
+			w.WriteHeader(http.StatusOK)
+		}),
+	)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+secret.String())
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", w.Code)
+	}
+	if !called {
+		t.Error("next handler should be called")
+	}
+	if tokenRepo.touchedID != token.ID() {
+		t.Errorf("touchedID = %s, want %s", tokenRepo.touchedID, token.ID())
+	}
+}
+
+func TestNewAuth_InvalidBearerAIAccessToken(t *testing.T) {
+	called := false
+	handler := NewAuth(&mockSessionVerifier{}, inmemory.NewExternalIdentityRepository(), &fakeAIAccessTokenRepo{})(
+		http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) { called = true }),
+	)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer entre_ai_invalid")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401", w.Code)
+	}
+	if called {
+		t.Error("next handler should NOT be called")
+	}
+}
+
+type fakeAIAccessTokenRepo struct {
+	token     *entity.AIAccessToken
+	touchedID entity.AIAccessTokenID
+}
+
+func (r *fakeAIAccessTokenRepo) Save(context.Context, *entity.AIAccessToken) error {
+	return nil
+}
+
+func (r *fakeAIAccessTokenRepo) FindActiveByHash(_ context.Context, tokenHash string) (*entity.AIAccessToken, error) {
+	if r.token != nil && r.token.TokenHash() == tokenHash {
+		return r.token, nil
+	}
+	return nil, repository.ErrNotFound
+}
+
+func (r *fakeAIAccessTokenRepo) ListByUserID(context.Context, entity.UserID) ([]*entity.AIAccessToken, error) {
+	return nil, nil
+}
+
+func (r *fakeAIAccessTokenRepo) TouchLastUsed(_ context.Context, id entity.AIAccessTokenID, _ time.Time) error {
+	r.touchedID = id
+	return nil
+}
+
+func (r *fakeAIAccessTokenRepo) Revoke(context.Context, entity.UserID, entity.AIAccessTokenID, time.Time) error {
+	return nil
 }

@@ -478,6 +478,81 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/v1/ai-access-tokens:
+    get:
+      operationId: listAIAccessTokens
+      summary: AI連携用アクセストークン一覧を取得する
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tokens:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AIAccessTokenResponse"
+                required:
+                  - tokens
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createAIAccessToken
+      summary: AI連携用アクセストークンを発行する
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAIAccessTokenRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateAIAccessTokenResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/ai-access-tokens/{tokenId}:
+    parameters:
+      - $ref: "#/components/parameters/AIAccessTokenId"
+    delete:
+      operationId: revokeAIAccessToken
+      summary: AI連携用アクセストークンを失効する
+      responses:
+        "204":
+          description: No Content
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/v1/inbox/clips:
     post:
       operationId: createInboxClip
@@ -567,6 +642,13 @@ components:
         format: uuid
     AliasId:
       name: aliasId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    AIAccessTokenId:
+      name: tokenId
       in: path
       required: true
       schema:
@@ -800,6 +882,51 @@ components:
         - memo
         - createdAt
         - updatedAt
+
+    CreateAIAccessTokenRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 80
+
+    AIAccessTokenResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        tokenPreview:
+          type: string
+        lastUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - tokenPreview
+        - createdAt
+
+    CreateAIAccessTokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        item:
+          $ref: "#/components/schemas/AIAccessTokenResponse"
+      required:
+        - token
+        - item
 
     CreateStageHistoryRequest:
       type: object
