@@ -1,4 +1,4 @@
-.PHONY: help up down logs dev-fe health mcp-server \
+.PHONY: help up down logs dev-fe health mcp-server ai-token \
         test test-be test-fe test-fe-e2e test-ext build build-be build-fe \
         build-mcp-server \
         lint lint-be lint-fe fmt fmt-be \
@@ -44,6 +44,9 @@ health: ## API /health を叩く
 
 mcp-server: ## job-hunting-saas MCP server をstdioで起動（ENTRE_API_TOKEN or DATABASE_URL + MCP_USER_EMAIL/ID が必要）
 	cd backend && go run ./cmd/mcp-server
+
+ai-token: ## AI access token を登録/生成（例: make ai-token ARGS='-email you@example.com'）
+	cd backend && go run ./cmd/ai-token $(ARGS)
 
 # ============================================================
 # テスト・ビルド

@@ -87,7 +87,15 @@ curl http://localhost:8080/health
 Claude Desktop / Codex / Gemini CLI などのMCPクライアントから、就活データを読み書きするためのstdio MCP serverを提供する。
 設計・resources/tools・配布上の注意は [docs/mcp-server.md](../docs/mcp-server.md) を参照。
 
-通常利用は Webアプリの「アカウント」画面で発行するAI連携トークンを使う。
+通常利用は Webアプリの「アカウント」画面で発行するAI連携トークンを使う。CodexではNode wrapperをstdio serverとして登録する。
+
+```bash
+ENTRE_API_BASE_URL=http://localhost:8080 \
+ENTRE_API_TOKEN=entre_ai_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx \
+node cmd/mcp-remote/entre-mcp.mjs
+```
+
+Go版MCP serverを使う場合は単一バイナリを作る。
 
 ```bash
 make -C .. build-mcp-server

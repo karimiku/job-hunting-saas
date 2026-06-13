@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { Check, Copy, EyeOff, FileJson2, KeyRound, Terminal, Trash2 } from "lucide-react";
+import { Check, Copy, EyeOff, HelpCircle, KeyRound, ShieldCheck, Trash2, X } from "lucide-react";
 import {
   createAiAccessTokenAction,
   revokeAiAccessTokenAction,
@@ -14,9 +14,6 @@ import type { AiAccessTokenResponse } from "@/lib/api/aiTokens";
 
 const CREATE_INITIAL: CreateAiAccessTokenState = {};
 const REVOKE_INITIAL: RevokeAiAccessTokenState = {};
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
-const MCP_SERVER_PATH_PLACEHOLDER = "/absolute/path/to/backend/bin/mcp-server";
 
 export function AiAccessTokenPanel({
   loadError,
@@ -29,6 +26,7 @@ export function AiAccessTokenPanel({
     createAiAccessTokenAction,
     CREATE_INITIAL,
   );
+  const [modalOpen, setModalOpen] = useState(false);
   const activeTokens = useMemo(
     () => tokens.filter((token) => !token.revokedAt),
     [tokens],
@@ -36,7 +34,7 @@ export function AiAccessTokenPanel({
 
   return (
     <section className="min-w-0 overflow-hidden rounded-xl border border-line bg-surface p-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-center gap-2">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-sage-soft text-sage">
             <KeyRound size={17} aria-hidden />
@@ -48,9 +46,19 @@ export function AiAccessTokenPanel({
             </p>
           </div>
         </div>
-        <span className="rounded-md bg-sage-wash px-2 py-1 font-mono text-[10px] font-bold text-sage">
-          {activeTokens.length}
-        </span>
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="rounded-md bg-sage-wash px-2 py-1 font-mono text-[10px] font-bold text-sage">
+            {activeTokens.length}
+          </span>
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-line bg-white px-3 text-[11px] font-bold text-ink-2 transition-colors hover:bg-line-2"
+          >
+            <HelpCircle size={14} aria-hidden />
+            仕組み
+          </button>
+        </div>
       </div>
 
       {loadError ? (
@@ -60,11 +68,11 @@ export function AiAccessTokenPanel({
       ) : (
         <form action={createAction} className="mb-4 grid min-w-0 gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
           <label className="min-w-0">
-            <span className="sr-only">トークン名</span>
+            <span className="sr-only">トークン名（任意）</span>
             <input
               name="name"
               defaultValue={createState.values?.name ?? ""}
-              placeholder="Claude Desktop"
+              placeholder="名前なしでも作成できます"
               className="h-10 w-full rounded-lg border border-line bg-white px-3 text-[12px] font-semibold outline-none transition-colors focus:border-sage"
               maxLength={80}
             />
@@ -92,6 +100,8 @@ export function AiAccessTokenPanel({
           tokens.map((token) => <TokenRow key={token.id} token={token} />)
         )}
       </div>
+
+      {modalOpen && <TokenHelpModal onClose={() => setModalOpen(false)} />}
     </section>
   );
 }
@@ -133,10 +143,18 @@ function IssuedToken({ token, name }: { token: string; name?: string }) {
 
   return (
     <div className="mb-3 min-w-0 overflow-hidden rounded-lg border border-sage/25 bg-sage-wash p-3">
-      <div className="mb-2 flex min-w-0 flex-wrap items-center justify-between gap-2">
-        <span className="min-w-0 truncate text-[11px] font-extrabold text-sage">
-          {name ?? "作成済み"}
-        </span>
+      <div className="mb-2 flex min-w-0 flex-wrap items-start justify-between gap-2">
+        <div className="flex min-w-0 items-start gap-2">
+          <ShieldCheck className="mt-0.5 shrink-0 text-sage" size={16} aria-hidden />
+          <div className="min-w-0">
+            <span className="block min-w-0 truncate text-[11px] font-extrabold text-sage">
+              {name ?? "作成済み"}
+            </span>
+            <p className="mt-1 text-[10px] font-bold text-ink-3">
+              この値は今だけ表示されます。
+            </p>
+          </div>
+        </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <CopyButton text={token} label="コピーして隠す" onCopied={hideSoon} />
           <button
@@ -152,42 +170,6 @@ function IssuedToken({ token, name }: { token: string; name?: string }) {
       <code className="block w-full max-w-full overflow-x-auto whitespace-nowrap rounded-md bg-white px-3 py-2 font-mono text-[11px] font-bold text-ink">
         {token}
       </code>
-      <p className="mt-2 text-[10px] font-bold text-ink-3">
-        この値は今だけ表示されます。
-      </p>
-      <div className="mt-3 grid min-w-0 gap-2">
-        {buildMCPSnippets(token).map((snippet) => (
-          <ConfigSnippet key={snippet.label} {...snippet} onCopied={hideSoon} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ConfigSnippet({
-  label,
-  text,
-  kind,
-  onCopied,
-}: {
-  label: string;
-  text: string;
-  kind: "cli" | "json";
-  onCopied?: () => void;
-}) {
-  const Icon = kind === "json" ? FileJson2 : Terminal;
-  return (
-    <div className="min-w-0 max-w-full overflow-hidden rounded-md border border-sage/20 bg-white">
-      <div className="flex min-w-0 items-center justify-between gap-2 border-b border-line px-2.5 py-2">
-        <span className="inline-flex min-w-0 items-center gap-1.5 text-[10px] font-extrabold text-ink-2">
-          <Icon className="shrink-0" size={12} aria-hidden />
-          <span className="truncate">{label}</span>
-        </span>
-        <CopyButton text={text} label="設定をコピー" onCopied={onCopied} />
-      </div>
-      <pre className="block max-h-32 w-full max-w-full overflow-auto px-2.5 py-2 font-mono text-[10px] font-semibold leading-relaxed text-ink">
-        {text}
-      </pre>
     </div>
   );
 }
@@ -219,38 +201,56 @@ function CopyButton({
   );
 }
 
-function buildMCPSnippets(token: string) {
-  return [
-    {
-      label: "Codex CLI",
-      kind: "cli" as const,
-      text: `codex mcp add entre --env ENTRE_API_BASE_URL=${API_BASE_URL} --env ENTRE_API_TOKEN=${token} -- ${MCP_SERVER_PATH_PLACEHOLDER}`,
-    },
-    {
-      label: "Claude Code",
-      kind: "cli" as const,
-      text: `claude mcp add --transport stdio --scope user entre --env ENTRE_API_BASE_URL=${API_BASE_URL} --env ENTRE_API_TOKEN=${token} -- ${MCP_SERVER_PATH_PLACEHOLDER}`,
-    },
-    {
-      label: "Claude Desktop JSON",
-      kind: "json" as const,
-      text: JSON.stringify(
-        {
-          mcpServers: {
-            entre: {
-              command: MCP_SERVER_PATH_PLACEHOLDER,
-              env: {
-                ENTRE_API_BASE_URL: API_BASE_URL,
-                ENTRE_API_TOKEN: token,
-              },
-            },
-          },
-        },
-        null,
-        2,
-      ),
-    },
-  ];
+function TokenHelpModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-ink/40 px-4 py-6 backdrop-blur-sm" role="presentation">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ai-token-help-title"
+        className="max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-xl border border-line bg-surface shadow-2xl"
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
+          <div>
+            <h3 id="ai-token-help-title" className="text-[15px] font-extrabold">
+              AI連携トークンについて
+            </h3>
+            <p className="mt-1 text-[11px] text-ink-3">設定コマンドではなく、tokenの扱いだけをここで確認できます。</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-line text-ink-2 transition hover:bg-line-2"
+            aria-label="閉じる"
+          >
+            <X size={15} aria-hidden />
+          </button>
+        </div>
+        <div className="space-y-4 px-5 py-4 text-[12px] leading-6 text-ink-2">
+          <section>
+            <h4 className="mb-1 text-[12px] font-extrabold text-ink">何に使う？</h4>
+            <p>CodexなどのMCPクライアントからEntré APIへ接続するための鍵です。</p>
+          </section>
+          <section>
+            <h4 className="mb-1 text-[12px] font-extrabold text-ink">保存されるもの</h4>
+            <p>サーバーにはtoken全文ではなくhashだけを保存します。全文は発行直後の画面で一度だけ確認できます。</p>
+          </section>
+          <section>
+            <h4 className="mb-1 text-[12px] font-extrabold text-ink">設定するとき</h4>
+            <p>
+              MCP wrapper側の環境変数に <code className="rounded bg-line-2 px-1 py-0.5">ENTRE_API_TOKEN</code>{" "}
+              として貼り付けます。base URL は <code className="rounded bg-line-2 px-1 py-0.5">ENTRE_API_BASE_URL</code>{" "}
+              に設定します。
+            </p>
+          </section>
+          <section>
+            <h4 className="mb-1 text-[12px] font-extrabold text-ink">失くした・漏れたとき</h4>
+            <p>一覧から失効して、新しいtokenを発行してください。失効済みtokenではAPIに接続できません。</p>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function TokenRow({ token }: { token: AiAccessTokenResponse }) {

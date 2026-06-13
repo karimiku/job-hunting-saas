@@ -27,7 +27,8 @@ func setupAiAccessTokenHandler() (*AiAccessTokenHandler, *inmemory.AIAccessToken
 func TestCreateAiAccessToken_ReturnsRawTokenOnce(t *testing.T) {
 	h, _ := setupAiAccessTokenHandler()
 	userID := entity.NewUserID()
-	body, _ := json.Marshal(openapi.CreateAiAccessTokenRequest{Name: "Claude Desktop"})
+	tokenName := "Claude Desktop"
+	body, _ := json.Marshal(openapi.CreateAiAccessTokenRequest{Name: &tokenName})
 
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
 	req = req.WithContext(middleware.SetUserID(req.Context(), userID))
@@ -46,6 +47,27 @@ func TestCreateAiAccessToken_ReturnsRawTokenOnce(t *testing.T) {
 	}
 	if resp.AccessToken.TokenPrefix == "" {
 		t.Fatal("TokenPrefix is empty")
+	}
+}
+
+func TestCreateAiAccessToken_AllowsEmptyBody(t *testing.T) {
+	h, _ := setupAiAccessTokenHandler()
+	userID := entity.NewUserID()
+
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req = req.WithContext(middleware.SetUserID(req.Context(), userID))
+	w := httptest.NewRecorder()
+	h.CreateAiAccessToken(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("status = %d, body = %s", w.Code, w.Body.String())
+	}
+	var resp openapi.CreateAiAccessTokenResponse
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if resp.AccessToken.Name != "AI連携トークン" {
+		t.Fatalf("Name = %q, want default", resp.AccessToken.Name)
 	}
 }
 
@@ -101,7 +123,8 @@ func TestAiAccessTokenManagement_RejectsBearerAuth(t *testing.T) {
 		middleware.SetUserID(context.Background(), userID),
 		middleware.AuthMethodBearer,
 	)
-	body, _ := json.Marshal(openapi.CreateAiAccessTokenRequest{Name: "Should be denied"})
+	tokenName := "Should be denied"
+	body, _ := json.Marshal(openapi.CreateAiAccessTokenRequest{Name: &tokenName})
 
 	createReq := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body)).WithContext(ctx)
 	createW := httptest.NewRecorder()

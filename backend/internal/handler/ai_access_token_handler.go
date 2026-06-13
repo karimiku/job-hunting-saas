@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -43,7 +44,7 @@ func (h *AiAccessTokenHandler) CreateAiAccessToken(w http.ResponseWriter, r *htt
 	r.Body = http.MaxBytesReader(w, r.Body, maxAiAccessTokenBodyBytes)
 
 	var req openapi.CreateAiAccessTokenRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil && !errors.Is(err, io.EOF) {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
 			writeJSON(w, http.StatusRequestEntityTooLarge, openapi.ErrorResponse{Message: "request body too large"})
@@ -55,7 +56,7 @@ func (h *AiAccessTokenHandler) CreateAiAccessToken(w http.ResponseWriter, r *htt
 
 	out, err := h.createUseCase.Execute(r.Context(), aiaccesstokenuc.CreateInput{
 		UserID: middleware.GetUserID(r.Context()),
-		Name:   req.Name,
+		Name:   stringValue(req.Name),
 	})
 	if err != nil {
 		writeError(w, err)
@@ -65,6 +66,13 @@ func (h *AiAccessTokenHandler) CreateAiAccessToken(w http.ResponseWriter, r *htt
 		Token:       out.RawToken,
 		AccessToken: toAiAccessTokenResponse(out.Token),
 	})
+}
+
+func stringValue(v *string) string {
+	if v == nil {
+		return ""
+	}
+	return *v
 }
 
 // ListAiAccessTokens は GET /api/v1/ai/tokens のハンドラ。

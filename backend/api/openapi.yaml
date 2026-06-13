@@ -979,8 +979,6 @@ components:
         name:
           type: string
           maxLength: 80
-      required:
-        - name
 
     AiAccessTokenResponse:
       type: object

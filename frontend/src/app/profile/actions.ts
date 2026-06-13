@@ -32,9 +32,6 @@ export async function createAiAccessTokenAction(
   formData: FormData,
 ): Promise<CreateAiAccessTokenState> {
   const name = readField(formData, "name").trim();
-  if (!name) {
-    return { error: "名前は必須です", values: { name } };
-  }
 
   try {
     const created = await serverFetch<CreateAiAccessTokenResponse>(
