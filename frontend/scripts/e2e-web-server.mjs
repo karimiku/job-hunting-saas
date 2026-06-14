@@ -4,6 +4,8 @@ import { spawn } from "node:child_process";
 const mockApiPort = process.env.PLAYWRIGHT_MOCK_API_PORT ?? "18080";
 const frontendPort = process.env.PLAYWRIGHT_PORT ?? process.env.PORT ?? "3100";
 const mockApiBase = `http://127.0.0.1:${mockApiPort}`;
+const frontendBase = `http://127.0.0.1:${frontendPort}`;
+const defaultLoginRedirect = `${frontendBase}/dashboard`;
 const user = {
   id: "e2e-user",
   email: "e2e@example.com",
@@ -29,6 +31,19 @@ const json = (res, status, body) => {
 };
 
 const isAuthed = (req) => /\be2e-auth=1\b/.test(req.headers.cookie ?? "");
+
+const safeLoginRedirect = (rawRedirect) => {
+  if (!rawRedirect) return defaultLoginRedirect;
+  try {
+    const target = new URL(rawRedirect, frontendBase);
+    if (target.origin === frontendBase) {
+      return target.toString();
+    }
+  } catch {
+    // Fall through to the local default.
+  }
+  return defaultLoginRedirect;
+};
 
 const requireAuth = (req, res) => {
   if (isAuthed(req)) return true;
@@ -85,7 +100,7 @@ const mockApi = http.createServer((req, res) => {
   }
 
   if (url.pathname === "/e2e/login") {
-    const redirectTo = url.searchParams.get("redirect") ?? "http://localhost:3000/dashboard";
+    const redirectTo = safeLoginRedirect(url.searchParams.get("redirect"));
     res.writeHead(302, {
       location: redirectTo,
       "set-cookie": "e2e-auth=1; Path=/; SameSite=Lax",

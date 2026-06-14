@@ -70,9 +70,9 @@ func NewSessionCreator(client *auth.Client) *SessionCreator {
 	return &SessionCreator{client: client}
 }
 
-// VerifyIDToken は ID Token を検証し、必要なクレームだけを DTO に詰めて返す。
+// VerifyIDToken は ID Token を失効状態込みで検証し、必要なクレームだけを DTO に詰めて返す。
 func (a *SessionCreator) VerifyIDToken(ctx context.Context, idToken string) (*handler.IDTokenClaims, error) {
-	token, err := a.client.VerifyIDToken(ctx, idToken)
+	token, err := a.client.VerifyIDTokenAndCheckRevoked(ctx, idToken)
 	if err != nil {
 		return nil, err
 	}
@@ -101,9 +101,9 @@ func NewSessionVerifier(client *auth.Client) *SessionVerifier {
 	return &SessionVerifier{client: client}
 }
 
-// VerifySessionCookie は Session Cookie を検証し、必要なクレームだけを DTO に詰めて返す。
+// VerifySessionCookie は Session Cookie を失効状態込みで検証し、必要なクレームだけを DTO に詰めて返す。
 func (a *SessionVerifier) VerifySessionCookie(ctx context.Context, sessionCookie string) (*middleware.SessionClaims, error) {
-	token, err := a.client.VerifySessionCookie(ctx, sessionCookie)
+	token, err := a.client.VerifySessionCookieAndCheckRevoked(ctx, sessionCookie)
 	if err != nil {
 		return nil, err
 	}
