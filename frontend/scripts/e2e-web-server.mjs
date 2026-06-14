@@ -132,6 +132,28 @@ const mockApi = http.createServer((req, res) => {
         return;
       }
 
+      if (url.pathname === "/api/v1/entries/with-company" && req.method === "POST") {
+        const body = await readJson(req);
+        const company = {
+          id: nextId("company"),
+          name: body.companyName,
+          memo: "",
+          createdAt: now(),
+          updatedAt: now(),
+        };
+        const entry = entryWithDefaults({
+          companyId: company.id,
+          route: body.route,
+          source: body.source,
+          sourceUrl: body.sourceUrl,
+          memo: body.memo,
+        });
+        state.companies.push(company);
+        state.entries.push(entry);
+        json(res, 201, entry);
+        return;
+      }
+
       const entryMatch = url.pathname.match(/^\/api\/v1\/entries\/([^/]+)$/);
       if (entryMatch && req.method === "GET") {
         const entry = state.entries.find((item) => item.id === entryMatch[1]);

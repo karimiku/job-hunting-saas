@@ -278,6 +278,15 @@ type CreateEntryRequest struct {
 	SourceUrl *string            `json:"sourceUrl,omitempty"`
 }
 
+// CreateEntryWithCompanyRequest defines model for CreateEntryWithCompanyRequest.
+type CreateEntryWithCompanyRequest struct {
+	CompanyName string  `json:"companyName"`
+	Memo        *string `json:"memo,omitempty"`
+	Route       string  `json:"route"`
+	Source      string  `json:"source"`
+	SourceUrl   *string `json:"sourceUrl,omitempty"`
+}
+
 // CreateEsMemoRequest defines model for CreateEsMemoRequest.
 type CreateEsMemoRequest struct {
 	Category *string             `json:"category,omitempty"`
@@ -472,6 +481,9 @@ type CreateCompanyAliasJSONRequestBody = CreateCompanyAliasRequest
 // CreateEntryJSONRequestBody defines body for CreateEntry for application/json ContentType.
 type CreateEntryJSONRequestBody = CreateEntryRequest
 
+// CreateEntryWithCompanyJSONRequestBody defines body for CreateEntryWithCompany for application/json ContentType.
+type CreateEntryWithCompanyJSONRequestBody = CreateEntryWithCompanyRequest
+
 // UpdateEntryJSONRequestBody defines body for UpdateEntry for application/json ContentType.
 type UpdateEntryJSONRequestBody = UpdateEntryRequest
 
@@ -534,6 +546,9 @@ type ServerInterface interface {
 	// エントリーを新規登録する
 	// (POST /api/v1/entries)
 	CreateEntry(w http.ResponseWriter, r *http.Request)
+	// 企業とエントリーを同時に新規登録する
+	// (POST /api/v1/entries/with-company)
+	CreateEntryWithCompany(w http.ResponseWriter, r *http.Request)
 	// エントリーを削除する
 	// (DELETE /api/v1/entries/{entryId})
 	DeleteEntry(w http.ResponseWriter, r *http.Request, entryId EntryId)
@@ -669,6 +684,12 @@ func (_ Unimplemented) ListEntries(w http.ResponseWriter, r *http.Request, param
 // エントリーを新規登録する
 // (POST /api/v1/entries)
 func (_ Unimplemented) CreateEntry(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// 企業とエントリーを同時に新規登録する
+// (POST /api/v1/entries/with-company)
+func (_ Unimplemented) CreateEntryWithCompany(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1081,6 +1102,20 @@ func (siw *ServerInterfaceWrapper) CreateEntry(w http.ResponseWriter, r *http.Re
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateEntry(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateEntryWithCompany operation middleware
+func (siw *ServerInterfaceWrapper) CreateEntryWithCompany(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateEntryWithCompany(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1602,6 +1637,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/v1/entries", wrapper.CreateEntry)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/entries/with-company", wrapper.CreateEntryWithCompany)
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v1/entries/{entryId}", wrapper.DeleteEntry)

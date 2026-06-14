@@ -13,27 +13,30 @@ import (
 
 // EntryHandler は oapi-codegen が生成した ServerInterface のEntry関連メソッドを実装する。
 type EntryHandler struct {
-	createUseCase *entryuc.Create
-	getUseCase    *entryuc.Get
-	listUseCase   *entryuc.List
-	updateUseCase *entryuc.Update
-	deleteUseCase *entryuc.Delete
+	createUseCase            *entryuc.Create
+	createWithCompanyUseCase *entryuc.CreateWithCompany
+	getUseCase               *entryuc.Get
+	listUseCase              *entryuc.List
+	updateUseCase            *entryuc.Update
+	deleteUseCase            *entryuc.Delete
 }
 
 // NewEntryHandler は EntryHandler に必要なユースケース群を DI して新しい EntryHandler を返す。
 func NewEntryHandler(
 	createUseCase *entryuc.Create,
+	createWithCompanyUseCase *entryuc.CreateWithCompany,
 	getUseCase *entryuc.Get,
 	listUseCase *entryuc.List,
 	updateUseCase *entryuc.Update,
 	deleteUseCase *entryuc.Delete,
 ) *EntryHandler {
 	return &EntryHandler{
-		createUseCase: createUseCase,
-		getUseCase:    getUseCase,
-		listUseCase:   listUseCase,
-		updateUseCase: updateUseCase,
-		deleteUseCase: deleteUseCase,
+		createUseCase:            createUseCase,
+		createWithCompanyUseCase: createWithCompanyUseCase,
+		getUseCase:               getUseCase,
+		listUseCase:              listUseCase,
+		updateUseCase:            updateUseCase,
+		deleteUseCase:            deleteUseCase,
 	}
 }
 
@@ -61,6 +64,40 @@ func (h *EntryHandler) CreateEntry(w http.ResponseWriter, r *http.Request) {
 		Source:    req.Source,
 		SourceURL: sourceURL,
 		Memo:      memo,
+	})
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, toEntryResponse(created.Entry))
+}
+
+// CreateEntryWithCompany は POST /entries/with-company の handler。
+// Company と Entry を部分作成なしで登録する。
+func (h *EntryHandler) CreateEntryWithCompany(w http.ResponseWriter, r *http.Request) {
+	var req openapi.CreateEntryWithCompanyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, openapi.ErrorResponse{Message: "invalid request body"})
+		return
+	}
+
+	memo := ""
+	if req.Memo != nil {
+		memo = *req.Memo
+	}
+	sourceURL := ""
+	if req.SourceUrl != nil {
+		sourceURL = *req.SourceUrl
+	}
+
+	created, err := h.createWithCompanyUseCase.Execute(r.Context(), entryuc.CreateWithCompanyInput{
+		UserID:      middleware.GetUserID(r.Context()),
+		CompanyName: req.CompanyName,
+		Route:       req.Route,
+		Source:      req.Source,
+		SourceURL:   sourceURL,
+		Memo:        memo,
 	})
 	if err != nil {
 		writeError(w, err)

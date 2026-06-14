@@ -64,3 +64,14 @@ func (m *mockEntryRepo) Delete(ctx context.Context, userID entity.UserID, id ent
 	}
 	return nil
 }
+
+type mockEntryWithCompanyRepo struct {
+	saveFn func(ctx context.Context, company *entity.Company, entry *entity.Entry) error
+}
+
+func (m *mockEntryWithCompanyRepo) SaveEntryWithCompany(ctx context.Context, company *entity.Company, entry *entity.Entry) error {
+	if m.saveFn != nil {
+		return m.saveFn(ctx, company, entry)
+	}
+	return nil
+}

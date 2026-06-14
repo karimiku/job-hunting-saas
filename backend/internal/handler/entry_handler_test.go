@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
+	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 	"github.com/karimiku/job-hunting-saas/internal/gen/openapi"
 	"github.com/karimiku/job-hunting-saas/internal/infra/inmemory"
@@ -24,6 +25,7 @@ func setupEntryHandler() (*EntryHandler, *inmemory.EntryRepository, *inmemory.Co
 
 	h := NewEntryHandler(
 		entryuc.NewCreate(entryRepo, companyRepo),
+		entryuc.NewCreateWithCompany(inmemory.NewEntryWithCompanyRepository(companyRepo, entryRepo)),
 		entryuc.NewGet(entryRepo),
 		entryuc.NewList(entryRepo),
 		entryuc.NewUpdate(entryRepo),
@@ -241,6 +243,89 @@ func TestCreateEntry_CompanyNotFound(t *testing.T) {
 
 	if w.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want 404", w.Code)
+	}
+}
+
+func TestCreateEntryWithCompany_Success(t *testing.T) {
+	h, entryRepo, companyRepo := setupEntryHandler()
+	userID := entity.NewUserID()
+
+	memo := "メモ"
+	sourceURL := "https://job.mynavi.jp/2027/company/123/"
+	body, _ := json.Marshal(openapi.CreateEntryWithCompanyRequest{
+		CompanyName: "新規企業",
+		Route:       "本選考",
+		Source:      "マイナビ",
+		SourceUrl:   &sourceURL,
+		Memo:        &memo,
+	})
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
+	req = req.WithContext(middleware.SetUserID(req.Context(), userID))
+	w := httptest.NewRecorder()
+
+	h.CreateEntryWithCompany(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want 201, body = %s", w.Code, w.Body.String())
+	}
+	var resp openapi.EntryResponse
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if resp.CompanyId == uuid.Nil {
+		t.Fatal("CompanyId should be set")
+	}
+	if resp.SourceUrl == nil || *resp.SourceUrl != sourceURL {
+		t.Fatalf("SourceUrl = %v, want %q", resp.SourceUrl, sourceURL)
+	}
+	if resp.Memo != memo {
+		t.Errorf("Memo = %q, want %q", resp.Memo, memo)
+	}
+
+	companies, err := companyRepo.ListByUserID(context.Background(), userID)
+	if err != nil {
+		t.Fatalf("ListByUserID companies: %v", err)
+	}
+	if len(companies) != 1 || companies[0].Name().String() != "新規企業" {
+		t.Fatalf("companies = %#v, want one 新規企業", companies)
+	}
+	entries, err := entryRepo.ListByUserID(context.Background(), userID, repository.EntryFilter{})
+	if err != nil {
+		t.Fatalf("ListByUserID entries: %v", err)
+	}
+	if len(entries) != 1 || uuid.UUID(entries[0].CompanyID()) != resp.CompanyId {
+		t.Fatalf("entries = %#v, want one linked to response company", entries)
+	}
+}
+
+func TestCreateEntryWithCompany_InvalidJSON(t *testing.T) {
+	h, _, _ := setupEntryHandler()
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader([]byte("nope")))
+	req = req.WithContext(middleware.SetUserID(req.Context(), entity.NewUserID()))
+	w := httptest.NewRecorder()
+
+	h.CreateEntryWithCompany(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400", w.Code)
+	}
+}
+
+func TestCreateEntryWithCompany_EmptyCompanyName(t *testing.T) {
+	h, _, _ := setupEntryHandler()
+	body, _ := json.Marshal(openapi.CreateEntryWithCompanyRequest{
+		CompanyName: "",
+		Route:       "本選考",
+		Source:      "リクナビ",
+	})
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
+	req = req.WithContext(middleware.SetUserID(req.Context(), entity.NewUserID()))
+	w := httptest.NewRecorder()
+
+	h.CreateEntryWithCompany(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400", w.Code)
 	}
 }
 

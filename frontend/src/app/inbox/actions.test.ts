@@ -56,10 +56,9 @@ const entryResp = {
 describe("convertInboxClipAction", () => {
   beforeEach(() => serverFetch.mockReset());
 
-  it("成功時に company と entry を作成し、その後 clip を削除して作成 Entry にリダイレクトする", async () => {
+  it("新規会社の場合は atomic endpoint で entry を作成し、その後 clip を削除して作成 Entry にリダイレクトする", async () => {
     serverFetch.mockImplementation(async (path?: string, init?: RequestInit) => {
-      if (path === "/api/v1/companies" && init?.method === "POST") return companyResp;
-      if (path === "/api/v1/entries" && init?.method === "POST") return entryResp;
+      if (path === "/api/v1/entries/with-company" && init?.method === "POST") return entryResp;
       return undefined;
     });
 
@@ -76,15 +75,14 @@ describe("convertInboxClipAction", () => {
     expect((thrown as { digest?: string } | undefined)?.digest).toContain("/entry/en1");
 
     const calls = callSignatures();
-    expect(calls).toContain("POST /api/v1/companies");
-    expect(calls).toContain("POST /api/v1/entries");
+    expect(calls).toContain("POST /api/v1/entries/with-company");
+    expect(calls).not.toContain("POST /api/v1/companies");
     expect(calls).toContain("DELETE /api/v1/inbox/clips/clip1");
   });
 
-  it("entry 作成失敗時は company をロールバックし、clip は削除しない", async () => {
+  it("新規会社の atomic 作成に失敗したら clip は削除しない", async () => {
     serverFetch.mockImplementation(async (path?: string, init?: RequestInit) => {
-      if (path === "/api/v1/companies" && init?.method === "POST") return companyResp;
-      if (path === "/api/v1/entries" && init?.method === "POST") throw new ApiError(500, "boom");
+      if (path === "/api/v1/entries/with-company" && init?.method === "POST") throw new ApiError(500, "boom");
       return undefined;
     });
 
@@ -100,8 +98,9 @@ describe("convertInboxClipAction", () => {
     expect(result?.error).toBeTruthy();
 
     const calls = callSignatures();
-    expect(calls).toContain("POST /api/v1/companies");
-    expect(calls).toContain("DELETE /api/v1/companies/co1"); // orphan ロールバック
+    expect(calls).toContain("POST /api/v1/entries/with-company");
+    expect(calls).not.toContain("POST /api/v1/companies");
+    expect(calls).not.toContain("DELETE /api/v1/companies/co1");
     expect(calls.some((c) => c.startsWith("DELETE /api/v1/inbox/clips/"))).toBe(false);
   });
 

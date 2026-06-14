@@ -45,4 +45,22 @@ export const handlers = [
       { status: 201 },
     );
   }),
+  http.post(`${API_BASE}/api/v1/entries/with-company`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, string>;
+    return HttpResponse.json(
+      {
+        id: "e-mock",
+        companyId: "c-mock",
+        route: body.route,
+        source: body.source,
+        status: "in_progress",
+        stageKind: "application",
+        stageLabel: "応募",
+        memo: body.memo ?? "",
+        createdAt: "2026-04-26T00:00:00Z",
+        updatedAt: "2026-04-26T00:00:00Z",
+      },
+      { status: 201 },
+    );
+  }),
 ];

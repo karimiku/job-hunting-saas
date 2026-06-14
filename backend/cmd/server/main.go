@@ -49,16 +49,17 @@ func run() error {
 	ctx := context.Background()
 
 	var (
-		companyRepo      repository.CompanyRepository
-		companyAliasRepo repository.CompanyAliasRepository
-		entryRepo        repository.EntryRepository
-		taskRepo         repository.TaskRepository
-		stageHistoryRepo repository.StageHistoryRepository
-		userRepo         repository.UserRepository
-		extIDRepo        repository.ExternalIdentityRepository
-		inboxClipRepo    repository.InboxClipRepository
-		esMemoRepo       repository.ESMemoRepository
-		aiTokenRepo      repository.AIAccessTokenRepository
+		companyRepo          repository.CompanyRepository
+		companyAliasRepo     repository.CompanyAliasRepository
+		entryRepo            repository.EntryRepository
+		entryWithCompanyRepo repository.EntryWithCompanyRepository
+		taskRepo             repository.TaskRepository
+		stageHistoryRepo     repository.StageHistoryRepository
+		userRepo             repository.UserRepository
+		extIDRepo            repository.ExternalIdentityRepository
+		inboxClipRepo        repository.InboxClipRepository
+		esMemoRepo           repository.ESMemoRepository
+		aiTokenRepo          repository.AIAccessTokenRepository
 	)
 
 	if dbURL := os.Getenv("DATABASE_URL"); dbURL != "" {
@@ -71,6 +72,7 @@ func run() error {
 		companyRepo = postgres.NewCompanyRepository(pool)
 		companyAliasRepo = postgres.NewCompanyAliasRepository(pool)
 		entryRepo = postgres.NewEntryRepository(pool)
+		entryWithCompanyRepo = postgres.NewEntryWithCompanyRepository(pool)
 		taskRepo = postgres.NewTaskRepository(pool)
 		stageHistoryRepo = postgres.NewStageHistoryRepository(pool)
 		userRepo = postgres.NewUserRepository(pool)
@@ -94,6 +96,7 @@ func run() error {
 		companyRepo = inMemoryCompanyRepo
 		companyAliasRepo = inmemory.NewCompanyAliasRepository()
 		entryRepo = inMemoryEntryRepo
+		entryWithCompanyRepo = inmemory.NewEntryWithCompanyRepository(inMemoryCompanyRepo, inMemoryEntryRepo)
 		taskRepo = inmemory.NewTaskRepository(inMemoryEntryRepo)
 		stageHistoryRepo = inmemory.NewStageHistoryRepository()
 		inboxClipRepo = inmemory.NewInboxClipRepository()
@@ -158,6 +161,7 @@ func run() error {
 
 	entryHandler := handler.NewEntryHandler(
 		entryuc.NewCreate(entryRepo, companyRepo),
+		entryuc.NewCreateWithCompany(entryWithCompanyRepo),
 		entryuc.NewGet(entryRepo),
 		entryuc.NewList(entryRepo),
 		entryuc.NewUpdate(entryRepo),
