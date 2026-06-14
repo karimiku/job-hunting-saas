@@ -1,3 +1,4 @@
+// Package service は Entity / Value Object 単体では表現しづらいドメインルールを提供する。
 package service
 
 import (
