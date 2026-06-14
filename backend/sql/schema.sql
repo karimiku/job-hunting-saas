@@ -83,7 +83,7 @@ CREATE TABLE company_aliases (
     company_id UUID        NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
     alias      TEXT        NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (user_id, company_id, alias)
+    CONSTRAINT company_aliases_user_id_company_id_alias_key UNIQUE (user_id, company_id, alias)
 );
 
 CREATE TABLE external_identities (
@@ -111,7 +111,7 @@ CREATE TABLE inbox_clips (
     source      TEXT        NOT NULL,
     guess       TEXT        NOT NULL DEFAULT '',
     captured_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (user_id, url)
+    CONSTRAINT inbox_clips_user_id_url_key UNIQUE (user_id, url)
 );
 
 CREATE TABLE es_memos (
