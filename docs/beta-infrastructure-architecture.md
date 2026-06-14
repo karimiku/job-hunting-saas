@@ -187,9 +187,9 @@ chrome-extension://<store-extension-id>
 
 - `COOKIE_DOMAIN=.entre.kamiriku.com` をBackendに追加する
 - `COOKIE_SECURE=true` を本番で有効化する
-- `COOKIE_SAME_SITE=strict` を本番で設定する
+- Webのみなら `COOKIE_SAME_SITE=strict`、Chrome拡張連携を有効にする場合は `COOKIE_SAME_SITE=none` + Origin/Referer CSRF検証で運用する
 - CORS allowlistを環境変数で管理する
-- 状態変更系APIでOrigin検証またはCSRF対策を入れる
+- 状態変更系APIのOrigin/Referer CSRF検証を維持し、Web/拡張originのallowlistを同期する
 - Chrome Extensionの `host_permissions` に `https://api.entre.kamiriku.com/*` を追加する
 - Chrome ExtensionのAPI送信はpopup/background service worker経由に限定する
 
@@ -614,7 +614,7 @@ Backend:
 
 - `COOKIE_DOMAIN` を設定可能にする
 - CORS allowlistを環境変数化する
-- Origin検証またはCSRF対策を追加する
+- Origin/Referer CSRF検証を維持する
 - pgxpoolの `MaxConns` を環境変数化する
 - 構造化ログとrequest_idを入れる
 - Firebase Admin SDKの本番設定を確認する
@@ -641,7 +641,7 @@ CI/CD:
 
 Chrome Extension:
 
-- production manifestからlocalhost権限を除外
+- production manifestからlocalhost権限が除外されることを確認
 - production API/Web URLでbuild
 - Chrome Web Store developer登録
 - PrivateまたはUnlisted配布
