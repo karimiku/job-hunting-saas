@@ -597,6 +597,9 @@ type ServerInterface interface {
 	// タスクを部分更新する
 	// (PATCH /api/v1/tasks/{taskId})
 	UpdateTask(w http.ResponseWriter, r *http.Request, taskId TaskId)
+	// 退会して自分の全データを削除する
+	// (DELETE /me)
+	DeleteMe(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -786,6 +789,12 @@ func (_ Unimplemented) GetTask(w http.ResponseWriter, r *http.Request, taskId Ta
 // タスクを部分更新する
 // (PATCH /api/v1/tasks/{taskId})
 func (_ Unimplemented) UpdateTask(w http.ResponseWriter, r *http.Request, taskId TaskId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// 退会して自分の全データを削除する
+// (DELETE /me)
+func (_ Unimplemented) DeleteMe(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1483,6 +1492,20 @@ func (siw *ServerInterfaceWrapper) UpdateTask(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteMe operation middleware
+func (siw *ServerInterfaceWrapper) DeleteMe(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -1688,6 +1711,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/v1/tasks/{taskId}", wrapper.UpdateTask)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/me", wrapper.DeleteMe)
 	})
 
 	return r

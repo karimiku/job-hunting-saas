@@ -198,24 +198,32 @@ func (h *AuthHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 
 // DeleteSession は Session Cookie を失効させる。認証不要（未ログインでも叩ける）。
 func (h *AuthHandler) DeleteSession(w http.ResponseWriter, _ *http.Request) {
+	clearSessionCookie(w, h.cfg)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func clearSessionCookie(w http.ResponseWriter, cfg AuthConfig) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    "",
 		Path:     "/",
-		Domain:   h.cfg.CookieDomain,
+		Domain:   cfg.CookieDomain,
 		MaxAge:   -1,
 		HttpOnly: true,
-		Secure:   h.cfg.CookieSecure,
-		SameSite: h.cookieSameSite(),
+		Secure:   cfg.CookieSecure,
+		SameSite: cookieSameSite(cfg),
 	})
-	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *AuthHandler) cookieSameSite() http.SameSite {
-	if h.cfg.CookieSameSite == 0 {
+	return cookieSameSite(h.cfg)
+}
+
+func cookieSameSite(cfg AuthConfig) http.SameSite {
+	if cfg.CookieSameSite == 0 {
 		return http.SameSiteLaxMode
 	}
-	return h.cfg.CookieSameSite
+	return cfg.CookieSameSite
 }
 
 // Me は context に載った userID で User を引いて返す。

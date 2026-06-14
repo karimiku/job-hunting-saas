@@ -9,6 +9,26 @@ servers:
     description: Local development
 
 paths:
+  /me:
+    delete:
+      operationId: deleteMe
+      summary: 退会して自分の全データを削除する
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/v1/companies:
     post:
       operationId: createCompany

@@ -16,6 +16,7 @@ type mockUserRepo struct {
 	findByIDFn    func(ctx context.Context, id entity.UserID) (*entity.User, error)
 	findByEmailFn func(ctx context.Context, email value.Email) (*entity.User, error)
 	saveFn        func(ctx context.Context, user *entity.User) error
+	deleteFn      func(ctx context.Context, id entity.UserID) error
 }
 
 func (m *mockUserRepo) Save(ctx context.Context, user *entity.User) error {
@@ -39,7 +40,10 @@ func (m *mockUserRepo) FindByEmail(ctx context.Context, email value.Email) (*ent
 	return nil, repository.ErrNotFound
 }
 
-func (m *mockUserRepo) Delete(_ context.Context, _ entity.UserID) error {
+func (m *mockUserRepo) Delete(ctx context.Context, id entity.UserID) error {
+	if m.deleteFn != nil {
+		return m.deleteFn(ctx, id)
+	}
 	return nil
 }
 

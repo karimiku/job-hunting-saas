@@ -7,34 +7,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 	"github.com/karimiku/job-hunting-saas/internal/infra/postgres"
 )
-
-func insertCommittedTestUser(t *testing.T, pool *pgxpool.Pool) entity.UserID {
-	t.Helper()
-	ctx := context.Background()
-	userID := entity.NewUserID()
-
-	_, err := pool.Exec(ctx,
-		`INSERT INTO users (id, email, name, created_at, updated_at)
-		 VALUES ($1, $2, $3, now(), now())`,
-		uuid.UUID(userID),
-		uuid.New().String()+"@test.example.com",
-		"テストユーザー",
-	)
-	if err != nil {
-		t.Fatalf("failed to insert committed test user: %v", err)
-	}
-	t.Cleanup(func() {
-		_, _ = pool.Exec(context.Background(), `DELETE FROM users WHERE id = $1`, uuid.UUID(userID))
-	})
-
-	return userID
-}
 
 func TestEntryWithCompanyRepository_SaveEntryWithCompany_Success(t *testing.T) {
 	pool := setupTestDB(t)
