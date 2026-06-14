@@ -24,6 +24,16 @@
         };
         node = pkgs.nodejs_24;
         pnpm = pkgs.pnpm_10;
+        go_1_26_4 = pkgs.go_1_26.overrideAttrs (finalAttrs: _oldAttrs: {
+          version = "1.26.4";
+          src = pkgs.fetchurl {
+            url = "https://go.dev/dl/go${finalAttrs.version}.src.tar.gz";
+            hash = "sha256-T2aKMvv8ETLmqIH7lowvHa2mMUkqM5IRc1+7JVpCYC0=";
+          };
+        });
+        buildGo1264Module = pkgs.buildGoModule.override {
+          go = go_1_26_4;
+        };
         oapi-codegen = pkgs.buildGoModule rec {
           pname = "oapi-codegen";
           version = "2.6.0";
@@ -39,7 +49,7 @@
           ldflags = [ "-X main.noVCSVersionOverride=v${version}" ];
         };
         projectTools = [
-          pkgs.go_1_26
+          go_1_26_4
           pkgs.golangci-lint
           pkgs.govulncheck
           pkgs.sqlc
@@ -48,7 +58,7 @@
           pnpm
           pkgs.gnumake
         ];
-        backend = pkgs.buildGoModule {
+        backend = buildGo1264Module {
           pname = "job-hunting-saas-backend";
           version = "0.1.0";
           src = ./backend;
