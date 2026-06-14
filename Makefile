@@ -81,8 +81,8 @@ build-mcp-server: ## MCPクライアント設定用の単一バイナリを back
 # ============================================================
 lint: lint-be lint-fe ## 両方 lint
 
-lint-be: ## go vet
-	cd backend && go vet ./...
+lint-be: ## golangci-lint
+	cd backend && golangci-lint run
 
 lint-fe: ## pnpm lint (ESLint)
 	cd frontend && pnpm lint
@@ -108,8 +108,8 @@ gen-sql: ## sql/queries/*.sql → sqlc
 # ============================================================
 install: install-fe install-be ## 依存インストール
 
-install-fe: ## pnpm install
-	cd frontend && pnpm install
+install-fe: ## pnpm install --frozen-lockfile
+	cd frontend && pnpm install --frozen-lockfile
 
 install-be: ## go mod download
 	cd backend && go mod download

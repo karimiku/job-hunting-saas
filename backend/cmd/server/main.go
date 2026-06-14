@@ -265,6 +265,7 @@ func run() error {
 		IdleTimeout:       60 * time.Second,
 	}
 
+	// #nosec G706 -- port is deployment configuration, not user-controlled request data.
 	log.Printf("server listening on :%s", port)
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("listen: %w", err)

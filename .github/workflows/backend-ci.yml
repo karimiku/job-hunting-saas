@@ -4,11 +4,17 @@ on:
   pull_request:
     paths:
       - backend/**
+      - flake.nix
+      - flake.lock
+      - Makefile
       - .github/workflows/backend-ci.yml
   push:
     branches: [main]
     paths:
       - backend/**
+      - flake.nix
+      - flake.lock
+      - Makefile
       - .github/workflows/backend-ci.yml
 
 permissions:
@@ -18,39 +24,26 @@ concurrency:
   group: backend-ci-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  GO_VERSION: "1.26.4"
-  OAPI_CODEGEN_VERSION: "v2.6.0"
-  SQLC_VERSION: "v1.31.1"
-
 jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: backend/go.sum
-      - uses: golangci/golangci-lint-action@82606bf257cbaff209d206a39f5134f0cfbfd2ee # v9.2.1
-        with:
-          version: v2.1.6
-          install-mode: goinstall
-          working-directory: backend
+      - uses: DeterminateSystems/nix-installer-action@1d87d45818068401a10cf16bdc5f00b24994a83f # main
+      - uses: DeterminateSystems/magic-nix-cache-action@14645543c3b214bedad3b9b49775cb042f4c1fc7 # main
+      - name: Run lint
+        run: nix develop -c make lint-be
 
   test:
     name: Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: backend/go.sum
+      - uses: DeterminateSystems/nix-installer-action@1d87d45818068401a10cf16bdc5f00b24994a83f # main
+      - uses: DeterminateSystems/magic-nix-cache-action@14645543c3b214bedad3b9b49775cb042f4c1fc7 # main
       - name: Run tests
-        working-directory: backend
-        run: go test -race -coverprofile=coverage.out ./...
+        run: nix develop -c sh -c 'cd backend && go test -race -coverprofile=coverage.out ./...'
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
@@ -63,35 +56,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: backend/go.sum
+      - uses: DeterminateSystems/nix-installer-action@1d87d45818068401a10cf16bdc5f00b24994a83f # main
+      - uses: DeterminateSystems/magic-nix-cache-action@14645543c3b214bedad3b9b49775cb042f4c1fc7 # main
       - name: Build
-        working-directory: backend
-        run: go build ./...
+        run: nix develop -c make build-be
+      - name: Build Nix package
+        run: nix build .#backend
 
   gen-drift:
     name: Generated Code Drift
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: backend/go.sum
-      - name: Install codegen tools
-        env:
-          GOTOOLCHAIN: auto
-        run: |
-          go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@${OAPI_CODEGEN_VERSION}
-          go install github.com/sqlc-dev/sqlc/cmd/sqlc@${SQLC_VERSION}
-      - name: Regenerate (oapi-codegen)
-        working-directory: backend/api
-        run: oapi-codegen -config oapi-codegen.yaml openapi.yaml
-      - name: Regenerate (sqlc)
-        working-directory: backend
-        run: sqlc generate
+      - uses: DeterminateSystems/nix-installer-action@1d87d45818068401a10cf16bdc5f00b24994a83f # main
+      - uses: DeterminateSystems/magic-nix-cache-action@14645543c3b214bedad3b9b49775cb042f4c1fc7 # main
+      - name: Regenerate
+        run: nix develop -c make gen
       - name: Check drift
         run: |
           if ! git -C backend diff --exit-code; then
@@ -104,21 +84,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: backend/go.sum
-      # Install must always succeed; an install failure is a real CI failure, not a vulnerability.
-      - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@v1.3.0
+      - uses: DeterminateSystems/nix-installer-action@1d87d45818068401a10cf16bdc5f00b24994a83f # main
+      - uses: DeterminateSystems/magic-nix-cache-action@14645543c3b214bedad3b9b49775cb042f4c1fc7 # main
       # In -json mode govulncheck exits 0 on a successful run regardless of whether
       # vulnerabilities were found, and exits non-zero only on an execution error
       # (compile error, bad flags, etc.). This lets us treat those two cases separately:
       # an execution error always fails the job; vulnerability findings are reported
       # afterwards and are only non-blocking on pull_request.
       - name: Run govulncheck
-        working-directory: backend
-        run: govulncheck -json ./... > govulncheck.json
+        run: nix develop -c sh -c 'cd backend && govulncheck -json ./... > govulncheck.json'
       - name: Evaluate govulncheck findings
         working-directory: backend
         env:

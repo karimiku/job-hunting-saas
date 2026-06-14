@@ -176,6 +176,7 @@ func (h *AuthHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// #nosec G124 -- Secure is runtime-configured: true in HTTPS deployments, false for local HTTP.
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    sessionCookie,
@@ -203,6 +204,7 @@ func (h *AuthHandler) DeleteSession(w http.ResponseWriter, _ *http.Request) {
 }
 
 func clearSessionCookie(w http.ResponseWriter, cfg AuthConfig) {
+	// #nosec G124 -- Secure is runtime-configured to match the cookie that was originally issued.
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    "",
