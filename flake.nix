@@ -23,9 +23,7 @@
           inherit system;
         };
         node = pkgs.nodejs_24;
-        pnpm = pkgs.writeShellScriptBin "pnpm" ''
-          exec ${node}/bin/corepack pnpm "$@"
-        '';
+        pnpm = pkgs.pnpm_10;
         oapi-codegen = pkgs.buildGoModule rec {
           pname = "oapi-codegen";
           version = "2.6.0";
@@ -37,16 +35,26 @@
           };
           vendorHash = "sha256-vgSMGi0mnGX/Hwxu/XalIXLCbm/L4CwQfIf7DEJVk1E=";
           subPackages = [ "cmd/oapi-codegen" ];
+          doCheck = false;
           ldflags = [ "-X main.noVCSVersionOverride=v${version}" ];
         };
         projectTools = [
           pkgs.go_1_26
+          pkgs.golangci-lint
+          pkgs.govulncheck
           pkgs.sqlc
           oapi-codegen
           node
           pnpm
           pkgs.gnumake
         ];
+        backend = pkgs.buildGoModule {
+          pname = "job-hunting-saas-backend";
+          version = "0.1.0";
+          src = ./backend;
+          vendorHash = "sha256-TXyaqtjGzTC9QBbp6FOd45avb26BB48MU6SETryFMEU=";
+          subPackages = [ "cmd/server" ];
+        };
         mkApp =
           name: target:
           {
@@ -64,6 +72,11 @@
           };
       in
       {
+        packages = {
+          backend = backend;
+          default = backend;
+        };
+
         apps = {
           test = mkApp "job-hunting-saas-test" "test";
           build = mkApp "job-hunting-saas-build" "build";
@@ -73,7 +86,8 @@
         devShells.default = pkgs.mkShell {
           packages = projectTools ++ [
             # Keep runtime/tool versions aligned with project declarations:
-            # Go follows backend/go.mod, and pnpm follows packageManager via Corepack.
+            # Go follows backend/go.mod; pnpm stays on v10 and resolves the
+            # packageManager-pinned version inside frontend.
             pkgs.gopls
             pkgs.gotools
 
@@ -92,7 +106,7 @@
             echo "job-hunting-saas dev shell"
             echo "Go:   $(go version)"
             echo "Node: $(node --version)"
-            echo "pnpm: managed by Corepack from package.json"
+            echo "pnpm: $(pnpm --version)"
           '';
         };
       }
