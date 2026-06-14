@@ -295,7 +295,7 @@ const frontend = spawn("pnpm", ["dev"], {
   env: {
     ...process.env,
     PORT: frontendPort,
-    NEXT_PUBLIC_API_BASE_URL: mockApiBase,
+    BACKEND_API_BASE_URL: mockApiBase,
     PLAYWRIGHT_E2E_AUTH: "true",
   },
 });

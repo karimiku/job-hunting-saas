@@ -97,8 +97,30 @@ describe("getNavCountsServer", () => {
       if (path === "/api/v1/entries") {
         return {
           entries: [
-            { id: "e1", companyId: "c1", status: "open" },
-            { id: "e2", companyId: "c2", status: "open" },
+            {
+              id: "e1",
+              companyId: "c1",
+              route: "",
+              source: "",
+              status: "open",
+              stageKind: "pre_entry",
+              stageLabel: "",
+              memo: "",
+              createdAt: "x",
+              updatedAt: "x",
+            },
+            {
+              id: "e2",
+              companyId: "c2",
+              route: "",
+              source: "",
+              status: "open",
+              stageKind: "pre_entry",
+              stageLabel: "",
+              memo: "",
+              createdAt: "x",
+              updatedAt: "x",
+            },
           ],
         };
       }
@@ -132,14 +154,45 @@ describe("buildNavCounts", () => {
   it("取得済み entries, tasks, clips からサイドバー件数を作る", () => {
     const navCounts = buildNavCounts(
       [
-        { id: "e1", companyId: "c1", status: "open" },
-        { id: "e2", companyId: "c2", status: "open" },
+        {
+          id: "e1",
+          companyId: "c1",
+          route: "",
+          source: "",
+          status: "open",
+          stageKind: "pre_entry",
+          stageLabel: "",
+          memo: "",
+          createdAt: "x",
+          updatedAt: "x",
+        },
+        {
+          id: "e2",
+          companyId: "c2",
+          route: "",
+          source: "",
+          status: "open",
+          stageKind: "pre_entry",
+          stageLabel: "",
+          memo: "",
+          createdAt: "x",
+          updatedAt: "x",
+        },
       ],
       [
         { id: "t1", entryId: "e1", title: "ES提出", type: "deadline", status: "todo", dueDate: null, memo: "", createdAt: "x", updatedAt: "x" },
         { id: "t2", entryId: "e2", title: "SPI受験", type: "schedule", status: "done", dueDate: null, memo: "", createdAt: "x", updatedAt: "x" },
       ],
-      [{ id: "clip1" }],
+      [
+        {
+          id: "clip1",
+          url: "https://example.com",
+          title: "clip",
+          source: "web",
+          guess: "",
+          capturedAt: "x",
+        },
+      ],
     );
 
     expect(navCounts).toEqual({
