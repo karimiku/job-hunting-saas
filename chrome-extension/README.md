@@ -16,12 +16,16 @@ pnpm build    # 本番ビルド → dist/
 
 | 変数 | 用途 | デフォルト |
 | --- | --- | --- |
-| `VITE_API_BASE_URL` | Entré バックエンド API のベース URL | `http://localhost:8080` |
-| `VITE_WEB_BASE_URL` | Web アプリ（未ログイン時に開くログインページ）のベース URL | `http://localhost:3000` |
+| `VITE_API_BASE_URL` | Entré バックエンド API のベース URL | dev: `http://localhost:8080` / build: `https://api.entre.kamiriku.com` |
+| `VITE_WEB_BASE_URL` | Web アプリ（未ログイン時に開くログインページ）のベース URL | dev: `http://localhost:3000` / build: `https://entre.kamiriku.com` |
+| `VITE_EXTENSION_ALLOW_LOCALHOST` | `true` のときだけ build 後 manifest に localhost 権限を残す | unset |
 
 ```bash
 # 例: 本番向けにビルド
 VITE_API_BASE_URL=https://api.example.com VITE_WEB_BASE_URL=https://app.example.com pnpm build
+
+# 例: localhost API で手動検証する build
+VITE_EXTENSION_ALLOW_LOCALHOST=true pnpm build
 ```
 
 ## ロード手順 (Chrome / Chromium 系)
@@ -73,8 +77,8 @@ src/
 
 popup から `credentials: "include"` で Entré API を叩く。
 事前に Entré 本体 (`localhost:3000`) でログイン済みであることが前提。
-Session Cookie の `SameSite` 属性は現状 `Lax` のため、host_permissions に
-バックエンド (`localhost:8080`) を含めて拡張から共有できるようにしている。
+Session Cookie の `SameSite` 属性は local では `Lax`、本番の拡張連携では `None; Secure` を使う。
+本番 backend は `CORS_ALLOWED_ORIGINS` に拡張 origin を追加し、状態変更 API は Origin/Referer CSRF 検証を通す。
 
 ## Roadmap
 
