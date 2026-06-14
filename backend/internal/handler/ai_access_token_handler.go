@@ -1,9 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
-	"errors"
-	"io"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -41,16 +38,8 @@ func (h *AiAccessTokenHandler) CreateAiAccessToken(w http.ResponseWriter, r *htt
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, maxAiAccessTokenBodyBytes)
-
 	var req openapi.CreateAiAccessTokenRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil && !errors.Is(err, io.EOF) {
-		var maxBytesErr *http.MaxBytesError
-		if errors.As(err, &maxBytesErr) {
-			writeJSON(w, http.StatusRequestEntityTooLarge, openapi.ErrorResponse{Message: "request body too large"})
-			return
-		}
-		writeJSON(w, http.StatusBadRequest, openapi.ErrorResponse{Message: "invalid request body"})
+	if !decodeOptionalJSONBody(w, r, &req, maxAiAccessTokenBodyBytes) {
 		return
 	}
 

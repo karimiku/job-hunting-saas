@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -30,16 +28,8 @@ const maxESMemoBodyBytes = 256 * 1024
 
 // CreateEsMemo は POST /api/v1/es-memos のハンドラ。
 func (h *ESMemoHandler) CreateEsMemo(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, maxESMemoBodyBytes)
-
 	var req openapi.CreateEsMemoRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		var maxBytesErr *http.MaxBytesError
-		if errors.As(err, &maxBytesErr) {
-			writeJSON(w, http.StatusRequestEntityTooLarge, openapi.ErrorResponse{Message: "request body too large"})
-			return
-		}
-		writeJSON(w, http.StatusBadRequest, openapi.ErrorResponse{Message: "invalid request body"})
+	if !decodeJSONBody(w, r, &req, maxESMemoBodyBytes) {
 		return
 	}
 

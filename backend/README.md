@@ -128,7 +128,7 @@ make mcp-server
 | `FIREBASE_CREDENTIALS_FILE` | service account JSON のパス | `./secrets/service-account.json` |
 | `CORS_ALLOWED_ORIGINS` | カンマ区切りの許可 origin（Web + 拡張） | `http://localhost:3000,chrome-extension://<extension-id>` |
 | `COOKIE_SECURE` | 本番 HTTPS は `true`、localhost は `false` | `false` |
-| `COOKIE_SAME_SITE` | `lax` / `strict` / `none`。拡張から Cookie を送る本番は `none` | `lax` |
+| `COOKIE_SAME_SITE` | `lax` / `strict` / `none`。拡張から Cookie を送る本番は `none`。`none` は Origin/Referer CSRF 検証とセットで使う | `lax` |
 | `ALLOW_INSECURE_NO_AUTH` | `true` で認証なし起動（ローカル検証用） | 未設定 |
 
 > ⚠️ service account JSON と `.env` はコミットしない（`.gitignore` 済みであることを確認）。secret 値そのものを README に書かないこと。
@@ -143,7 +143,7 @@ COOKIE_SAME_SITE=none
 ```
 
 - **local (HTTP)**: `COOKIE_SECURE=false` / `COOKIE_SAME_SITE=lax`
-- **本番 (HTTPS)**: `COOKIE_SECURE=true` / `COOKIE_SAME_SITE=none`
+- **本番 (HTTPS)**: `COOKIE_SECURE=true` / `COOKIE_SAME_SITE=none`。`CORS_ALLOWED_ORIGINS` は CORS と CSRF Origin/Referer 検証の allowlist を兼ねる。
 
 backend / frontend / 拡張をまたぐ通し手順と拡張 ID の確認方法は、ルート [README.md](../README.md) の「β環境セットアップ」を参照。
 
