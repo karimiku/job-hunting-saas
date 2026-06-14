@@ -253,6 +253,30 @@ paths:
                 required:
                   - entries
 
+  /api/v1/entries/with-company:
+    post:
+      operationId: createEntryWithCompany
+      summary: 企業とエントリーを同時に新規登録する
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEntryWithCompanyRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntryResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/v1/entries/{entryId}:
     parameters:
       - $ref: "#/components/parameters/EntryId"
@@ -790,6 +814,25 @@ components:
           type: string
       required:
         - companyId
+        - route
+        - source
+
+    CreateEntryWithCompanyRequest:
+      type: object
+      properties:
+        companyName:
+          type: string
+        route:
+          type: string
+        source:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+        memo:
+          type: string
+      required:
+        - companyName
         - route
         - source
 

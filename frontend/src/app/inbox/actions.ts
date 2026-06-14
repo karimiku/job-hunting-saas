@@ -1,7 +1,7 @@
 "use server";
 
 // Server Action — Inbox clip を Company + Entry に変換し、成功後に clip を削除する。
-// 失敗時は orphan company を best-effort ロールバックし、clip は削除しない。
+// 新規会社の場合は backend の atomic endpoint で部分作成を防ぎ、失敗時は clip を削除しない。
 // 成功時は revalidate して作成した Entry 詳細へ redirect する（redirect は throw 扱いなので catch しない）。
 
 import { redirect } from "next/navigation";
@@ -56,12 +56,12 @@ export async function convertInboxClipAction(
     return { error: "ソースは必須です", values };
   }
 
-  // 1. 既存 Company を使うか、新しい Company を作成する。
+  // 1. 既存 Company を使うか、新しい Company と Entry をまとめて作成する。
   //    Inbox 変換では同じ会社を何度も作ると Entry/Kanban が読みにくくなるため、
   //    フォームから渡された既存会社 ID を優先する。
-  let company: CompanyResponse;
-  let createdCompany = false;
+  let entry: EntryResponse;
   if (existingCompanyId) {
+    let company: CompanyResponse;
     try {
       company = await serverFetch<CompanyResponse>(
         `/api/v1/companies/${existingCompanyId}`,
@@ -75,57 +75,45 @@ export async function convertInboxClipAction(
         values,
       };
     }
-  } else {
+
     try {
-      company = await serverFetch<CompanyResponse>("/api/v1/companies", {
+      entry = await serverFetch<EntryResponse>("/api/v1/entries", {
         method: "POST",
-        body: JSON.stringify({ name: companyName }),
+        body: JSON.stringify({
+          companyId: company.id,
+          route,
+          source,
+          sourceUrl: sourceUrl || undefined,
+          memo: memo || undefined,
+        }),
       });
-      createdCompany = true;
     } catch (err) {
       return {
-        error: err instanceof ApiError ? err.message : "会社の作成に失敗しました",
+        error: err instanceof ApiError ? err.message : "エントリーの保存に失敗しました",
+        values,
+      };
+    }
+  } else {
+    try {
+      entry = await serverFetch<EntryResponse>("/api/v1/entries/with-company", {
+        method: "POST",
+        body: JSON.stringify({
+          companyName,
+          route,
+          source,
+          sourceUrl: sourceUrl || undefined,
+          memo: memo || undefined,
+        }),
+      });
+    } catch (err) {
+      return {
+        error: err instanceof ApiError ? err.message : "エントリーの保存に失敗しました",
         values,
       };
     }
   }
 
-  // 2. Entry 作成。失敗したら orphan company を best-effort で削除し、clip は残す。
-  let entry: EntryResponse;
-  try {
-    entry = await serverFetch<EntryResponse>("/api/v1/entries", {
-      method: "POST",
-      body: JSON.stringify({
-        companyId: company.id,
-        route,
-        source,
-        sourceUrl: sourceUrl || undefined,
-        memo: memo || undefined,
-      }),
-    });
-  } catch (err) {
-    if (createdCompany) {
-      try {
-        await serverFetch<void>(`/api/v1/companies/${company.id}`, {
-          method: "DELETE",
-        });
-      } catch {
-        return {
-          error:
-            "エントリーの保存に失敗しました。会社「" +
-            company.name +
-            "」だけ作成された状態です。/entry から確認してください。",
-          values,
-        };
-      }
-    }
-    return {
-      error: err instanceof ApiError ? err.message : "エントリーの保存に失敗しました",
-      values,
-    };
-  }
-
-  // 3. Entry 作成成功後に clip を削除する。
+  // 2. Entry 作成成功後に clip を削除する。
   //    ここまで来れば Entry は作成済みなので、削除失敗は致命的でない（残った clip は #98 の削除UIで後始末できる）。
   try {
     await serverFetch<void>(`/api/v1/inbox/clips/${clipId}`, {
@@ -135,7 +123,7 @@ export async function convertInboxClipAction(
     // entry は作成済み。clip 削除失敗は握りつぶして変換成功として扱う。
   }
 
-  // 4. 関連画面を再検証して作成した Entry 詳細へ遷移する。
+  // 3. 関連画面を再検証して作成した Entry 詳細へ遷移する。
   revalidatePath("/inbox");
   revalidatePath("/entry");
   revalidatePath("/dashboard");
