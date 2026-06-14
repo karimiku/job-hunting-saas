@@ -12,14 +12,20 @@ type InboxClip struct {
 	id         InboxClipID
 	userID     UserID
 	url        value.URL
-	title      string
+	title      value.InboxClipTitle
 	source     value.Source
-	guess      string // 推定された会社名（任意、空文字あり得る）
+	guess      value.InboxClipGuess
 	capturedAt time.Time
 }
 
 // NewInboxClip は InboxClip を新規作成する。各値オブジェクトは呼び出し側でバリデーション済み前提。
-func NewInboxClip(userID UserID, url value.URL, title string, source value.Source, guess string) *InboxClip {
+func NewInboxClip(
+	userID UserID,
+	url value.URL,
+	title value.InboxClipTitle,
+	source value.Source,
+	guess value.InboxClipGuess,
+) *InboxClip {
 	return &InboxClip{
 		id:         NewInboxClipID(),
 		userID:     userID,
@@ -33,7 +39,15 @@ func NewInboxClip(userID UserID, url value.URL, title string, source value.Sourc
 
 // ReconstructInboxClip はDBから読み取ったデータで InboxClip を復元する。
 // Infra 層 (Repository 実装) からのみ呼び出すこと。
-func ReconstructInboxClip(id InboxClipID, userID UserID, url value.URL, title string, source value.Source, guess string, capturedAt time.Time) *InboxClip {
+func ReconstructInboxClip(
+	id InboxClipID,
+	userID UserID,
+	url value.URL,
+	title value.InboxClipTitle,
+	source value.Source,
+	guess value.InboxClipGuess,
+	capturedAt time.Time,
+) *InboxClip {
 	return &InboxClip{
 		id:         id,
 		userID:     userID,
@@ -55,13 +69,13 @@ func (c *InboxClip) UserID() UserID { return c.userID }
 func (c *InboxClip) URL() value.URL { return c.url }
 
 // Title はページタイトルを返す。
-func (c *InboxClip) Title() string { return c.title }
+func (c *InboxClip) Title() value.InboxClipTitle { return c.title }
 
 // Source は応募媒体を返す。
 func (c *InboxClip) Source() value.Source { return c.source }
 
 // Guess は推定された会社名を返す（空文字あり）。
-func (c *InboxClip) Guess() string { return c.guess }
+func (c *InboxClip) Guess() value.InboxClipGuess { return c.guess }
 
 // CapturedAt はクリップ作成日時を返す。
 func (c *InboxClip) CapturedAt() time.Time { return c.capturedAt }

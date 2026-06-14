@@ -40,7 +40,7 @@ type Querier interface {
 	ListESMemosByUserID(ctx context.Context, arg ListESMemosByUserIDParams) ([]EsMemo, error)
 	ListEntriesByUserID(ctx context.Context, arg ListEntriesByUserIDParams) ([]Entry, error)
 	ListInboxClipsByUserID(ctx context.Context, userID uuid.UUID) ([]InboxClip, error)
-	ListStageHistoriesByEntryID(ctx context.Context, entryID uuid.UUID) ([]StageHistory, error)
+	ListStageHistoriesByEntryID(ctx context.Context, arg ListStageHistoriesByEntryIDParams) ([]StageHistory, error)
 	ListTasksByEntryID(ctx context.Context, arg ListTasksByEntryIDParams) ([]Task, error)
 	ListTasksByUserID(ctx context.Context, userID uuid.UUID) ([]Task, error)
 	ListTasksByUserIDWithDueBefore(ctx context.Context, arg ListTasksByUserIDWithDueBeforeParams) ([]Task, error)

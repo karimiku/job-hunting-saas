@@ -41,6 +41,24 @@ func newTestClipSource(t *testing.T, raw string) value.Source {
 	return s
 }
 
+func newTestInboxClipTitle(t *testing.T, raw string) value.InboxClipTitle {
+	t.Helper()
+	title, err := value.NewInboxClipTitle(raw)
+	if err != nil {
+		t.Fatalf("NewInboxClipTitle(%q) failed: %v", raw, err)
+	}
+	return title
+}
+
+func newTestInboxClipGuess(t *testing.T, raw string) value.InboxClipGuess {
+	t.Helper()
+	guess, err := value.NewInboxClipGuess(raw)
+	if err != nil {
+		t.Fatalf("NewInboxClipGuess(%q) failed: %v", raw, err)
+	}
+	return guess
+}
+
 func TestInboxClipRepository_Create_Find(t *testing.T) {
 	pool := setupTestDB(t)
 	tx := beginTx(t, pool)
@@ -52,9 +70,9 @@ func TestInboxClipRepository_Create_Find(t *testing.T) {
 	clip := entity.NewInboxClip(
 		userID,
 		newTestURL(t, "https://job.mynavi.jp/26/pc/search/corp123/outline.html"),
-		"株式会社サンプル — 募集要項",
+		newTestInboxClipTitle(t, "株式会社サンプル — 募集要項"),
 		newTestClipSource(t, "マイナビ"),
-		"株式会社サンプル",
+		newTestInboxClipGuess(t, "株式会社サンプル"),
 	)
 
 	if err := repo.Create(ctx, clip); err != nil {
@@ -75,14 +93,14 @@ func TestInboxClipRepository_Create_Find(t *testing.T) {
 	if got.URL().String() != clip.URL().String() {
 		t.Errorf("URL = %q, want %q", got.URL().String(), clip.URL().String())
 	}
-	if got.Title() != clip.Title() {
-		t.Errorf("Title = %q, want %q", got.Title(), clip.Title())
+	if !got.Title().Equals(clip.Title()) {
+		t.Errorf("Title = %q, want %q", got.Title().String(), clip.Title().String())
 	}
 	if got.Source().String() != "マイナビ" {
 		t.Errorf("Source = %q, want %q", got.Source().String(), "マイナビ")
 	}
-	if got.Guess() != "株式会社サンプル" {
-		t.Errorf("Guess = %q, want %q", got.Guess(), "株式会社サンプル")
+	if got.Guess().String() != "株式会社サンプル" {
+		t.Errorf("Guess = %q, want %q", got.Guess().String(), "株式会社サンプル")
 	}
 	if !got.CapturedAt().Equal(clip.CapturedAt()) {
 		t.Errorf("CapturedAt = %v, want %v", got.CapturedAt(), clip.CapturedAt())
@@ -100,9 +118,9 @@ func TestInboxClipRepository_Create_EmptyGuess(t *testing.T) {
 	clip := entity.NewInboxClip(
 		userID,
 		newTestURL(t, "https://example.com/jobs/1"),
-		"求人タイトル",
+		newTestInboxClipTitle(t, "求人タイトル"),
 		newTestClipSource(t, "リクナビ"),
-		"",
+		newTestInboxClipGuess(t, ""),
 	)
 
 	if err := repo.Create(ctx, clip); err != nil {
@@ -113,8 +131,39 @@ func TestInboxClipRepository_Create_EmptyGuess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FindByID failed: %v", err)
 	}
-	if got.Guess() != "" {
-		t.Errorf("Guess = %q, want empty", got.Guess())
+	if got.Guess().String() != "" {
+		t.Errorf("Guess = %q, want empty", got.Guess().String())
+	}
+}
+
+func TestInboxClipRepository_Create_DuplicateURLForSameUser(t *testing.T) {
+	pool := setupTestDB(t)
+	tx := beginTx(t, pool)
+	ctx := context.Background()
+
+	userID := insertTestUser(t, tx)
+	repo := postgres.NewInboxClipRepository(tx)
+
+	first := entity.NewInboxClip(
+		userID,
+		newTestURL(t, "https://example.com/jobs/1"),
+		newTestInboxClipTitle(t, "求人タイトルA"),
+		newTestClipSource(t, "マイナビ"),
+		newTestInboxClipGuess(t, ""),
+	)
+	second := entity.NewInboxClip(
+		userID,
+		newTestURL(t, "https://example.com/jobs/1"),
+		newTestInboxClipTitle(t, "求人タイトルB"),
+		newTestClipSource(t, "リクナビ"),
+		newTestInboxClipGuess(t, "株式会社サンプル"),
+	)
+
+	if err := repo.Create(ctx, first); err != nil {
+		t.Fatalf("first Create failed: %v", err)
+	}
+	if err := repo.Create(ctx, second); !errors.Is(err, repository.ErrAlreadyExists) {
+		t.Fatalf("second Create err = %v, want ErrAlreadyExists", err)
 	}
 }
 
@@ -141,7 +190,13 @@ func TestInboxClipRepository_FindByID_WrongUser(t *testing.T) {
 	otherUserID := insertTestUser(t, tx)
 	repo := postgres.NewInboxClipRepository(tx)
 
-	clip := entity.NewInboxClip(userID, newTestURL(t, "https://example.com/jobs/1"), "T", newTestClipSource(t, "マイナビ"), "")
+	clip := entity.NewInboxClip(
+		userID,
+		newTestURL(t, "https://example.com/jobs/1"),
+		newTestInboxClipTitle(t, "T"),
+		newTestClipSource(t, "マイナビ"),
+		newTestInboxClipGuess(t, ""),
+	)
 	if err := repo.Create(ctx, clip); err != nil {
 		t.Fatalf("Create failed: %v", err)
 	}
@@ -165,18 +220,18 @@ func TestInboxClipRepository_ListByUserID_OrderByCapturedAtDesc(t *testing.T) {
 		entity.NewInboxClipID(),
 		userID,
 		newTestURL(t, "https://example.com/older"),
-		"older",
+		newTestInboxClipTitle(t, "older"),
 		newTestClipSource(t, "マイナビ"),
-		"",
+		newTestInboxClipGuess(t, ""),
 		mustParseTime(t, "2026-04-01T10:00:00Z"),
 	)
 	newer := entity.ReconstructInboxClip(
 		entity.NewInboxClipID(),
 		userID,
 		newTestURL(t, "https://example.com/newer"),
-		"newer",
+		newTestInboxClipTitle(t, "newer"),
 		newTestClipSource(t, "マイナビ"),
-		"",
+		newTestInboxClipGuess(t, ""),
 		mustParseTime(t, "2026-04-02T10:00:00Z"),
 	)
 	for _, c := range []*entity.InboxClip{older, newer} {
@@ -209,8 +264,20 @@ func TestInboxClipRepository_ListByUserID_FiltersByOwner(t *testing.T) {
 	otherUserID := insertTestUser(t, tx)
 	repo := postgres.NewInboxClipRepository(tx)
 
-	mine := entity.NewInboxClip(userID, newTestURL(t, "https://example.com/mine"), "mine", newTestClipSource(t, "マイナビ"), "")
-	theirs := entity.NewInboxClip(otherUserID, newTestURL(t, "https://example.com/theirs"), "theirs", newTestClipSource(t, "マイナビ"), "")
+	mine := entity.NewInboxClip(
+		userID,
+		newTestURL(t, "https://example.com/mine"),
+		newTestInboxClipTitle(t, "mine"),
+		newTestClipSource(t, "マイナビ"),
+		newTestInboxClipGuess(t, ""),
+	)
+	theirs := entity.NewInboxClip(
+		otherUserID,
+		newTestURL(t, "https://example.com/theirs"),
+		newTestInboxClipTitle(t, "theirs"),
+		newTestClipSource(t, "マイナビ"),
+		newTestInboxClipGuess(t, ""),
+	)
 	for _, c := range []*entity.InboxClip{mine, theirs} {
 		if err := repo.Create(ctx, c); err != nil {
 			t.Fatalf("Create failed: %v", err)
@@ -237,7 +304,13 @@ func TestInboxClipRepository_Delete(t *testing.T) {
 	userID := insertTestUser(t, tx)
 	repo := postgres.NewInboxClipRepository(tx)
 
-	clip := entity.NewInboxClip(userID, newTestURL(t, "https://example.com/del"), "T", newTestClipSource(t, "マイナビ"), "")
+	clip := entity.NewInboxClip(
+		userID,
+		newTestURL(t, "https://example.com/del"),
+		newTestInboxClipTitle(t, "T"),
+		newTestClipSource(t, "マイナビ"),
+		newTestInboxClipGuess(t, ""),
+	)
 	if err := repo.Create(ctx, clip); err != nil {
 		t.Fatalf("Create failed: %v", err)
 	}
@@ -275,7 +348,13 @@ func TestInboxClipRepository_Delete_WrongUser(t *testing.T) {
 	otherUserID := insertTestUser(t, tx)
 	repo := postgres.NewInboxClipRepository(tx)
 
-	clip := entity.NewInboxClip(userID, newTestURL(t, "https://example.com/x"), "T", newTestClipSource(t, "マイナビ"), "")
+	clip := entity.NewInboxClip(
+		userID,
+		newTestURL(t, "https://example.com/x"),
+		newTestInboxClipTitle(t, "T"),
+		newTestClipSource(t, "マイナビ"),
+		newTestInboxClipGuess(t, ""),
+	)
 	if err := repo.Create(ctx, clip); err != nil {
 		t.Fatalf("Create failed: %v", err)
 	}

@@ -28,7 +28,7 @@ func TestStageHistoryRepository_Create(t *testing.T) {
 		t.Fatalf("Create failed: %v", err)
 	}
 
-	list, err := repo.ListByEntryID(ctx, entryID)
+	list, err := repo.ListByEntryID(ctx, userID, entryID)
 	if err != nil {
 		t.Fatalf("ListByEntryID failed: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestStageHistoryRepository_ListByEntryID_Order(t *testing.T) {
 		}
 	}
 
-	list, err := repo.ListByEntryID(ctx, entryID)
+	list, err := repo.ListByEntryID(ctx, userID, entryID)
 	if err != nil {
 		t.Fatalf("ListByEntryID failed: %v", err)
 	}
@@ -104,7 +104,7 @@ func TestStageHistoryRepository_ListByEntryID_Empty(t *testing.T) {
 	entryID := insertTestEntry(t, tx, userID, companyID)
 	repo := postgres.NewStageHistoryRepository(tx)
 
-	list, err := repo.ListByEntryID(ctx, entryID)
+	list, err := repo.ListByEntryID(ctx, userID, entryID)
 	if err != nil {
 		t.Fatalf("ListByEntryID failed: %v", err)
 	}
@@ -114,5 +114,30 @@ func TestStageHistoryRepository_ListByEntryID_Empty(t *testing.T) {
 	}
 	if len(list) != 0 {
 		t.Errorf("len = %d, want 0", len(list))
+	}
+}
+
+func TestStageHistoryRepository_ListByEntryID_WrongUserReturnsEmpty(t *testing.T) {
+	pool := setupTestDB(t)
+	tx := beginTx(t, pool)
+	ctx := context.Background()
+
+	userID := insertTestUser(t, tx)
+	otherUserID := insertTestUser(t, tx)
+	companyID := insertTestCompany(t, tx, userID)
+	entryID := insertTestEntry(t, tx, userID, companyID)
+	repo := postgres.NewStageHistoryRepository(tx)
+
+	history := entity.NewStageHistory(entryID, newTestStage(t, "interview", "一次面接"), "")
+	if err := repo.Create(ctx, history); err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+
+	list, err := repo.ListByEntryID(ctx, otherUserID, entryID)
+	if err != nil {
+		t.Fatalf("ListByEntryID failed: %v", err)
+	}
+	if len(list) != 0 {
+		t.Fatalf("len = %d, want 0", len(list))
 	}
 }

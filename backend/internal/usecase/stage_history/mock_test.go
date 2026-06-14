@@ -33,7 +33,7 @@ func (m *mockEntryRepo) Delete(_ context.Context, _ entity.UserID, _ entity.Entr
 
 type mockHistoryRepo struct {
 	createFn func(ctx context.Context, history *entity.StageHistory) error
-	listFn   func(ctx context.Context, entryID entity.EntryID) ([]*entity.StageHistory, error)
+	listFn   func(ctx context.Context, userID entity.UserID, entryID entity.EntryID) ([]*entity.StageHistory, error)
 }
 
 func (m *mockHistoryRepo) Create(ctx context.Context, history *entity.StageHistory) error {
@@ -43,9 +43,9 @@ func (m *mockHistoryRepo) Create(ctx context.Context, history *entity.StageHisto
 	return nil
 }
 
-func (m *mockHistoryRepo) ListByEntryID(ctx context.Context, entryID entity.EntryID) ([]*entity.StageHistory, error) {
+func (m *mockHistoryRepo) ListByEntryID(ctx context.Context, userID entity.UserID, entryID entity.EntryID) ([]*entity.StageHistory, error) {
 	if m.listFn != nil {
-		return m.listFn(ctx, entryID)
+		return m.listFn(ctx, userID, entryID)
 	}
 	return []*entity.StageHistory{}, nil
 }
@@ -77,7 +77,7 @@ func failOnCallHistoryRepo(t *testing.T) *mockHistoryRepo {
 			t.Error("historyRepo.Create should not be called when entry lookup fails")
 			return nil
 		},
-		listFn: func(_ context.Context, _ entity.EntryID) ([]*entity.StageHistory, error) {
+		listFn: func(_ context.Context, _ entity.UserID, _ entity.EntryID) ([]*entity.StageHistory, error) {
 			t.Error("historyRepo.ListByEntryID should not be called when entry lookup fails")
 			return nil, nil
 		},

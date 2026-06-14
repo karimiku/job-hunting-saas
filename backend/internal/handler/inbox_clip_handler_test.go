@@ -28,9 +28,16 @@ func setupInboxClipHandler() (*InboxClipHandler, *inmemory.InboxClipRepository) 
 
 func seedClip(t *testing.T, repo *inmemory.InboxClipRepository, userID entity.UserID) *entity.InboxClip {
 	t.Helper()
-	url, _ := value.NewURL("https://job.mynavi.jp/26/pc/search/corp123/outline.html")
+	return seedClipWithURL(t, repo, userID, "https://job.mynavi.jp/26/pc/search/corp123/outline.html")
+}
+
+func seedClipWithURL(t *testing.T, repo *inmemory.InboxClipRepository, userID entity.UserID, rawURL string) *entity.InboxClip {
+	t.Helper()
+	url, _ := value.NewURL(rawURL)
+	title, _ := value.NewInboxClipTitle("○○商事")
 	src, _ := value.NewSource("マイナビ")
-	clip := entity.NewInboxClip(userID, url, "○○商事", src, "○○商事")
+	guess, _ := value.NewInboxClipGuess("○○商事")
+	clip := entity.NewInboxClip(userID, url, title, src, guess)
 	if err := repo.Create(context.Background(), clip); err != nil {
 		t.Fatalf("seed: %v", err)
 	}
@@ -118,9 +125,9 @@ func TestCreateInboxClip_BodyTooLarge(t *testing.T) {
 func TestListInboxClips_Success(t *testing.T) {
 	h, repo := setupInboxClipHandler()
 	userID := entity.NewUserID()
-	seedClip(t, repo, userID)
-	seedClip(t, repo, userID)
-	seedClip(t, repo, entity.NewUserID()) // 他人
+	seedClipWithURL(t, repo, userID, "https://example.com/jobs/1")
+	seedClipWithURL(t, repo, userID, "https://example.com/jobs/2")
+	seedClipWithURL(t, repo, entity.NewUserID(), "https://example.com/jobs/3") // 他人
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req = req.WithContext(middleware.SetUserID(req.Context(), userID))

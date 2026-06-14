@@ -15,8 +15,10 @@ func TestDelete_OwnedClip_Removes(t *testing.T) {
 	repo := inmemory.NewInboxClipRepository()
 	userID := entity.NewUserID()
 	url, _ := value.NewURL("https://example.com/jobs/1")
+	title, _ := value.NewInboxClipTitle("a")
 	src, _ := value.NewSource("マイナビ")
-	clip := entity.NewInboxClip(userID, url, "a", src, "")
+	guess, _ := value.NewInboxClipGuess("")
+	clip := entity.NewInboxClip(userID, url, title, src, guess)
 	_ = repo.Create(context.Background(), clip)
 
 	uc := NewDelete(repo)
@@ -34,8 +36,10 @@ func TestDelete_OtherUserClip_NotFound(t *testing.T) {
 	owner := entity.NewUserID()
 	other := entity.NewUserID()
 	url, _ := value.NewURL("https://example.com/jobs/1")
+	title, _ := value.NewInboxClipTitle("a")
 	src, _ := value.NewSource("マイナビ")
-	clip := entity.NewInboxClip(owner, url, "a", src, "")
+	guess, _ := value.NewInboxClipGuess("")
+	clip := entity.NewInboxClip(owner, url, title, src, guess)
 	_ = repo.Create(context.Background(), clip)
 
 	uc := NewDelete(repo)

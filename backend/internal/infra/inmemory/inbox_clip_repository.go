@@ -27,6 +27,14 @@ func NewInboxClipRepository() *InboxClipRepository {
 func (r *InboxClipRepository) Create(_ context.Context, clip *entity.InboxClip) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if _, exists := r.clipsByID[clip.ID()]; exists {
+		return repository.ErrAlreadyExists
+	}
+	for _, stored := range r.clipsByID {
+		if stored.UserID() == clip.UserID() && stored.URL().Equals(clip.URL()) {
+			return repository.ErrAlreadyExists
+		}
+	}
 	r.clipsByID[clip.ID()] = clip
 	return nil
 }

@@ -3,26 +3,11 @@ package inboxclip
 
 import (
 	"context"
-	"errors"
-	"unicode/utf8"
 
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
+	domainservice "github.com/karimiku/job-hunting-saas/internal/domain/service"
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
-)
-
-// TitleMaxLength / GuessMaxLength は title / guess の最大文字数（rune 数）。
-// title・guess は値オブジェクト化されていない素の文字列のため、ここで上限を検証する。
-const (
-	TitleMaxLength = 512
-	GuessMaxLength = 256
-)
-
-// ErrTitleTooLong は title が上限長を超えたときに返されるエラー。
-// ErrGuessTooLong は guess が上限長を超えたときに返されるエラー。
-var (
-	ErrTitleTooLong = errors.New("title is too long")
-	ErrGuessTooLong = errors.New("guess is too long")
 )
 
 // CreateInput は InboxClip 作成への入力。
@@ -41,28 +26,21 @@ type CreateOutput struct {
 
 // Create は新しいクリップを保存するユースケース。
 type Create struct {
-	repo repository.InboxClipRepository
+	registration *domainservice.InboxClipRegistrationService
 }
 
 // NewCreate は Create ユースケースを生成する。
 func NewCreate(repo repository.InboxClipRepository) *Create {
-	return &Create{repo: repo}
+	return &Create{registration: domainservice.NewInboxClipRegistrationService(repo)}
 }
 
 // Execute は値オブジェクトを生成してから InboxClip を保存する。
-//
-// 重複URLの最低限対応 (#98): 同一ユーザーが同じ URL のクリップを既に保存している場合は、
-// 新規作成せず既存クリップをそのまま返す（冪等）。これにより拡張からの多重保存で
-// Inbox がノイズで溢れるのを防ぐ。完全な重複統合は P1 のスコープ外。
 func (uc *Create) Execute(ctx context.Context, input CreateInput) (*CreateOutput, error) {
-	if utf8.RuneCountInString(input.Title) > TitleMaxLength {
-		return nil, ErrTitleTooLong
-	}
-	if utf8.RuneCountInString(input.Guess) > GuessMaxLength {
-		return nil, ErrGuessTooLong
-	}
-
 	url, err := value.NewURL(input.URL)
+	if err != nil {
+		return nil, err
+	}
+	title, err := value.NewInboxClipTitle(input.Title)
 	if err != nil {
 		return nil, err
 	}
@@ -70,16 +48,13 @@ func (uc *Create) Execute(ctx context.Context, input CreateInput) (*CreateOutput
 	if err != nil {
 		return nil, err
 	}
-
-	// 既存の同一 URL クリップがあれば、それを返して新規作成をスキップする。
-	if existing, err := uc.repo.FindByUserIDAndURL(ctx, input.UserID, url); err == nil {
-		return &CreateOutput{Clip: existing}, nil
-	} else if !errors.Is(err, repository.ErrNotFound) {
+	guess, err := value.NewInboxClipGuess(input.Guess)
+	if err != nil {
 		return nil, err
 	}
 
-	clip := entity.NewInboxClip(input.UserID, url, input.Title, source, input.Guess)
-	if err := uc.repo.Create(ctx, clip); err != nil {
+	clip, err := uc.registration.Register(ctx, input.UserID, url, title, source, guess)
+	if err != nil {
 		return nil, err
 	}
 	return &CreateOutput{Clip: clip}, nil
