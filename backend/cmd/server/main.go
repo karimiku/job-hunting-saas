@@ -49,6 +49,7 @@ func run() error {
 	ctx := context.Background()
 
 	var (
+		accountRepo          repository.AccountRepository
 		companyRepo          repository.CompanyRepository
 		companyAliasRepo     repository.CompanyAliasRepository
 		entryRepo            repository.EntryRepository
@@ -69,6 +70,7 @@ func run() error {
 		}
 		defer pool.Close()
 
+		accountRepo = postgres.NewAccountRepository(pool)
 		companyRepo = postgres.NewCompanyRepository(pool)
 		companyAliasRepo = postgres.NewCompanyAliasRepository(pool)
 		entryRepo = postgres.NewEntryRepository(pool)
@@ -92,7 +94,9 @@ func run() error {
 		}
 		inMemoryCompanyRepo := inmemory.NewCompanyRepository()
 		inMemoryEntryRepo := inmemory.NewEntryRepository()
+		inMemoryUserRepo := inmemory.NewUserRepository()
 
+		accountRepo = inmemory.NewAccountRepository(inMemoryUserRepo)
 		companyRepo = inMemoryCompanyRepo
 		companyAliasRepo = inmemory.NewCompanyAliasRepository()
 		entryRepo = inMemoryEntryRepo
@@ -109,6 +113,7 @@ func run() error {
 	var (
 		authHandler    *handler.AuthHandler
 		authMiddleware func(http.Handler) http.Handler
+		authConfig     handler.AuthConfig
 	)
 	if userRepo != nil && extIDRepo != nil {
 		projectID := os.Getenv("FIREBASE_PROJECT_ID")
@@ -131,11 +136,12 @@ func run() error {
 		if err != nil {
 			return err
 		}
-		authHandler = handler.NewAuthHandler(sessionCreator, authenticateUC, userRepo, handler.AuthConfig{
+		authConfig = handler.AuthConfig{
 			CookieDomain:   os.Getenv("COOKIE_DOMAIN"),
 			CookieSecure:   os.Getenv("COOKIE_SECURE") == "true",
 			CookieSameSite: cookieSameSite,
-		})
+		}
+		authHandler = handler.NewAuthHandler(sessionCreator, authenticateUC, userRepo, authConfig)
 		authMiddleware = middleware.NewAuthWithBearer(
 			sessionVerifier,
 			extIDRepo,
@@ -199,7 +205,13 @@ func run() error {
 		esmemo.NewList(esMemoRepo),
 	)
 
+	meHandler := handler.NewMeHandler(
+		useruc.NewDeleteAccount(accountRepo),
+		authConfig,
+	)
+
 	h := &handler.Handler{
+		MeHandler:            meHandler,
 		CompanyHandler:       companyHandler,
 		CompanyAliasHandler:  companyAliasHandler,
 		EntryHandler:         entryHandler,

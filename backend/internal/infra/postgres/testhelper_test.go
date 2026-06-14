@@ -133,6 +133,28 @@ func insertTestUser(t *testing.T, tx pgx.Tx) entity.UserID {
 	return userID
 }
 
+func insertCommittedTestUser(t *testing.T, pool *pgxpool.Pool) entity.UserID {
+	t.Helper()
+	ctx := context.Background()
+	userID := entity.NewUserID()
+
+	_, err := pool.Exec(ctx,
+		`INSERT INTO users (id, email, name, created_at, updated_at)
+		 VALUES ($1, $2, $3, now(), now())`,
+		uuid.UUID(userID),
+		uuid.New().String()+"@test.example.com",
+		"テストユーザー",
+	)
+	if err != nil {
+		t.Fatalf("failed to insert committed test user: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM users WHERE id = $1`, uuid.UUID(userID))
+	})
+
+	return userID
+}
+
 // insertTestCompany はテスト用の Company を直接 SQL INSERT する。
 // Entry/Task テストの FK 前提データとして使う。
 func insertTestCompany(t *testing.T, tx pgx.Tx, userID entity.UserID) entity.CompanyID {
