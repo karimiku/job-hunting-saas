@@ -36,9 +36,12 @@ func (r *StageHistoryRepository) Create(ctx context.Context, history *entity.Sta
 	return nil
 }
 
-// ListByEntryID は entry に紐づく StageHistory を時系列で返す。
-func (r *StageHistoryRepository) ListByEntryID(ctx context.Context, entryID entity.EntryID) ([]*entity.StageHistory, error) {
-	rows, err := r.q.ListStageHistoriesByEntryID(ctx, uuid.UUID(entryID))
+// ListByEntryID は userID 所有の entry に紐づく StageHistory を時系列で返す。
+func (r *StageHistoryRepository) ListByEntryID(ctx context.Context, userID entity.UserID, entryID entity.EntryID) ([]*entity.StageHistory, error) {
+	rows, err := r.q.ListStageHistoriesByEntryID(ctx, sqlc.ListStageHistoriesByEntryIDParams{
+		UserID:  uuid.UUID(userID),
+		EntryID: uuid.UUID(entryID),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("postgres: ListStageHistoriesByEntryID: %w", err)
 	}

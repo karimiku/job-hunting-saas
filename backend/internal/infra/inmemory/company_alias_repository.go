@@ -31,6 +31,13 @@ func (r *CompanyAliasRepository) Create(_ context.Context, alias *entity.Company
 	if _, exists := r.aliasesByID[alias.ID()]; exists {
 		return repository.ErrAlreadyExists
 	}
+	for _, stored := range r.aliasesByID {
+		if stored.UserID() == alias.UserID() &&
+			stored.CompanyID() == alias.CompanyID() &&
+			stored.Alias().Equals(alias.Alias()) {
+			return repository.ErrAlreadyExists
+		}
+	}
 	r.aliasesByID[alias.ID()] = alias
 	return nil
 }

@@ -84,6 +84,26 @@ func TestCompanyAliasRepository_FindByID_NotFound(t *testing.T) {
 	}
 }
 
+func TestCompanyAliasRepository_Create_DuplicateAliasForSameCompany(t *testing.T) {
+	pool := setupTestDB(t)
+	tx := beginTx(t, pool)
+	ctx := context.Background()
+
+	userID := insertTestUser(t, tx)
+	companyID := insertTestCompany(t, tx, userID)
+	repo := postgres.NewCompanyAliasRepository(tx)
+
+	first := entity.NewCompanyAlias(userID, companyID, newTestAlias(t, "トヨタ"))
+	second := entity.NewCompanyAlias(userID, companyID, newTestAlias(t, "トヨタ"))
+
+	if err := repo.Create(ctx, first); err != nil {
+		t.Fatalf("first Create failed: %v", err)
+	}
+	if err := repo.Create(ctx, second); !errors.Is(err, repository.ErrAlreadyExists) {
+		t.Fatalf("second Create err = %v, want ErrAlreadyExists", err)
+	}
+}
+
 func TestCompanyAliasRepository_ListByCompanyID(t *testing.T) {
 	pool := setupTestDB(t)
 	tx := beginTx(t, pool)

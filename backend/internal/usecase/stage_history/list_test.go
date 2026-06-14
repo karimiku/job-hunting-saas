@@ -20,8 +20,11 @@ func TestList_Success(t *testing.T) {
 
 	listCalled := false
 	historyRepo := &mockHistoryRepo{
-		listFn: func(_ context.Context, gotEntryID entity.EntryID) ([]*entity.StageHistory, error) {
+		listFn: func(_ context.Context, gotUserID entity.UserID, gotEntryID entity.EntryID) ([]*entity.StageHistory, error) {
 			listCalled = true
+			if gotUserID != userID {
+				t.Errorf("ListByEntryID userID = %v, want %v", gotUserID, userID)
+			}
 			if gotEntryID != entryID {
 				t.Errorf("ListByEntryID entryID = %v, want %v", gotEntryID, entryID)
 			}
@@ -84,7 +87,7 @@ func TestList_RepoError(t *testing.T) {
 	entryID := entity.NewEntryID()
 	listErr := errors.New("db read failed")
 	historyRepo := &mockHistoryRepo{
-		listFn: func(_ context.Context, _ entity.EntryID) ([]*entity.StageHistory, error) {
+		listFn: func(_ context.Context, _ entity.UserID, _ entity.EntryID) ([]*entity.StageHistory, error) {
 			return nil, listErr
 		},
 	}

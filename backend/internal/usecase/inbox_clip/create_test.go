@@ -138,14 +138,29 @@ func TestCreate_EmptySource(t *testing.T) {
 	}
 }
 
+func TestCreate_EmptyTitle(t *testing.T) {
+	repo := inmemory.NewInboxClipRepository()
+	uc := NewCreate(repo)
+
+	_, err := uc.Execute(context.Background(), CreateInput{
+		UserID: entity.NewUserID(),
+		URL:    "https://example.com/jobs/1",
+		Title:  "",
+		Source: "マイナビ",
+	})
+	if !errors.Is(err, value.ErrInboxClipTitleEmpty) {
+		t.Errorf("error = %v, want ErrInboxClipTitleEmpty", err)
+	}
+}
+
 func TestCreate_TitleLengthBoundary(t *testing.T) {
 	tests := []struct {
 		name    string
 		title   string
 		wantErr error
 	}{
-		{"max length ok", strings.Repeat("あ", TitleMaxLength), nil},
-		{"too long", strings.Repeat("あ", TitleMaxLength+1), ErrTitleTooLong},
+		{"max length ok", strings.Repeat("あ", value.InboxClipTitleMaxLength), nil},
+		{"too long", strings.Repeat("あ", value.InboxClipTitleMaxLength+1), value.ErrInboxClipTitleTooLong},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -170,8 +185,8 @@ func TestCreate_GuessLengthBoundary(t *testing.T) {
 		guess   string
 		wantErr error
 	}{
-		{"max length ok", strings.Repeat("あ", GuessMaxLength), nil},
-		{"too long", strings.Repeat("あ", GuessMaxLength+1), ErrGuessTooLong},
+		{"max length ok", strings.Repeat("あ", value.InboxClipGuessMaxLength), nil},
+		{"too long", strings.Repeat("あ", value.InboxClipGuessMaxLength+1), value.ErrInboxClipGuessTooLong},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

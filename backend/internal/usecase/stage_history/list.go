@@ -36,7 +36,7 @@ func (uc *List) Execute(ctx context.Context, input ListInput) (*ListOutput, erro
 		return nil, err
 	}
 
-	histories, err := uc.historyRepo.ListByEntryID(ctx, input.EntryID)
+	histories, err := uc.historyRepo.ListByEntryID(ctx, input.UserID, input.EntryID)
 	if err != nil {
 		return nil, err
 	}

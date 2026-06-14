@@ -30,11 +30,14 @@ func (r *InboxClipRepository) Create(ctx context.Context, clip *entity.InboxClip
 		ID:         uuid.UUID(clip.ID()),
 		UserID:     uuid.UUID(clip.UserID()),
 		Url:        clip.URL().String(),
-		Title:      clip.Title(),
+		Title:      clip.Title().String(),
 		Source:     clip.Source().String(),
-		Guess:      clip.Guess(),
+		Guess:      clip.Guess().String(),
 		CapturedAt: pgtype.Timestamptz{Time: clip.CapturedAt(), Valid: true},
 	}); err != nil {
+		if isUniqueViolation(err) {
+			return repository.ErrAlreadyExists
+		}
 		return fmt.Errorf("postgres: CreateInboxClip: %w", err)
 	}
 	return nil
@@ -111,13 +114,21 @@ func reconstructInboxClip(row sqlc.InboxClip) (*entity.InboxClip, error) {
 	if err != nil {
 		return nil, fmt.Errorf("BUG: invalid data in DB: inbox_clip source: %w", err)
 	}
+	title, err := value.NewInboxClipTitle(row.Title)
+	if err != nil {
+		return nil, fmt.Errorf("BUG: invalid data in DB: inbox_clip title: %w", err)
+	}
+	guess, err := value.NewInboxClipGuess(row.Guess)
+	if err != nil {
+		return nil, fmt.Errorf("BUG: invalid data in DB: inbox_clip guess: %w", err)
+	}
 	return entity.ReconstructInboxClip(
 		entity.InboxClipID(row.ID),
 		entity.UserID(row.UserID),
 		url,
-		row.Title,
+		title,
 		source,
-		row.Guess,
+		guess,
 		row.CapturedAt.Time,
 	), nil
 }

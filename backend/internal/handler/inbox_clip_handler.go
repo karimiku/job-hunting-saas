@@ -105,9 +105,9 @@ func toInboxClipResponse(c *entity.InboxClip) openapi.InboxClipResponse {
 	return openapi.InboxClipResponse{
 		Id:         uuid.UUID(c.ID()),
 		Url:        c.URL().String(),
-		Title:      c.Title(),
+		Title:      c.Title().String(),
 		Source:     c.Source().String(),
-		Guess:      c.Guess(),
+		Guess:      c.Guess().String(),
 		CapturedAt: c.CapturedAt(),
 	}
 }

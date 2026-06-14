@@ -30,7 +30,8 @@ func (r *StageHistoryRepository) Create(_ context.Context, history *entity.Stage
 }
 
 // ListByEntryID は entry に紐づく StageHistory を全件返す。
-func (r *StageHistoryRepository) ListByEntryID(_ context.Context, entryID entity.EntryID) ([]*entity.StageHistory, error) {
+// InMemory 実装は Entry を保持しないため、userID の検証は呼び出し側の EntryRepository 検索に委ねる。
+func (r *StageHistoryRepository) ListByEntryID(_ context.Context, _ entity.UserID, entryID entity.EntryID) ([]*entity.StageHistory, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
