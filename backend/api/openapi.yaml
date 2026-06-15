@@ -443,6 +443,24 @@ paths:
                 required:
                   - stageHistories
 
+  /api/v1/page-data/task:
+    get:
+      operationId: getTaskPageData
+      summary: タスク画面の初期表示データをまとめて取得する
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskPageDataResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/v1/tasks:
     get:
       operationId: listAllTasks
@@ -920,6 +938,20 @@ components:
         - createdAt
         - updatedAt
 
+    CurrentUserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - email
+        - name
+
     CreateTaskRequest:
       type: object
       properties:
@@ -998,6 +1030,24 @@ components:
         - memo
         - createdAt
         - updatedAt
+
+    TaskPageDataResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/CurrentUserResponse"
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/EntryResponse"
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaskResponse"
+      required:
+        - user
+        - entries
+        - tasks
 
     CreateStageHistoryRequest:
       type: object

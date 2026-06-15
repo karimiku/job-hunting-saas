@@ -189,6 +189,13 @@ func run() error {
 		taskuc.NewDelete(taskRepo),
 	)
 
+	pageDataHandler := handler.NewPageDataHandler(
+		userRepo,
+		entryuc.NewList(entryRepo),
+		companyuc.NewList(companyRepo),
+		taskuc.NewListAll(taskRepo),
+	)
+
 	stageHistoryHandler := handler.NewStageHistoryHandler(
 		stagehistoryuc.NewCreate(stageHistoryRepo, entryRepo),
 		stagehistoryuc.NewList(stageHistoryRepo, entryRepo),
@@ -222,6 +229,7 @@ func run() error {
 		CompanyAliasHandler:  companyAliasHandler,
 		EntryHandler:         entryHandler,
 		TaskHandler:          taskHandler,
+		PageDataHandler:      pageDataHandler,
 		StageHistoryHandler:  stageHistoryHandler,
 		InboxClipHandler:     inboxClipHandler,
 		AiAccessTokenHandler: aiTokenHandler,

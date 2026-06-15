@@ -10,6 +10,7 @@ type Handler struct {
 	*CompanyAliasHandler
 	*EntryHandler
 	*TaskHandler
+	*PageDataHandler
 	*StageHistoryHandler
 	*InboxClipHandler
 	*AiAccessTokenHandler
