@@ -72,6 +72,11 @@ const entryWithDefaults = (input) => ({
   updatedAt: now(),
 });
 
+const entryResponse = (entry) => ({
+  ...entry,
+  companyName: state.companies.find((company) => company.id === entry.companyId)?.name,
+});
+
 const taskWithDefaults = (entryId, input) => ({
   id: nextId("task"),
   entryId,
@@ -120,7 +125,7 @@ const mockApi = http.createServer((req, res) => {
   Promise.resolve()
     .then(async () => {
       if (url.pathname === "/api/v1/entries" && req.method === "GET") {
-        json(res, 200, { entries: state.entries });
+        json(res, 200, { entries: state.entries.map(entryResponse) });
         return;
       }
 
@@ -128,7 +133,7 @@ const mockApi = http.createServer((req, res) => {
         const body = await readJson(req);
         const entry = entryWithDefaults(body);
         state.entries.push(entry);
-        json(res, 201, entry);
+        json(res, 201, entryResponse(entry));
         return;
       }
 
@@ -150,14 +155,14 @@ const mockApi = http.createServer((req, res) => {
         });
         state.companies.push(company);
         state.entries.push(entry);
-        json(res, 201, entry);
+        json(res, 201, entryResponse(entry));
         return;
       }
 
       const entryMatch = url.pathname.match(/^\/api\/v1\/entries\/([^/]+)$/);
       if (entryMatch && req.method === "GET") {
         const entry = state.entries.find((item) => item.id === entryMatch[1]);
-        json(res, entry ? 200 : 404, entry ?? { message: "not found" });
+        json(res, entry ? 200 : 404, entry ? entryResponse(entry) : { message: "not found" });
         return;
       }
 
@@ -169,7 +174,7 @@ const mockApi = http.createServer((req, res) => {
           return;
         }
         Object.assign(entry, body, { updatedAt: now() });
-        json(res, 200, entry);
+        json(res, 200, entryResponse(entry));
         return;
       }
 

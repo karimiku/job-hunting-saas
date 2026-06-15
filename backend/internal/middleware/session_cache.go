@@ -117,8 +117,8 @@ func cloneSessionClaims(claims *SessionClaims) *SessionClaims {
 	if claims == nil {
 		return nil
 	}
-	copy := *claims
-	return &copy
+	cloned := *claims
+	return &cloned
 }
 
 func sessionCacheKey(sessionCookie string) string {
