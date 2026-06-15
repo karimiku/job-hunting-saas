@@ -231,6 +231,7 @@ func run() error {
 	}
 	corsOrigins := allowedOrigins(corsOriginsRaw)
 	router.Use(corsMiddleware(corsOrigins))
+	router.Use(middleware.NewServerTiming())
 
 	router.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
