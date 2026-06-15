@@ -63,7 +63,9 @@ export async function serverFetch<T>(
 }
 
 function serverBackendOrigin(): string {
-  const raw = process.env.BACKEND_API_BASE_URL ?? "http://localhost:8080";
+  const raw =
+    firstEnvValue(["BACKEND_API_BASE_URL", "NEXT_PUBLIC_API_BASE_URL"]) ??
+    "http://localhost:8080";
   const parsed = new URL(raw);
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new Error("BACKEND_API_BASE_URL must use http or https");
@@ -73,6 +75,14 @@ function serverBackendOrigin(): string {
   }
   assertBackendHostAllowed(parsed.hostname);
   return parsed.origin;
+}
+
+function firstEnvValue(envNames: string[]): string | undefined {
+  for (const envName of envNames) {
+    const value = process.env[envName]?.trim();
+    if (value) return value;
+  }
+  return undefined;
 }
 
 function assertBackendHostAllowed(hostname: string) {
