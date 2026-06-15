@@ -884,6 +884,9 @@ components:
         companyId:
           type: string
           format: uuid
+        companyName:
+          type: string
+          description: 一覧レスポンスでは companyId に対応する会社名を返す。取得できない場合は省略。
         route:
           type: string
         source:

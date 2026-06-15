@@ -4,7 +4,7 @@ export { ApiError } from "./client";
 export interface EntryResponse {
   id: string;
   companyId: string;
-  /** 会社名。backend レスポンスには無く、server-resources で companyId から join して埋める。 */
+  /** 会社名。backend が一覧レスポンスで companyId から join して返す。 */
   companyName?: string;
   route: string;
   source: string;

@@ -7,6 +7,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/gen/openapi"
 	"github.com/karimiku/job-hunting-saas/internal/middleware"
+	companyuc "github.com/karimiku/job-hunting-saas/internal/usecase/company"
 	entryuc "github.com/karimiku/job-hunting-saas/internal/usecase/entry"
 )
 
@@ -16,6 +17,7 @@ type EntryHandler struct {
 	createWithCompanyUseCase *entryuc.CreateWithCompany
 	getUseCase               *entryuc.Get
 	listUseCase              *entryuc.List
+	listCompaniesUseCase     *companyuc.List
 	updateUseCase            *entryuc.Update
 	deleteUseCase            *entryuc.Delete
 }
@@ -26,6 +28,7 @@ func NewEntryHandler(
 	createWithCompanyUseCase *entryuc.CreateWithCompany,
 	getUseCase *entryuc.Get,
 	listUseCase *entryuc.List,
+	listCompaniesUseCase *companyuc.List,
 	updateUseCase *entryuc.Update,
 	deleteUseCase *entryuc.Delete,
 ) *EntryHandler {
@@ -34,6 +37,7 @@ func NewEntryHandler(
 		createWithCompanyUseCase: createWithCompanyUseCase,
 		getUseCase:               getUseCase,
 		listUseCase:              listUseCase,
+		listCompaniesUseCase:     listCompaniesUseCase,
 		updateUseCase:            updateUseCase,
 		deleteUseCase:            deleteUseCase,
 	}
@@ -142,9 +146,27 @@ func (h *EntryHandler) ListEntries(w http.ResponseWriter, r *http.Request, param
 		return
 	}
 
+	companyNameByID := map[entity.CompanyID]string{}
+	if h.listCompaniesUseCase != nil && len(result.Entries) > 0 {
+		companyList, err := h.listCompaniesUseCase.Execute(r.Context(), companyuc.ListInput{
+			UserID: middleware.GetUserID(r.Context()),
+		})
+		if err != nil {
+			writeError(w, err)
+			return
+		}
+		companyNameByID = make(map[entity.CompanyID]string, len(companyList.Companies))
+		for _, company := range companyList.Companies {
+			companyNameByID[company.ID()] = company.Name().String()
+		}
+	}
+
 	items := make([]openapi.EntryResponse, len(result.Entries))
 	for i, entry := range result.Entries {
 		items[i] = toEntryResponse(entry)
+		if companyName, ok := companyNameByID[entry.CompanyID()]; ok {
+			items[i].CompanyName = &companyName
+		}
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{

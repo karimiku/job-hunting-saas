@@ -8,7 +8,7 @@ interface AppShellProps {
   userName?: string;
   userSubtitle?: string;
   /** サイドバーのバッジ用カウント。Server Component で集計して渡す。 */
-  navCounts?: NavCounts;
+  navCounts?: Partial<NavCounts>;
 }
 
 /** Entré アプリ全体のシェル。デスクトップ＝サイドバー、モバイル＝ボトムタブ。 */

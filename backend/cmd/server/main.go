@@ -170,6 +170,7 @@ func run() error {
 		entryuc.NewCreateWithCompany(entryWithCompanyRepo),
 		entryuc.NewGet(entryRepo),
 		entryuc.NewList(entryRepo),
+		companyuc.NewList(companyRepo),
 		entryuc.NewUpdate(entryRepo),
 		entryuc.NewDelete(entryRepo),
 	)

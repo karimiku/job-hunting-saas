@@ -24,6 +24,13 @@ describe("Sidebar", () => {
     expect(screen.queryByTestId("nav-count-inbox")).toBeNull();
   });
 
+  it("一部のカウントだけ渡された場合は未指定バッジを出さない", () => {
+    render(<Sidebar navCounts={{ entry: 2, task: 1 }} />);
+    expect(screen.getByTestId("nav-count-entry")).toHaveTextContent("2");
+    expect(screen.getByTestId("nav-count-task")).toHaveTextContent("1");
+    expect(screen.queryByTestId("nav-count-inbox")).toBeNull();
+  });
+
   it("userName を表示する", () => {
     render(<Sidebar userName="山田 太郎" navCounts={{ entry: 1, task: 1, inbox: 1 }} />);
     expect(screen.getByText("山田 太郎")).toBeInTheDocument();
