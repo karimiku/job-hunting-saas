@@ -10,6 +10,7 @@ const firebaseAuthProxyHost = trustedProxyHost({
 
 const backendOrigin = trustedProxyOrigin({
   envName: "BACKEND_API_BASE_URL",
+  legacyEnvNames: ["NEXT_PUBLIC_API_BASE_URL"],
   fallback: "http://localhost:8080",
   allowedHostsEnvName: "BACKEND_API_ALLOWED_HOSTS",
   defaultAllowedHosts: ["localhost", "127.0.0.1", "api.entre.kamiriku.com"],
@@ -63,16 +64,18 @@ export default nextConfig;
 
 function trustedProxyOrigin({
   envName,
+  legacyEnvNames = [],
   fallback,
   allowedHostsEnvName,
   defaultAllowedHosts,
 }: {
   envName: string;
+  legacyEnvNames?: string[];
   fallback: string;
   allowedHostsEnvName: string;
   defaultAllowedHosts: string[];
 }): string {
-  const raw = process.env[envName]?.trim() || fallback;
+  const raw = firstEnvValue([envName, ...legacyEnvNames]) || fallback;
   let parsed: URL;
   try {
     parsed = new URL(raw);
@@ -87,6 +90,14 @@ function trustedProxyOrigin({
   }
   assertHostAllowed(parsed.hostname, allowedHosts(allowedHostsEnvName, defaultAllowedHosts), envName);
   return parsed.origin;
+}
+
+function firstEnvValue(envNames: string[]): string {
+  for (const envName of envNames) {
+    const value = process.env[envName]?.trim();
+    if (value) return value;
+  }
+  return "";
 }
 
 function trustedProxyHost({
