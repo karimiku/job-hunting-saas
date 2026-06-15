@@ -326,6 +326,13 @@ type CreateTaskRequest struct {
 // CreateTaskRequestType defines model for CreateTaskRequest.Type.
 type CreateTaskRequestType string
 
+// CurrentUserResponse defines model for CurrentUserResponse.
+type CurrentUserResponse struct {
+	Email string `json:"email"`
+	Id    string `json:"id"`
+	Name  string `json:"name"`
+}
+
 // EntryResponse defines model for EntryResponse.
 type EntryResponse struct {
 	CompanyId openapi_types.UUID `json:"companyId"`
@@ -379,6 +386,13 @@ type StageHistoryResponse struct {
 	Note       string             `json:"note"`
 	StageKind  string             `json:"stageKind"`
 	StageLabel string             `json:"stageLabel"`
+}
+
+// TaskPageDataResponse defines model for TaskPageDataResponse.
+type TaskPageDataResponse struct {
+	Entries []EntryResponse     `json:"entries"`
+	Tasks   []TaskResponse      `json:"tasks"`
+	User    CurrentUserResponse `json:"user"`
 }
 
 // TaskResponse defines model for TaskResponse.
@@ -588,6 +602,9 @@ type ServerInterface interface {
 	// ページクリップを削除する
 	// (DELETE /api/v1/inbox/clips/{clipId})
 	DeleteInboxClip(w http.ResponseWriter, r *http.Request, clipId ClipId)
+	// タスク画面の初期表示データをまとめて取得する
+	// (GET /api/v1/page-data/task)
+	GetTaskPageData(w http.ResponseWriter, r *http.Request)
 	// ログインユーザーの全タスク一覧を取得する
 	// (GET /api/v1/tasks)
 	ListAllTasks(w http.ResponseWriter, r *http.Request)
@@ -768,6 +785,12 @@ func (_ Unimplemented) CreateInboxClip(w http.ResponseWriter, r *http.Request) {
 // ページクリップを削除する
 // (DELETE /api/v1/inbox/clips/{clipId})
 func (_ Unimplemented) DeleteInboxClip(w http.ResponseWriter, r *http.Request, clipId ClipId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// タスク画面の初期表示データをまとめて取得する
+// (GET /api/v1/page-data/task)
+func (_ Unimplemented) GetTaskPageData(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1406,6 +1429,20 @@ func (siw *ServerInterfaceWrapper) DeleteInboxClip(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// GetTaskPageData operation middleware
+func (siw *ServerInterfaceWrapper) GetTaskPageData(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetTaskPageData(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListAllTasks operation middleware
 func (siw *ServerInterfaceWrapper) ListAllTasks(w http.ResponseWriter, r *http.Request) {
 
@@ -1702,6 +1739,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v1/inbox/clips/{clipId}", wrapper.DeleteInboxClip)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/page-data/task", wrapper.GetTaskPageData)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v1/tasks", wrapper.ListAllTasks)

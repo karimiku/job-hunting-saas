@@ -10,10 +10,12 @@ import {
   attachCompanyNamesToTasks,
   buildNavCounts,
   getNavCountsServer,
+  getTaskPageDataServer,
   listAllTasksServer,
   listEntriesWithCompanyNamesServer,
   listTasksServer,
 } from "./server-resources";
+import { ApiError } from "./client-types";
 
 beforeEach(() => {
   serverFetch.mockReset();
@@ -74,6 +76,46 @@ describe("listTasksServer", () => {
     expect(tasks).toHaveLength(1);
     expect(serverFetch).toHaveBeenCalledTimes(1);
     expect(serverFetch).toHaveBeenCalledWith("/api/v1/tasks", undefined);
+  });
+});
+
+describe("getTaskPageDataServer", () => {
+  it("/task 用の集約APIを1回だけ呼び、tasks に会社名を付けて返す", async () => {
+    serverFetch.mockResolvedValue({
+      user: { id: "u1", email: "student@example.com", name: "Student" },
+      entries: [
+        {
+          id: "e1",
+          companyId: "c1",
+          companyName: "○○商事",
+          route: "",
+          source: "",
+          status: "open",
+          stageKind: "pre_entry",
+          stageLabel: "",
+          memo: "",
+          createdAt: "x",
+          updatedAt: "x",
+        },
+      ],
+      tasks: [
+        { id: "t1", entryId: "e1", title: "ES提出", type: "deadline", status: "todo", dueDate: null, memo: "", createdAt: "x", updatedAt: "x" },
+      ],
+    });
+
+    const pageData = await getTaskPageDataServer();
+
+    expect(pageData?.user.email).toBe("student@example.com");
+    expect(pageData?.entries).toHaveLength(1);
+    expect(pageData?.tasks[0]?.companyName).toBe("○○商事");
+    expect(serverFetch).toHaveBeenCalledTimes(1);
+    expect(serverFetch).toHaveBeenCalledWith("/api/v1/page-data/task", undefined);
+  });
+
+  it("401 は未ログインとして null を返す", async () => {
+    serverFetch.mockRejectedValue(new ApiError(401, "Unauthorized"));
+
+    await expect(getTaskPageDataServer()).resolves.toBeNull();
   });
 });
 

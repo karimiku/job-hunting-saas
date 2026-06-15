@@ -5,6 +5,7 @@
 // SSR 化済み画面はここを使う。Client Component 配下のフックや mutate 系は引き続き client.ts。
 
 import { serverFetch } from "./server";
+import { ApiError, type AuthUser } from "./client-types";
 import type { EntryResponse, ListEntriesParams } from "./entries";
 import type { CompanyResponse } from "./companies";
 import type { InboxClipResponse } from "./inboxClips";
@@ -79,6 +80,33 @@ export function attachCompanyNamesToTasks(
     ...task,
     companyName: companyNameByEntryId.get(task.entryId),
   }));
+}
+
+interface TaskPageDataResponse {
+  user: AuthUser;
+  entries: EntryResponse[];
+  tasks: TaskResponse[];
+}
+
+export interface TaskPageData {
+  user: AuthUser;
+  entries: EntryResponse[];
+  tasks: TaskWithEntry[];
+}
+
+// /task の初期表示に必要な user / entries / tasks を1回の backend fetch で取得する。
+export async function getTaskPageDataServer(): Promise<TaskPageData | null> {
+  try {
+    const data = await serverFetch<TaskPageDataResponse>("/api/v1/page-data/task");
+    return {
+      user: data.user,
+      entries: data.entries,
+      tasks: attachCompanyNamesToTasks(data.tasks, data.entries),
+    };
+  } catch (e) {
+    if (e instanceof ApiError && e.unauthorized) return null;
+    throw e;
+  }
 }
 
 // 1人のユーザーの全タスクを1回の API で取得し、渡された entries から会社名を join する。

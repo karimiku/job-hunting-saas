@@ -1,25 +1,14 @@
 // Server Component。ユーザーの全タスクを SSR で取得し、interactive 部分は Client に委譲する。
 
 import { redirect } from "next/navigation";
-import { getCurrentUserServer } from "@/lib/auth-server";
-import {
-  attachCompanyNamesToTasks,
-  listEntriesWithCompanyNamesServer,
-  listTasksServer,
-} from "@/lib/api/server-resources";
+import { getTaskPageDataServer } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { TaskListView } from "@/components/entre/TaskListView";
 
 export default async function TaskPage() {
-  // user / entries / tasks は独立なので並列取得 (auth を待ってから始めると RTT が1段増える)。
-  // /task の初期表示には inbox 件数は不要なので取得しない。
-  const [user, entries, rawTasks] = await Promise.all([
-    getCurrentUserServer(),
-    listEntriesWithCompanyNamesServer().catch(() => []),
-    listTasksServer().catch(() => []),
-  ]);
-  if (!user) redirect("/login");
-  const tasks = attachCompanyNamesToTasks(rawTasks, entries);
+  const pageData = await getTaskPageDataServer();
+  if (!pageData) redirect("/login");
+  const { user, entries, tasks } = pageData;
 
   const navCounts = {
     entry: entries.length,
