@@ -328,17 +328,20 @@ type CreateTaskRequestType string
 
 // EntryResponse defines model for EntryResponse.
 type EntryResponse struct {
-	CompanyId  openapi_types.UUID `json:"companyId"`
-	CreatedAt  time.Time          `json:"createdAt"`
-	Id         openapi_types.UUID `json:"id"`
-	Memo       string             `json:"memo"`
-	Route      string             `json:"route"`
-	Source     string             `json:"source"`
-	SourceUrl  *string            `json:"sourceUrl,omitempty"`
-	StageKind  string             `json:"stageKind"`
-	StageLabel string             `json:"stageLabel"`
-	Status     string             `json:"status"`
-	UpdatedAt  time.Time          `json:"updatedAt"`
+	CompanyId openapi_types.UUID `json:"companyId"`
+
+	// CompanyName 一覧レスポンスでは companyId に対応する会社名を返す。取得できない場合は省略。
+	CompanyName *string            `json:"companyName,omitempty"`
+	CreatedAt   time.Time          `json:"createdAt"`
+	Id          openapi_types.UUID `json:"id"`
+	Memo        string             `json:"memo"`
+	Route       string             `json:"route"`
+	Source      string             `json:"source"`
+	SourceUrl   *string            `json:"sourceUrl,omitempty"`
+	StageKind   string             `json:"stageKind"`
+	StageLabel  string             `json:"stageLabel"`
+	Status      string             `json:"status"`
+	UpdatedAt   time.Time          `json:"updatedAt"`
 }
 
 // ErrorResponse defines model for ErrorResponse.

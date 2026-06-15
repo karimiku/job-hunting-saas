@@ -15,6 +15,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/gen/openapi"
 	"github.com/karimiku/job-hunting-saas/internal/infra/inmemory"
 	"github.com/karimiku/job-hunting-saas/internal/middleware"
+	companyuc "github.com/karimiku/job-hunting-saas/internal/usecase/company"
 	entryuc "github.com/karimiku/job-hunting-saas/internal/usecase/entry"
 )
 
@@ -28,6 +29,7 @@ func setupEntryHandler() (*EntryHandler, *inmemory.EntryRepository, *inmemory.Co
 		entryuc.NewCreateWithCompany(inmemory.NewEntryWithCompanyRepository(companyRepo, entryRepo)),
 		entryuc.NewGet(entryRepo),
 		entryuc.NewList(entryRepo),
+		companyuc.NewList(companyRepo),
 		entryuc.NewUpdate(entryRepo),
 		entryuc.NewDelete(entryRepo),
 	)
@@ -407,6 +409,11 @@ func TestListEntries_NoFilter(t *testing.T) {
 	_ = json.NewDecoder(w.Body).Decode(&resp)
 	if len(resp.Entries) != 2 {
 		t.Errorf("len = %d, want 2", len(resp.Entries))
+	}
+	for _, entry := range resp.Entries {
+		if entry.CompanyName == nil || *entry.CompanyName != "テスト企業" {
+			t.Fatalf("CompanyName = %v, want テスト企業", entry.CompanyName)
+		}
 	}
 }
 

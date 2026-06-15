@@ -131,7 +131,12 @@ func run() error {
 		authenticateUC := useruc.NewAuthenticate(userRepo, extIDRepo)
 		// Firebase SDK 型を handler / middleware に漏らさないため、adapter で DTO に変換する。
 		sessionCreator := fbinfra.NewSessionCreator(fb.Auth)
-		sessionVerifier := fbinfra.NewSessionVerifier(fb.Auth)
+		sessionVerifierCacheTTL, err := firebaseSessionVerifierCacheTTL(os.Getenv("FIREBASE_SESSION_VERIFY_CACHE_TTL"))
+		if err != nil {
+			return err
+		}
+		var sessionVerifier middleware.FirebaseSessionVerifier = fbinfra.NewSessionVerifier(fb.Auth)
+		sessionVerifier = middleware.NewCachedSessionVerifier(sessionVerifier, sessionVerifierCacheTTL)
 		cookieSameSite, err := parseCookieSameSite(os.Getenv("COOKIE_SAME_SITE"))
 		if err != nil {
 			return err
@@ -170,6 +175,7 @@ func run() error {
 		entryuc.NewCreateWithCompany(entryWithCompanyRepo),
 		entryuc.NewGet(entryRepo),
 		entryuc.NewList(entryRepo),
+		companyuc.NewList(companyRepo),
 		entryuc.NewUpdate(entryRepo),
 		entryuc.NewDelete(entryRepo),
 	)
@@ -290,6 +296,21 @@ func parseCookieSameSite(raw string) (http.SameSite, error) {
 	default:
 		return 0, fmt.Errorf("invalid COOKIE_SAME_SITE %q (want lax, strict, or none)", raw)
 	}
+}
+
+func firebaseSessionVerifierCacheTTL(raw string) (time.Duration, error) {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return 30 * time.Second, nil
+	}
+	ttl, err := time.ParseDuration(value)
+	if err != nil {
+		return 0, fmt.Errorf("invalid FIREBASE_SESSION_VERIFY_CACHE_TTL %q (want duration like 30s or 1m): %w", raw, err)
+	}
+	if ttl < 0 {
+		return 0, fmt.Errorf("invalid FIREBASE_SESSION_VERIFY_CACHE_TTL %q (must not be negative)", raw)
+	}
+	return ttl, nil
 }
 
 // corsMiddleware はフロントエンドとの Cookie 付き通信を許可する最小 CORS 実装。

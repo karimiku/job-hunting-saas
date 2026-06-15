@@ -44,7 +44,7 @@ export function Sidebar({
   userName?: string;
   userSubtitle?: string;
   /** Server Component から渡される実カウント。未指定の画面ではバッジを出さない。 */
-  navCounts?: NavCounts;
+  navCounts?: Partial<NavCounts>;
 }) {
   const pathname = usePathname();
 

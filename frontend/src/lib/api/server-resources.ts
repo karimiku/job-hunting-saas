@@ -38,12 +38,7 @@ export async function listCompaniesServer(): Promise<CompanyResponse[]> {
 export async function listEntriesWithCompanyNamesServer(
   params: ListEntriesParams = {},
 ): Promise<EntryResponse[]> {
-  const [entries, companies] = await Promise.all([
-    listEntriesServer(params),
-    listCompaniesServer().catch(() => [] as CompanyResponse[]),
-  ]);
-  const nameById = new Map(companies.map((c) => [c.id, c.name]));
-  return entries.map((e) => ({ ...e, companyName: nameById.get(e.companyId) }));
+  return listEntriesServer(params);
 }
 
 export async function listInboxClipsServer(): Promise<InboxClipResponse[]> {

@@ -11,6 +11,7 @@ import {
   buildNavCounts,
   getNavCountsServer,
   listAllTasksServer,
+  listEntriesWithCompanyNamesServer,
   listTasksServer,
 } from "./server-resources";
 
@@ -73,6 +74,34 @@ describe("listTasksServer", () => {
     expect(tasks).toHaveLength(1);
     expect(serverFetch).toHaveBeenCalledTimes(1);
     expect(serverFetch).toHaveBeenCalledWith("/api/v1/tasks", undefined);
+  });
+});
+
+describe("listEntriesWithCompanyNamesServer", () => {
+  it("backend が会社名を同梱する entries API だけを呼ぶ", async () => {
+    serverFetch.mockResolvedValue({
+      entries: [
+        {
+          id: "e1",
+          companyId: "c1",
+          companyName: "○○商事",
+          route: "",
+          source: "",
+          status: "open",
+          stageKind: "pre_entry",
+          stageLabel: "",
+          memo: "",
+          createdAt: "x",
+          updatedAt: "x",
+        },
+      ],
+    });
+
+    await expect(listEntriesWithCompanyNamesServer()).resolves.toEqual([
+      expect.objectContaining({ id: "e1", companyName: "○○商事" }),
+    ]);
+    expect(serverFetch).toHaveBeenCalledTimes(1);
+    expect(serverFetch).toHaveBeenCalledWith("/api/v1/entries", undefined);
   });
 });
 
