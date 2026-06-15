@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -43,8 +42,7 @@ func NewTaskHandler(
 // CreateTask は POST /entries/{entryId}/tasks の handler。リクエストボディからタスクを新規作成する。
 func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request, entryId openapi.EntryId) {
 	var req openapi.CreateTaskRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, openapi.ErrorResponse{Message: "invalid request body"})
+	if !decodeJSONBody(w, r, &req, maxDefaultJSONBodyBytes) {
 		return
 	}
 
@@ -134,8 +132,7 @@ func (h *TaskHandler) ListAllTasks(w http.ResponseWriter, r *http.Request) {
 // HTTP層で現在値を取得し、未送信フィールドを現在値で埋めてから UseCase に渡す。
 func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request, taskId openapi.TaskId) {
 	var req openapi.UpdateTaskRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, openapi.ErrorResponse{Message: "invalid request body"})
+	if !decodeJSONBody(w, r, &req, maxDefaultJSONBodyBytes) {
 		return
 	}
 

@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -41,8 +40,7 @@ func NewCompanyHandler(
 // CreateCompany は POST /companies の handler。リクエストボディから企業を新規作成する。
 func (h *CompanyHandler) CreateCompany(w http.ResponseWriter, r *http.Request) {
 	var createReq openapi.CreateCompanyRequest
-	if err := json.NewDecoder(r.Body).Decode(&createReq); err != nil {
-		writeJSON(w, http.StatusBadRequest, openapi.ErrorResponse{Message: "invalid request body"})
+	if !decodeJSONBody(w, r, &createReq, maxDefaultJSONBodyBytes) {
 		return
 	}
 
@@ -104,8 +102,7 @@ func (h *CompanyHandler) ListCompanies(w http.ResponseWriter, r *http.Request) {
 // HTTP層で現在値を取得し、未送信フィールドを現在値で埋めてから UseCase に渡す。
 func (h *CompanyHandler) UpdateCompany(w http.ResponseWriter, r *http.Request, companyId openapi.CompanyId) {
 	var updateReq openapi.UpdateCompanyRequest
-	if err := json.NewDecoder(r.Body).Decode(&updateReq); err != nil {
-		writeJSON(w, http.StatusBadRequest, openapi.ErrorResponse{Message: "invalid request body"})
+	if !decodeJSONBody(w, r, &updateReq, maxDefaultJSONBodyBytes) {
 		return
 	}
 

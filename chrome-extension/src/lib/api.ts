@@ -3,12 +3,12 @@
 
 const API_BASE =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) ??
-  "http://localhost:8080";
+  (import.meta.env.DEV ? "http://localhost:8080" : "https://api.entre.kamiriku.com");
 
 // Web アプリ (ログイン導線) の URL。401 のときにログインページを開くのに使う。
 export const WEB_BASE =
   (import.meta.env.VITE_WEB_BASE_URL as string | undefined) ??
-  "http://localhost:3000";
+  (import.meta.env.DEV ? "http://localhost:3000" : "https://entre.kamiriku.com");
 
 export interface InboxClipResponse {
   id: string;

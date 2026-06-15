@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -39,17 +37,8 @@ const maxInboxClipBodyBytes = 64 * 1024 // 64KB
 
 // CreateInboxClip は POST /api/v1/inbox/clips のハンドラ。
 func (h *InboxClipHandler) CreateInboxClip(w http.ResponseWriter, r *http.Request) {
-	// 過大なボディで全体を読み込まないよう、デコード前にサイズ上限をかける。
-	r.Body = http.MaxBytesReader(w, r.Body, maxInboxClipBodyBytes)
-
 	var req openapi.CreateInboxClipRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		var maxBytesErr *http.MaxBytesError
-		if errors.As(err, &maxBytesErr) {
-			writeJSON(w, http.StatusRequestEntityTooLarge, openapi.ErrorResponse{Message: "request body too large"})
-			return
-		}
-		writeJSON(w, http.StatusBadRequest, openapi.ErrorResponse{Message: "invalid request body"})
+	if !decodeJSONBody(w, r, &req, maxInboxClipBodyBytes) {
 		return
 	}
 

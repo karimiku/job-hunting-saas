@@ -104,14 +104,15 @@ curl http://localhost:8080/health
 | `FIREBASE_CREDENTIALS_FILE` | service account JSON のパス（gitignore 対象に置く） | `./secrets/service-account.json` |
 | `CORS_ALLOWED_ORIGINS` | カンマ区切りの許可 origin（Web + 任意の拡張） | `http://localhost:3000,chrome-extension://<extension-id>` |
 | `COOKIE_SECURE` | 本番 HTTPS は `true`、localhost は未設定/`false` | `false` |
-| `COOKIE_SAME_SITE` | 拡張から Cookie を送る本番は `none`、localhost は `lax` | `lax` |
+| `COOKIE_SAME_SITE` | 拡張から Cookie を送る本番は `none`、localhost は `lax`。`none` は Origin/Referer CSRF 検証とセットで使う | `lax` |
 
 ### 2. frontend (`frontend/.env.local`)
 
 Firebase Web SDK 設定と API ベース URL。詳細は [frontend/README.md](frontend/README.md)。
 
 ```
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+BACKEND_API_BASE_URL=http://localhost:8080
+BACKEND_API_ALLOWED_HOSTS=localhost,127.0.0.1,api.entre.kamiriku.com
 NEXT_PUBLIC_FIREBASE_API_KEY=...
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
@@ -150,4 +151,4 @@ NEXT_PUBLIC_FIREBASE_APP_ID=...
 ### local と本番 (HTTPS) の Cookie 差
 
 - **local (HTTP)**: `COOKIE_SECURE` 未設定(false) / `COOKIE_SAME_SITE=lax`。
-- **本番 (HTTPS)**: `COOKIE_SECURE=true` / `COOKIE_SAME_SITE=none`。これで拡張 origin からも credentials 付き fetch に Cookie が乗る。`CORS_ALLOWED_ORIGINS` に Web と拡張両方の origin を入れる。
+- **本番 (HTTPS)**: `COOKIE_SECURE=true` / `COOKIE_SAME_SITE=none`。これで拡張 origin からも credentials 付き fetch に Cookie が乗る。`CORS_ALLOWED_ORIGINS` に Web と拡張両方の origin を入れ、backend の Origin/Referer CSRF 検証 allowlist としても使う。

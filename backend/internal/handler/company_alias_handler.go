@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -38,8 +37,7 @@ func NewCompanyAliasHandler(
 // CreateCompanyAlias は POST /api/v1/companies/{companyId}/aliases のハンドラ。
 func (h *CompanyAliasHandler) CreateCompanyAlias(w http.ResponseWriter, r *http.Request, companyId openapi.CompanyId) {
 	var req openapi.CreateCompanyAliasRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, openapi.ErrorResponse{Message: "invalid request body"})
+	if !decodeJSONBody(w, r, &req, maxDefaultJSONBodyBytes) {
 		return
 	}
 

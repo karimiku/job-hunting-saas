@@ -27,6 +27,7 @@
     "https://*.wantedly.com/*",
     "https://*.hrmos.co/*",
     "https://*.green-japan.com/*",
+    "https://api.entre.kamiriku.com/*",
     "https://*.localhost/*",
     "http://localhost:8080/*"
   ],

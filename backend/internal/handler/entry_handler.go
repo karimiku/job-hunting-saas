@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -43,8 +42,7 @@ func NewEntryHandler(
 // CreateEntry は POST /entries の handler。リクエストボディからエントリーを新規作成する。
 func (h *EntryHandler) CreateEntry(w http.ResponseWriter, r *http.Request) {
 	var req openapi.CreateEntryRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, openapi.ErrorResponse{Message: "invalid request body"})
+	if !decodeJSONBody(w, r, &req, maxDefaultJSONBodyBytes) {
 		return
 	}
 
@@ -77,8 +75,7 @@ func (h *EntryHandler) CreateEntry(w http.ResponseWriter, r *http.Request) {
 // Company と Entry を部分作成なしで登録する。
 func (h *EntryHandler) CreateEntryWithCompany(w http.ResponseWriter, r *http.Request) {
 	var req openapi.CreateEntryWithCompanyRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, openapi.ErrorResponse{Message: "invalid request body"})
+	if !decodeJSONBody(w, r, &req, maxDefaultJSONBodyBytes) {
 		return
 	}
 
@@ -160,8 +157,7 @@ func (h *EntryHandler) ListEntries(w http.ResponseWriter, r *http.Request, param
 // HTTP層で現在値を取得し、未送信フィールドを現在値で埋めてから UseCase に渡す。
 func (h *EntryHandler) UpdateEntry(w http.ResponseWriter, r *http.Request, entryId openapi.EntryId) {
 	var req openapi.UpdateEntryRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSON(w, http.StatusBadRequest, openapi.ErrorResponse{Message: "invalid request body"})
+	if !decodeJSONBody(w, r, &req, maxDefaultJSONBodyBytes) {
 		return
 	}
 

@@ -4,7 +4,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -120,7 +119,10 @@ func (h *AuthHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var body createSessionRequest
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.IDToken == "" {
+	if !decodeJSONBody(w, r, &body, maxDefaultJSONBodyBytes) {
+		return
+	}
+	if body.IDToken == "" {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}

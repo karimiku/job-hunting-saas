@@ -225,10 +225,11 @@ func run() error {
 	router := chi.NewRouter()
 	// CORS_ALLOWED_ORIGINS (新): カンマ区切りで複数 origin を許可 (chrome 拡張等を追加するときに使う)。
 	// CORS_ALLOWED_ORIGIN (旧, 後方互換): 単一 origin。両方セットされていれば新の方を優先。
-	corsOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
-	if corsOrigins == "" {
-		corsOrigins = os.Getenv("CORS_ALLOWED_ORIGIN")
+	corsOriginsRaw := os.Getenv("CORS_ALLOWED_ORIGINS")
+	if corsOriginsRaw == "" {
+		corsOriginsRaw = os.Getenv("CORS_ALLOWED_ORIGIN")
 	}
+	corsOrigins := allowedOrigins(corsOriginsRaw)
 	router.Use(corsMiddleware(corsOrigins))
 
 	router.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
@@ -240,13 +241,17 @@ func run() error {
 
 	// 認証不要ルート（ログイン / ログアウト）
 	if authHandler != nil {
-		authHandler.PublicRoutes(router)
+		router.Group(func(r chi.Router) {
+			r.Use(middleware.NewOriginGuard(corsOrigins))
+			authHandler.PublicRoutes(r)
+		})
 	}
 
 	// 認証必須ルート
 	router.Group(func(r chi.Router) {
 		if authMiddleware != nil {
 			r.Use(authMiddleware)
+			r.Use(middleware.NewSessionCSRFProtection(corsOrigins))
 		}
 		if authHandler != nil {
 			authHandler.ProtectedRoutes(r)
@@ -292,12 +297,24 @@ func parseCookieSameSite(raw string) (http.SameSite, error) {
 // Chrome 拡張から呼びたい場合は `chrome-extension://<extension-id>` を allowlist に追加する。
 // 拡張の popup/background から host_permissions 付きで呼ぶ場合は SameSite=Strict の
 // session cookie 共有を検証する。動かない場合は拡張専用 token 方式に切り替える。
-func corsMiddleware(allowedOriginsRaw string) func(http.Handler) http.Handler {
+func allowedOrigins(allowedOriginsRaw string) []string {
 	if allowedOriginsRaw == "" {
 		allowedOriginsRaw = "http://localhost:3000"
 	}
-	allowed := make(map[string]struct{})
+	origins := make([]string, 0)
 	for _, o := range strings.Split(allowedOriginsRaw, ",") {
+		o = strings.TrimSpace(o)
+		if o != "" {
+			o = strings.TrimRight(o, "/")
+			origins = append(origins, o)
+		}
+	}
+	return origins
+}
+
+func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
+	allowed := make(map[string]struct{})
+	for _, o := range allowedOrigins {
 		o = strings.TrimSpace(o)
 		if o != "" {
 			allowed[o] = struct{}{}
