@@ -23,6 +23,7 @@ export async function serverFetch<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
+  const startedAt = Date.now();
   const cookieStore = await cookies();
   const incomingHeaders = await headers();
   const cookieHeader = cookieStore.toString();
@@ -46,6 +47,8 @@ export async function serverFetch<T>(
     headers: outgoingHeaders,
   });
 
+  logServerFetchTiming(path, init.method ?? "GET", res, Date.now() - startedAt);
+
   if (!res.ok) {
     let message = `HTTP ${res.status}`;
     try {
@@ -60,6 +63,16 @@ export async function serverFetch<T>(
     return undefined as T;
   }
   return res.json() as Promise<T>;
+}
+
+function logServerFetchTiming(path: string, method: string, res: Response, durationMs: number) {
+  if (process.env.ENTRE_SERVER_FETCH_LOG !== "1") return;
+
+  const serverTiming = res.headers.get("server-timing");
+  const timingSuffix = serverTiming ? ` server-timing="${serverTiming}"` : "";
+  console.info(
+    `[serverFetch] ${method.toUpperCase()} ${path} -> ${res.status} ${durationMs}ms${timingSuffix}`,
+  );
 }
 
 function serverBackendOrigin(): string {

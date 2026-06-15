@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
@@ -105,7 +106,9 @@ func NewAuthWithBearer(
 			ctx := r.Context()
 
 			if header := strings.TrimSpace(r.Header.Get("Authorization")); header != "" {
+				startedAt := time.Now()
 				userID, ok, err := verifyBearer(ctx, header, bearerVerifier)
+				addServerTimingSince(ctx, "auth_bearer", startedAt)
 				if err != nil {
 					if errors.Is(err, value.ErrAIAccessTokenInvalid) {
 						http.Error(w, "unauthenticated", http.StatusUnauthorized)
@@ -130,14 +133,18 @@ func NewAuthWithBearer(
 				return
 			}
 
+			startedAt := time.Now()
 			claims, err := fbAuth.VerifySessionCookie(ctx, cookie.Value)
+			addServerTimingSince(ctx, "firebase_verify_session_cookie", startedAt)
 			if err != nil {
 				// 失効・改ざん・期限切れを区別せずに 401 を返す
 				http.Error(w, "unauthenticated", http.StatusUnauthorized)
 				return
 			}
 
+			startedAt = time.Now()
 			identity, err := extIDRepo.FindByProviderAndSubject(ctx, value.AuthProviderGoogle(), claims.UID)
+			addServerTimingSince(ctx, "external_identity_lookup", startedAt)
 			if err != nil {
 				if errors.Is(err, repository.ErrNotFound) {
 					// Session は有効だが DB にユーザーがいない異常系

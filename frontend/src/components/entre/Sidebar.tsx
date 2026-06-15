@@ -71,6 +71,7 @@ export function Sidebar({
             <Link
               key={it.k}
               href={it.href}
+              prefetch={false}
               className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-xs font-semibold transition-all ${
                 active
                   ? "bg-sage text-white"
@@ -100,6 +101,7 @@ export function Sidebar({
       {/* User card */}
       <Link
         href="/profile"
+        prefetch={false}
         className="flex items-center gap-2 rounded-lg px-1.5 py-2 transition-colors hover:bg-line-2"
       >
         <div className="grid h-[30px] w-[30px] place-items-center rounded-full bg-sage-soft text-sage">
@@ -136,6 +138,7 @@ export function MobileTabBar() {
           <Link
             key={t.k}
             href={t.href}
+            prefetch={false}
             className={`flex flex-1 flex-col items-center gap-0.5 transition-transform ${
               active ? "-translate-y-0.5 text-sage" : "text-ink-3"
             }`}
