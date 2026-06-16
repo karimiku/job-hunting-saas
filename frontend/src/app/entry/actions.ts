@@ -6,6 +6,7 @@
 // 含めるため、Client 側の router.refresh() も不要になる。
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { serverFetch } from "@/lib/api/server";
 import type { EntryResponse, UpdateEntryInput } from "@/lib/api/entries";
 import type { UpsertSelectionFlowInput } from "@/lib/api/selectionFlows";
@@ -20,6 +21,11 @@ export interface UpdateEntryResult {
 export interface CreateTaskResult {
   ok: boolean;
   task?: TaskResponse;
+  error?: string;
+}
+
+export interface DeleteEntryResult {
+  ok: boolean;
   error?: string;
 }
 
@@ -102,6 +108,23 @@ export async function createTaskForEntryAction(
   revalidatePath("/task");
   revalidatePath("/dashboard");
   return { ok: true, task };
+}
+
+export async function deleteEntryAction(
+  entryId: string,
+): Promise<DeleteEntryResult> {
+  try {
+    await serverFetch<void>(`/api/v1/entries/${entryId}`, {
+      method: "DELETE",
+    });
+  } catch {
+    return { ok: false, error: "Entryの削除に失敗しました" };
+  }
+  revalidatePath("/entry");
+  revalidatePath("/task");
+  revalidatePath("/kanban");
+  revalidatePath("/dashboard");
+  redirect("/entry");
 }
 
 function revalidateEntrySurfaces(entryId: string) {

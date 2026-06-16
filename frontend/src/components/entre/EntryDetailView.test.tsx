@@ -11,6 +11,7 @@ const {
   updateEntryAction,
   updateSelectionFlowCurrentStageAction,
   createTaskForEntryAction,
+  deleteEntryAction,
   setTaskStatusAction,
   deleteTaskAction,
 } =
@@ -18,6 +19,7 @@ const {
     updateEntryAction: vi.fn(),
     updateSelectionFlowCurrentStageAction: vi.fn(),
     createTaskForEntryAction: vi.fn(),
+    deleteEntryAction: vi.fn(),
     setTaskStatusAction: vi.fn(),
     deleteTaskAction: vi.fn(),
   }));
@@ -26,6 +28,7 @@ vi.mock("@/app/entry/actions", () => ({
   updateEntryAction,
   updateSelectionFlowCurrentStageAction,
   createTaskForEntryAction,
+  deleteEntryAction,
 }));
 vi.mock("@/app/task/actions", () => ({ setTaskStatusAction, deleteTaskAction }));
 
@@ -75,6 +78,7 @@ describe("EntryDetailView", () => {
       },
     });
     createTaskForEntryAction.mockReset();
+    deleteEntryAction.mockReset().mockResolvedValue({ ok: true });
     setTaskStatusAction.mockReset().mockResolvedValue({ ok: true, status: "done" });
     deleteTaskAction.mockReset().mockResolvedValue({ ok: true });
   });
@@ -201,5 +205,31 @@ describe("EntryDetailView", () => {
 
     await waitFor(() => expect(deleteTaskAction).toHaveBeenCalledWith("t1", "e1"));
     await waitFor(() => expect(screen.queryByText("ES提出")).not.toBeInTheDocument());
+  });
+
+  it("Entry詳細からEntryを削除できる", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    render(
+      <EntryDetailView
+        initialEntry={sample({ companyName: "テスト商事" })}
+        initialTasks={[]}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "テスト商事 のEntryを削除" }));
+
+    await waitFor(() => expect(deleteEntryAction).toHaveBeenCalledWith("e1"));
+  });
+
+  it("Entry削除に失敗したらエラーを表示する", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    deleteEntryAction.mockResolvedValue({ ok: false, error: "Entryの削除に失敗しました" });
+
+    render(<EntryDetailView initialEntry={sample({ companyName: "テスト商事" })} initialTasks={[]} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "テスト商事 のEntryを削除" }));
+
+    expect(await screen.findByText("Entryの削除に失敗しました")).toBeInTheDocument();
   });
 });

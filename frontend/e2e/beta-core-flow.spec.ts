@@ -44,6 +44,7 @@ test.describe("Beta core flow — 保存箱からEntry/Kanban/Task管理", () =>
       .getByRole("button", { name: /Entryを作成して開く/ })
       .click();
     await page.waitForURL(/\/entry\/[^/]+$/);
+    const entryPath = new URL(page.url()).pathname;
     await expect(page.getByRole("heading", { name: company })).toBeVisible();
     await expect(page.getByText("MockNavi · 本選考")).toBeVisible();
     await expect(
@@ -81,5 +82,21 @@ test.describe("Beta core flow — 保存箱からEntry/Kanban/Task管理", () =>
     await expect(
       taskRow.getByRole("button", { name: "タスク未完了に戻す" }),
     ).toHaveAttribute("aria-pressed", "true");
+
+    await page.goto(entryPath);
+    const deleteEntryButton = page.getByRole("button", {
+      name: `${company} のEntryを削除`,
+    });
+    await expect(deleteEntryButton).toBeVisible();
+    page.once("dialog", async (dialog) => {
+      expect(dialog.message()).toContain(`${company}」のEntryを削除しますか？`);
+      await dialog.accept();
+    });
+    await deleteEntryButton.click();
+    await page.waitForURL(/\/entry$/);
+    await expect(page.getByText(company)).toHaveCount(0);
+
+    await page.goto("/task");
+    await expect(page.getByText(taskTitle)).toHaveCount(0);
   });
 });
