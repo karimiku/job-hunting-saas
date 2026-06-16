@@ -6,9 +6,13 @@ import (
 )
 
 var (
-	ErrSelectionFlowSourceEmpty   = errors.New("selection flow source must not be empty")
+	// ErrSelectionFlowSourceEmpty は source が空文字のときに返されるエラー。
+	ErrSelectionFlowSourceEmpty = errors.New("selection flow source must not be empty")
+	// ErrSelectionFlowSourceInvalid は source が未定義値のときに返されるエラー。
 	ErrSelectionFlowSourceInvalid = errors.New("selection flow source is invalid")
-	ErrSelectionStagePosition     = errors.New("selection stage position must be positive")
+	// ErrSelectionStagePosition は stage position が1未満のときに返されるエラー。
+	ErrSelectionStagePosition = errors.New("selection stage position must be positive")
+	// ErrSelectionConfidenceInvalid は confidence が0-100の範囲外のときに返されるエラー。
 	ErrSelectionConfidenceInvalid = errors.New("selection flow confidence must be between 0 and 100")
 )
 

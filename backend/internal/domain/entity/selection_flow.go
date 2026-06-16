@@ -47,12 +47,23 @@ func ReconstructSelectionStage(
 	}
 }
 
-func (s *SelectionStage) ID() SelectionStageID    { return s.id }
+// ID は SelectionStage のIDを返す。
+func (s *SelectionStage) ID() SelectionStageID { return s.id }
+
+// FlowID は所属する SelectionFlow のIDを返す。
 func (s *SelectionStage) FlowID() SelectionFlowID { return s.flowID }
-func (s *SelectionStage) Position() int           { return s.position }
-func (s *SelectionStage) Stage() value.Stage      { return s.stage }
-func (s *SelectionStage) EvidenceText() string    { return s.evidenceText }
-func (s *SelectionStage) CreatedAt() time.Time    { return s.createdAt }
+
+// Position は選考フロー内の1始まり順序を返す。
+func (s *SelectionStage) Position() int { return s.position }
+
+// Stage は選考ステージの種別と表示名を返す。
+func (s *SelectionStage) Stage() value.Stage { return s.stage }
+
+// EvidenceText はステージ推定の根拠テキストを返す。
+func (s *SelectionStage) EvidenceText() string { return s.evidenceText }
+
+// CreatedAt は SelectionStage の作成日時を返す。
+func (s *SelectionStage) CreatedAt() time.Time { return s.createdAt }
 
 // SelectionFlow はEntryごとに可変な実選考フローを表す集約。
 type SelectionFlow struct {
@@ -123,16 +134,33 @@ func ReconstructSelectionFlow(
 	}
 }
 
-func (f *SelectionFlow) ID() SelectionFlowID               { return f.id }
-func (f *SelectionFlow) EntryID() EntryID                  { return f.entryID }
+// ID は SelectionFlow のIDを返す。
+func (f *SelectionFlow) ID() SelectionFlowID { return f.id }
+
+// EntryID は紐づくEntryのIDを返す。
+func (f *SelectionFlow) EntryID() EntryID { return f.entryID }
+
+// Source は選考フローの作成元を返す。
 func (f *SelectionFlow) Source() value.SelectionFlowSource { return f.source }
-func (f *SelectionFlow) CurrentStagePosition() int         { return f.currentStagePosition }
-func (f *SelectionFlow) Confidence() *int                  { return f.confidence }
-func (f *SelectionFlow) InboxClipID() *InboxClipID         { return f.inboxClipID }
+
+// CurrentStagePosition は現在ステージの1始まり順序を返す。
+func (f *SelectionFlow) CurrentStagePosition() int { return f.currentStagePosition }
+
+// Confidence はAI抽出時の信頼度を返す。
+func (f *SelectionFlow) Confidence() *int { return f.confidence }
+
+// InboxClipID はInbox由来の場合のClip IDを返す。
+func (f *SelectionFlow) InboxClipID() *InboxClipID { return f.inboxClipID }
+
+// Stages は選考フロー内のステージ一覧を返す。
 func (f *SelectionFlow) Stages() []*SelectionStage {
 	return append([]*SelectionStage(nil), f.stages...)
 }
+
+// CreatedAt は SelectionFlow の作成日時を返す。
 func (f *SelectionFlow) CreatedAt() time.Time { return f.createdAt }
+
+// UpdatedAt は SelectionFlow の更新日時を返す。
 func (f *SelectionFlow) UpdatedAt() time.Time { return f.updatedAt }
 
 // CurrentStage は currentStagePosition に対応するステージを返す。

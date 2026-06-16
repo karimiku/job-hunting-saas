@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -26,12 +27,20 @@ func NewSelectionFlowRepository(db sqlc.DBTX) *SelectionFlowRepository {
 
 // Upsert はEntryごとの選考フローを置換保存する。
 func (r *SelectionFlowRepository) Upsert(ctx context.Context, flow *entity.SelectionFlow) (*entity.SelectionFlow, error) {
+	currentStagePosition, err := intToInt32(flow.CurrentStagePosition())
+	if err != nil {
+		return nil, fmt.Errorf("postgres: selection flow current stage position: %w", err)
+	}
+	confidence, err := intPtrToPgInt4(flow.Confidence())
+	if err != nil {
+		return nil, fmt.Errorf("postgres: selection flow confidence: %w", err)
+	}
 	row, err := r.q.UpsertSelectionFlow(ctx, sqlc.UpsertSelectionFlowParams{
 		ID:                   uuid.UUID(flow.ID()),
 		EntryID:              uuid.UUID(flow.EntryID()),
 		Source:               flow.Source().String(),
-		CurrentStagePosition: int32(flow.CurrentStagePosition()),
-		Confidence:           intPtrToPgInt4(flow.Confidence()),
+		CurrentStagePosition: currentStagePosition,
+		Confidence:           confidence,
 		InboxClipID:          inboxClipIDToPgUUID(flow.InboxClipID()),
 		CreatedAt:            pgtype.Timestamptz{Time: flow.CreatedAt(), Valid: true},
 		UpdatedAt:            pgtype.Timestamptz{Time: flow.UpdatedAt(), Valid: true},
@@ -43,10 +52,14 @@ func (r *SelectionFlowRepository) Upsert(ctx context.Context, flow *entity.Selec
 		return nil, fmt.Errorf("postgres: DeleteSelectionStagesByFlowID: %w", err)
 	}
 	for _, stage := range flow.Stages() {
+		position, err := intToInt32(stage.Position())
+		if err != nil {
+			return nil, fmt.Errorf("postgres: selection stage position: %w", err)
+		}
 		if err := r.q.CreateSelectionStage(ctx, sqlc.CreateSelectionStageParams{
 			ID:           uuid.UUID(stage.ID()),
 			FlowID:       row.ID,
-			Position:     int32(stage.Position()),
+			Position:     position,
 			StageKind:    sqlc.StageKind(stage.Stage().Kind().String()),
 			StageLabel:   stage.Stage().Label(),
 			EvidenceText: stage.EvidenceText(),
@@ -122,11 +135,15 @@ func reconstructSelectionStage(row sqlc.SelectionStage) (*entity.SelectionStage,
 	), nil
 }
 
-func intPtrToPgInt4(value *int) pgtype.Int4 {
+func intPtrToPgInt4(value *int) (pgtype.Int4, error) {
 	if value == nil {
-		return pgtype.Int4{}
+		return pgtype.Int4{}, nil
 	}
-	return pgtype.Int4{Int32: int32(*value), Valid: true}
+	out, err := intToInt32(*value)
+	if err != nil {
+		return pgtype.Int4{}, err
+	}
+	return pgtype.Int4{Int32: out, Valid: true}, nil
 }
 
 func pgInt4ToIntPtr(value pgtype.Int4) *int {
@@ -150,4 +167,11 @@ func pgUUIDToInboxClipIDPtr(value pgtype.UUID) *entity.InboxClipID {
 	}
 	id := entity.InboxClipID(value.Bytes)
 	return &id
+}
+
+func intToInt32(value int) (int32, error) {
+	if value < math.MinInt32 || value > math.MaxInt32 {
+		return 0, fmt.Errorf("value %d overflows int32", value)
+	}
+	return int32(value), nil
 }
