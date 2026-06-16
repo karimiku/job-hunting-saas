@@ -96,6 +96,7 @@ export function NewEntryForm() {
         <div className="mt-4 flex gap-2">
           <Link
             href="/entry"
+            prefetch={false}
             className="flex-1 rounded-lg border border-line bg-surface py-2.5 text-center text-sm font-bold text-ink-2 transition-colors hover:bg-line-2"
           >
             キャンセル

@@ -26,6 +26,7 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <Link
             href="/inbox"
+            prefetch={false}
             className="inline-flex items-center gap-1.5 rounded-lg border border-sage bg-sage-wash px-3 py-1.5 text-[11px] font-bold text-sage transition-colors hover:bg-sage hover:text-white"
           >
             <Inbox size={13} aria-hidden />
@@ -33,6 +34,7 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
           </Link>
           <Link
             href="/entry/new"
+            prefetch={false}
             className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
           >
             <Plus size={13} aria-hidden />
@@ -53,7 +55,11 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
               key={e.id}
               className="flex items-center gap-2.5 rounded-xl border border-line bg-surface p-3 transition-all hover:translate-x-0.5 hover:border-sage"
             >
-              <Link href={`/entry/${e.id}`} className="flex min-w-0 flex-1 items-start gap-2.5">
+              <Link
+                href={`/entry/${e.id}`}
+                prefetch={false}
+                className="flex min-w-0 flex-1 items-start gap-2.5"
+              >
                 <div className="min-w-0 flex-1">
                   <div className="flex min-w-0 items-center gap-1.5">
                     <div className="truncate text-[12px] font-bold">{companyDisplayName(e)}</div>

@@ -80,7 +80,7 @@ export function DashboardQuests({ tasks }: { tasks: TaskWithEntry[] }) {
     <div className="rounded-xl border border-line bg-surface p-5">
       <div className="mb-3 flex items-baseline justify-between">
         <h2 className="text-[14px] font-extrabold">今日のタスク</h2>
-        <Link href="/task" className="text-[10px] font-bold text-sage">
+        <Link href="/task" prefetch={false} className="text-[10px] font-bold text-sage">
           一覧
         </Link>
       </div>
@@ -93,6 +93,7 @@ export function DashboardQuests({ tasks }: { tasks: TaskWithEntry[] }) {
           </p>
           <Link
             href="/entry"
+            prefetch={false}
             className="mt-3 inline-flex rounded-lg border border-line bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
           >
             Entryを確認

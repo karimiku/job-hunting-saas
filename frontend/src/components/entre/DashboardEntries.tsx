@@ -100,7 +100,7 @@ export function DashboardEntries({
             次に確認する企業を、タスク期限とステージで並べます。
           </p>
         </div>
-        <Link href="/entry" className="shrink-0 text-[10px] font-bold text-sage">
+        <Link href="/entry" prefetch={false} className="shrink-0 text-[10px] font-bold text-sage">
           一覧
         </Link>
       </div>
@@ -111,6 +111,7 @@ export function DashboardEntries({
           <p className="text-[12px] font-bold text-ink-2">Entryはまだありません</p>
           <Link
             href="/entry/new"
+            prefetch={false}
             className="mt-3 inline-flex rounded-lg bg-sage px-3 py-1.5 text-[11px] font-bold text-white"
           >
             Entryを追加
@@ -122,6 +123,7 @@ export function DashboardEntries({
             <li key={item.id}>
               <Link
                 href={`/entry/${item.id}`}
+                prefetch={false}
                 className="block rounded-lg border border-line bg-cream px-3 py-2.5 transition-colors hover:border-sage"
               >
                 <div className="flex items-start justify-between gap-2">
