@@ -7,15 +7,26 @@ import type { TaskResponse } from "@/lib/api/tasks";
 
 // 更新系は Server Action 経由になったため、actions モジュールをモックして
 // 呼び出し引数と楽観更新の UI を検証する (HTTP レイヤは actions 側のテストで担保)。
-const { updateEntryAction, createTaskForEntryAction, setTaskStatusAction, deleteTaskAction } =
+const {
+  updateEntryAction,
+  updateSelectionFlowCurrentStageAction,
+  createTaskForEntryAction,
+  setTaskStatusAction,
+  deleteTaskAction,
+} =
   vi.hoisted(() => ({
     updateEntryAction: vi.fn(),
+    updateSelectionFlowCurrentStageAction: vi.fn(),
     createTaskForEntryAction: vi.fn(),
     setTaskStatusAction: vi.fn(),
     deleteTaskAction: vi.fn(),
   }));
 
-vi.mock("@/app/entry/actions", () => ({ updateEntryAction, createTaskForEntryAction }));
+vi.mock("@/app/entry/actions", () => ({
+  updateEntryAction,
+  updateSelectionFlowCurrentStageAction,
+  createTaskForEntryAction,
+}));
 vi.mock("@/app/task/actions", () => ({ setTaskStatusAction, deleteTaskAction }));
 
 const sample = (overrides: Partial<EntryResponse> = {}): EntryResponse => ({
@@ -48,6 +59,21 @@ const task = (overrides: Partial<TaskResponse> = {}): TaskResponse => ({
 describe("EntryDetailView", () => {
   beforeEach(() => {
     updateEntryAction.mockReset().mockResolvedValue({ ok: true });
+    updateSelectionFlowCurrentStageAction.mockReset().mockResolvedValue({
+      ok: true,
+      selectionFlow: {
+        id: "flow1",
+        entryId: "e1",
+        source: "manual",
+        currentStagePosition: 2,
+        stages: [
+          { id: "s1", position: 1, stageKind: "document", stageLabel: "ES提出", evidenceText: "" },
+          { id: "s2", position: 2, stageKind: "interview", stageLabel: "一次面接", evidenceText: "" },
+        ],
+        createdAt: "x",
+        updatedAt: "x",
+      },
+    });
     createTaskForEntryAction.mockReset();
     setTaskStatusAction.mockReset().mockResolvedValue({ ok: true, status: "done" });
     deleteTaskAction.mockReset().mockResolvedValue({ ok: true });

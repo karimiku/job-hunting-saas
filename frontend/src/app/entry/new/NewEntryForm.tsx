@@ -22,7 +22,14 @@ const SOURCES = [
 ] as const;
 
 const INITIAL: NewEntryFormState = {
-  values: { companyName: "", route: "本選考", source: "リクナビ", memo: "" },
+  values: {
+    companyName: "",
+    route: "本選考",
+    source: "リクナビ",
+    memo: "",
+    flowMode: "template",
+    customFlowText: "",
+  },
 };
 
 export function NewEntryForm() {
@@ -79,6 +86,36 @@ export function NewEntryForm() {
             name="memo"
             defaultValue={v.memo}
             placeholder="気になるポイントなど"
+            rows={3}
+            className="w-full resize-none rounded-lg border border-line bg-cream px-3 py-2 text-sm outline-none transition-colors focus:border-sage"
+          />
+        </Field>
+
+        <Field label="選考フロー">
+          <fieldset className="mb-2 flex flex-wrap gap-1.5">
+            {[
+              ["template", "標準"],
+              ["custom", "手入力"],
+            ].map(([value, label]) => (
+              <label
+                key={value}
+                className="cursor-pointer rounded-full border border-line bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-2 transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage has-[:checked]:text-white"
+              >
+                <input
+                  type="radio"
+                  name="flowMode"
+                  value={value}
+                  defaultChecked={(v.flowMode ?? "template") === value}
+                  className="sr-only"
+                />
+                {label}
+              </label>
+            ))}
+          </fieldset>
+          <textarea
+            name="customFlowText"
+            defaultValue={v.customFlowText}
+            placeholder="例: ES提出 → Webテスト → 一次面接 → 最終面接"
             rows={3}
             className="w-full resize-none rounded-lg border border-line bg-cream px-3 py-2 text-sm outline-none transition-colors focus:border-sage"
           />

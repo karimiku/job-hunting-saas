@@ -8,6 +8,8 @@ import { revalidatePath } from "next/cache";
 import { serverFetch } from "@/lib/api/server";
 import { ApiError } from "@/lib/api/client-types";
 import type { EntryResponse } from "@/lib/api/entries";
+import type { SelectionFlowResponse } from "@/lib/selection-flow";
+import { flowPayloadFromForm } from "@/lib/selection-flow";
 
 export interface NewEntryFormState {
   error?: string;
@@ -16,6 +18,8 @@ export interface NewEntryFormState {
     route: string;
     source: string;
     memo: string;
+    flowMode?: string;
+    customFlowText?: string;
   };
 }
 
@@ -45,18 +49,20 @@ export async function createNewEntryAction(
   const routeRaw = readField(formData, "route", "本選考");
   const sourceRaw = readField(formData, "source", "リクナビ");
   const memo = readField(formData, "memo").trim();
+  const flowMode = readField(formData, "flowMode", "template");
+  const customFlowText = readField(formData, "customFlowText").trim();
 
   // enum で受けた値だけ受理 (form の改ざん対策)
   const route = (ROUTES as readonly string[]).includes(routeRaw) ? routeRaw : "本選考";
   const source = (SOURCES as readonly string[]).includes(sourceRaw) ? sourceRaw : "リクナビ";
 
-  const values = { companyName, route, source, memo };
+  const values = { companyName, route, source, memo, flowMode, customFlowText };
   if (!companyName) {
     return { error: "会社名は必須です", values };
   }
 
   try {
-    await serverFetch<EntryResponse>("/api/v1/entries/with-company", {
+    const entry = await serverFetch<EntryResponse>("/api/v1/entries/with-company", {
       method: "POST",
       body: JSON.stringify({
         companyName,
@@ -65,6 +71,13 @@ export async function createNewEntryAction(
         memo: memo || undefined,
       }),
     });
+    await serverFetch<SelectionFlowResponse>(
+      `/api/v1/entries/${entry.id}/selection-flow`,
+      {
+        method: "PUT",
+        body: JSON.stringify(flowPayloadFromForm(flowMode, customFlowText)),
+      },
+    );
   } catch (err) {
     return {
       error: err instanceof ApiError ? err.message : "エントリーの保存に失敗しました",

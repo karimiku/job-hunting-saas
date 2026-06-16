@@ -7,6 +7,7 @@ interface ScrapedJob {
   companyName: string;
   jobTitle: string;
   url: string;
+  contentText: string;
   detectedAt: string;
 }
 
@@ -236,6 +237,10 @@ function normalizeText(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
+function pageContentText(): string {
+  return normalizeText(document.body?.innerText ?? "").slice(0, 20000);
+}
+
 /** host が target ドメイン (またはそのサブドメイン) にマッチするか厳密にチェックする。
  *  `String.includes` だと "evil.com/mynavi.jp/..." のような擬装にマッチしてしまうため、
  *  hostname の末尾一致 + ドット境界で評価する。 */
@@ -264,6 +269,7 @@ function detectCurrentPage(): ScrapedJob | null {
     companyName: partial.companyName,
     jobTitle: partial.jobTitle ?? "",
     url: window.location.href,
+    contentText: pageContentText(),
     detectedAt: new Date().toISOString(),
   };
 }

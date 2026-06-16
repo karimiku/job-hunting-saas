@@ -8,6 +8,7 @@ interface DetectedPage {
   companyGuess: string;
   title: string;
   url: string;
+  contentText: string;
 }
 
 // 保存失敗時の表示。message は必須、recovery があれば回復ボタンを出す。
@@ -82,6 +83,7 @@ interface ScrapedPage {
   companyName?: string;
   jobTitle?: string;
   url?: string;
+  contentText?: string;
 }
 
 interface ScrapeResponse {
@@ -148,6 +150,7 @@ export function Popup() {
         title: page.title,
         source: page.source,
         guess: companyGuess.trim() || undefined,
+        contentText: page.contentText,
       });
       setConfetti((n) => n + 1);
       setSaving(false);
@@ -331,6 +334,7 @@ async function detectCurrentPage(): Promise<DetectedPage | null> {
       companyGuess: "株式会社○○商事",
       title: "株式会社○○商事 / 総合職 新卒採用 2026",
       url: "https://job.mynavi.jp/26/pc/search/corp123/outline.html",
+      contentText: "選考フロー: ES提出 → Webテスト → 一次面接 → 最終面接",
     };
   }
 
@@ -349,6 +353,7 @@ async function detectCurrentPage(): Promise<DetectedPage | null> {
     companyGuess,
     title,
     url: normalizeHttpUrl(scraped?.url) ?? tab.url,
+    contentText: normalizeText(scraped?.contentText),
   };
 }
 

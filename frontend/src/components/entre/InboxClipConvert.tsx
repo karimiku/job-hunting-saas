@@ -71,6 +71,8 @@ export function InboxClipConvert({
       source: clip.source ?? "",
       sourceUrl: clip.url,
       memo: buildMemo(clip),
+      flowMode: "template",
+      customFlowText: "",
     },
   };
   const [state, formAction] = useActionState(convertInboxClipAction, initial);
@@ -251,6 +253,36 @@ export function InboxClipConvert({
           name="memo"
           defaultValue={v.memo}
           rows={3}
+          className="w-full resize-none rounded-md border border-line bg-surface px-2.5 py-1.5 text-[11px] outline-none transition-colors focus:border-sage focus:ring-2 focus:ring-sage/20"
+        />
+      </Field>
+
+      <Field label="選考フロー">
+        <fieldset className="mb-1.5 flex flex-wrap gap-1.5">
+          {[
+            ["template", "標準"],
+            ["custom", "手入力"],
+          ].map(([value, label]) => (
+            <label
+              key={value}
+              className="cursor-pointer rounded-full border border-line bg-surface px-2.5 py-1 text-[10px] font-bold text-ink-2 transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-sage/40"
+            >
+              <input
+                type="radio"
+                name="flowMode"
+                value={value}
+                defaultChecked={(v.flowMode ?? "template") === value}
+                className="sr-only"
+              />
+              {label}
+            </label>
+          ))}
+        </fieldset>
+        <textarea
+          name="customFlowText"
+          defaultValue={v.customFlowText}
+          rows={2}
+          placeholder="例: ES提出 → Webテスト → 一次面接 → 最終面接"
           className="w-full resize-none rounded-md border border-line bg-surface px-2.5 py-1.5 text-[11px] outline-none transition-colors focus:border-sage focus:ring-2 focus:ring-sage/20"
         />
       </Field>

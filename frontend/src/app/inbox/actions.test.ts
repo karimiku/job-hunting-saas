@@ -52,6 +52,15 @@ const entryResp = {
   createdAt: "",
   updatedAt: "",
 };
+const flowResp = {
+  id: "flow1",
+  entryId: "en1",
+  source: "template",
+  currentStagePosition: 1,
+  stages: [],
+  createdAt: "",
+  updatedAt: "",
+};
 
 describe("convertInboxClipAction", () => {
   beforeEach(() => serverFetch.mockReset());
@@ -59,6 +68,7 @@ describe("convertInboxClipAction", () => {
   it("新規会社の場合は atomic endpoint で entry を作成し、その後 clip を削除して作成 Entry にリダイレクトする", async () => {
     serverFetch.mockImplementation(async (path?: string, init?: RequestInit) => {
       if (path === "/api/v1/entries/with-company" && init?.method === "POST") return entryResp;
+      if (path === "/api/v1/entries/en1/selection-flow" && init?.method === "PUT") return flowResp;
       return undefined;
     });
 
@@ -76,6 +86,7 @@ describe("convertInboxClipAction", () => {
 
     const calls = callSignatures();
     expect(calls).toContain("POST /api/v1/entries/with-company");
+    expect(calls).toContain("PUT /api/v1/entries/en1/selection-flow");
     expect(calls).not.toContain("POST /api/v1/companies");
     expect(calls).toContain("DELETE /api/v1/inbox/clips/clip1");
   });
@@ -108,6 +119,7 @@ describe("convertInboxClipAction", () => {
     serverFetch.mockImplementation(async (path?: string, init?: RequestInit) => {
       if (path === "/api/v1/companies/co1" && !init?.method) return companyResp;
       if (path === "/api/v1/entries" && init?.method === "POST") return entryResp;
+      if (path === "/api/v1/entries/en1/selection-flow" && init?.method === "PUT") return flowResp;
       return undefined;
     });
 
@@ -126,6 +138,7 @@ describe("convertInboxClipAction", () => {
     const calls = callSignatures();
     expect(calls).toContain("GET /api/v1/companies/co1");
     expect(calls).toContain("POST /api/v1/entries");
+    expect(calls).toContain("PUT /api/v1/entries/en1/selection-flow");
     expect(calls).not.toContain("POST /api/v1/companies");
   });
 

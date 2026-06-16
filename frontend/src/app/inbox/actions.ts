@@ -10,6 +10,8 @@ import { serverFetch } from "@/lib/api/server";
 import { ApiError } from "@/lib/api/client-types";
 import type { CompanyResponse } from "@/lib/api/companies";
 import type { EntryResponse } from "@/lib/api/entries";
+import type { SelectionFlowResponse } from "@/lib/selection-flow";
+import { flowPayloadFromForm } from "@/lib/selection-flow";
 
 export interface ConvertClipFormState {
   error?: string;
@@ -20,6 +22,8 @@ export interface ConvertClipFormState {
     source: string;
     sourceUrl: string;
     memo: string;
+    flowMode?: string;
+    customFlowText?: string;
   };
 }
 
@@ -41,10 +45,21 @@ export async function convertInboxClipAction(
   const source = readField(formData, "source").trim();
   const sourceUrl = readField(formData, "sourceUrl").trim();
   const memo = readField(formData, "memo").trim();
+  const flowMode = readField(formData, "flowMode", "template");
+  const customFlowText = readField(formData, "customFlowText").trim();
 
   // enum で受けた値だけ受理 (form の改ざん対策)。source は backend が自由入力を許すのでそのまま。
   const route = (ROUTES as readonly string[]).includes(routeRaw) ? routeRaw : "本選考";
-  const values = { companyName, existingCompanyId, route, source, sourceUrl, memo };
+  const values = {
+    companyName,
+    existingCompanyId,
+    route,
+    source,
+    sourceUrl,
+    memo,
+    flowMode,
+    customFlowText,
+  };
 
   if (!clipId) {
     return { error: "クリップの指定が不正です", values };
@@ -111,6 +126,21 @@ export async function convertInboxClipAction(
         values,
       };
     }
+  }
+
+  try {
+    await serverFetch<SelectionFlowResponse>(
+      `/api/v1/entries/${entry.id}/selection-flow`,
+      {
+        method: "PUT",
+        body: JSON.stringify(flowPayloadFromForm(flowMode, customFlowText)),
+      },
+    );
+  } catch (err) {
+    return {
+      error: err instanceof ApiError ? err.message : "選考フローの保存に失敗しました",
+      values,
+    };
   }
 
   // 2. Entry 作成成功後に clip を削除する。

@@ -63,4 +63,47 @@ export const handlers = [
       { status: 201 },
     );
   }),
+  http.get(`${API_BASE}/api/v1/entries/:entryId/selection-flow`, () =>
+    HttpResponse.json(
+      { message: "not found" },
+      { status: 404 },
+    ),
+  ),
+  http.put(`${API_BASE}/api/v1/entries/:entryId/selection-flow`, async ({ params, request }) => {
+    const body = (await request.json()) as {
+      source: string;
+      currentStagePosition?: number;
+      stages: Array<{ stageKind: string; stageLabel: string; evidenceText?: string }>;
+    };
+    return HttpResponse.json({
+      id: "flow-mock",
+      entryId: params.entryId,
+      source: body.source,
+      currentStagePosition: body.currentStagePosition ?? 1,
+      stages: body.stages.map((stage, index) => ({
+        id: `stage-${index + 1}`,
+        position: index + 1,
+        stageKind: stage.stageKind,
+        stageLabel: stage.stageLabel,
+        evidenceText: stage.evidenceText ?? "",
+      })),
+      createdAt: "2026-04-26T00:00:00Z",
+      updatedAt: "2026-04-26T00:00:00Z",
+    });
+  }),
+  http.patch(`${API_BASE}/api/v1/entries/:entryId/selection-flow/current-stage`, async ({ params, request }) => {
+    const body = (await request.json()) as { position: number };
+    return HttpResponse.json({
+      id: "flow-mock",
+      entryId: params.entryId,
+      source: "manual",
+      currentStagePosition: body.position,
+      stages: [
+        { id: "stage-1", position: 1, stageKind: "document", stageLabel: "ES提出", evidenceText: "" },
+        { id: "stage-2", position: 2, stageKind: "interview", stageLabel: "一次面接", evidenceText: "" },
+      ],
+      createdAt: "2026-04-26T00:00:00Z",
+      updatedAt: "2026-04-26T00:00:00Z",
+    });
+  }),
 ];
