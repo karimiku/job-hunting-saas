@@ -24,11 +24,11 @@ async function loadMcpSdk() {
   const pnpmDir = path.join(repoRoot, "frontend", "node_modules", ".pnpm");
 
   const entries = await readdir(pnpmDir, { withFileTypes: true });
-  const sdkDir = entries
+  const sdkDirs = entries
     .filter((entry) => entry.isDirectory() && entry.name.startsWith("@modelcontextprotocol+sdk@"))
     .map((entry) => entry.name)
-    .sort()
-    .at(-1);
+    .sort();
+  const sdkDir = sdkDirs[sdkDirs.length - 1];
 
   if (!sdkDir) {
     throw new Error(`@modelcontextprotocol/sdk was not found under ${pnpmDir}`);
@@ -206,6 +206,10 @@ class EntreClient {
     return this.request("PATCH", pathname, body);
   }
 
+  async put(pathname, body) {
+    return this.request("PUT", pathname, body);
+  }
+
   async request(method, pathname, body) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -269,6 +273,26 @@ class EntreClient {
 
   assignClipRef(id) {
     return this.assignRef("clip", id);
+  }
+
+  async resolveClipRef(refOrId) {
+    const raw = String(refOrId ?? "").trim();
+    if (!raw) return null;
+    if (this.clipRefToId.has(raw)) return this.clipRefToId.get(raw);
+    if (/^\d+$/.test(raw) && this.clipRefToId.has(`clip-${raw}`)) {
+      return this.clipRefToId.get(`clip-${raw}`);
+    }
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) {
+      this.assignClipRef(raw);
+      return raw;
+    }
+
+    const clips = await this.listInboxClips();
+    const normalizedRef = /^\d+$/.test(raw) ? `clip-${raw}` : raw;
+    const matched = clips.filter((clip) => clip.ref === normalizedRef || clip.title === raw);
+    if (matched.length === 1) return this.clipRefToId.get(matched[0].ref);
+    if (matched.length > 1) throw new Error(`inboxClipRef ${JSON.stringify(raw)} is ambiguous; use list_inbox_clips ref`);
+    throw new Error(`unknown inboxClipRef ${JSON.stringify(raw)}; run list_inbox_clips first`);
   }
 
   async resolveEntryRef(refOrId) {
@@ -465,6 +489,146 @@ class EntreClient {
       task: publicTask(created, entryContext.entry.company, entryContext.entry.ref, this.assignTaskRef(created.id)),
     };
   }
+
+  async upsertEntrySelectionFlow(input) {
+    const entryRef = String(input.entryRef ?? input.entryId ?? "").trim();
+    const entryId = await this.resolveEntryRef(entryRef);
+    const body = await this.selectionFlowRequest(input, String(input.source ?? "ai_paste"));
+    const preview = {
+      confirmationRequired: !input.confirm,
+      action: "upsert_entry_selection_flow",
+      entryRef: this.assignEntryRef(entryId),
+      selectionFlow: this.publicSelectionFlowPreview(body),
+    };
+    if (!input.confirm) return preview;
+
+    const flow = await this.put(`/api/v1/entries/${encodePathSegment(entryId)}/selection-flow`, body);
+    return {
+      updated: true,
+      selectionFlow: this.publicSelectionFlow(flow),
+    };
+  }
+
+  async createEntryFromJobPosting(input) {
+    const companyName = String(input.companyName ?? "").trim();
+    if (!companyName) throw new Error("companyName is required");
+
+    const entryBody = {
+      companyName,
+      route: String(input.route ?? "本選考").trim() || "本選考",
+      source: String(input.source ?? "求人ページ").trim() || "求人ページ",
+      ...(stringOrNull(input.sourceUrl) ? { sourceUrl: String(input.sourceUrl).trim() } : {}),
+      ...(stringOrNull(input.memo) ? { memo: String(input.memo).trim() } : {}),
+    };
+    const flowBody = await this.selectionFlowRequest(
+      {
+        ...input,
+        source: input.flowSource ?? input.selectionFlowSource ?? "ai_paste",
+      },
+      "ai_paste",
+    );
+    const preview = {
+      confirmationRequired: !input.confirm,
+      action: "create_entry_from_job_posting",
+      entry: entryBody,
+      selectionFlow: this.publicSelectionFlowPreview(flowBody),
+    };
+    if (!input.confirm) return preview;
+
+    const entry = await this.post("/api/v1/entries/with-company", entryBody);
+    const entryRef = this.assignEntryRef(entry.id);
+    const flow = await this.put(`/api/v1/entries/${encodePathSegment(entry.id)}/selection-flow`, flowBody);
+    return {
+      created: true,
+      entry: publicEntryDetail(entry, companyName, entryRef),
+      selectionFlow: this.publicSelectionFlow(flow),
+    };
+  }
+
+  async selectionFlowRequest(input, defaultSource) {
+    const stages = this.selectionStages(input.stages);
+    const inboxClipRaw = input.inboxClipRef ?? input.inboxClipId;
+    const inboxClipId = inboxClipRaw ? await this.resolveClipRef(inboxClipRaw) : null;
+    const currentStagePosition = Number(input.currentStagePosition ?? 0);
+    const confidence =
+      input.confidence === null || input.confidence === undefined || input.confidence === ""
+        ? null
+        : Number(input.confidence);
+
+    if (currentStagePosition && (!Number.isInteger(currentStagePosition) || currentStagePosition < 1)) {
+      throw new Error("currentStagePosition must be a positive integer");
+    }
+    if (confidence !== null && (!Number.isInteger(confidence) || confidence < 0 || confidence > 100)) {
+      throw new Error("confidence must be an integer between 0 and 100");
+    }
+
+    return {
+      source: String(input.source ?? defaultSource).trim() || defaultSource,
+      ...(currentStagePosition ? { currentStagePosition } : {}),
+      ...(confidence !== null ? { confidence } : {}),
+      ...(inboxClipId ? { inboxClipId } : {}),
+      stages,
+    };
+  }
+
+  selectionStages(rawStages) {
+    const stages = Array.isArray(rawStages) ? rawStages : [];
+    if (stages.length < 1) throw new Error("stages must contain at least one stage");
+    if (stages.length > 20) throw new Error("stages must contain at most 20 stages");
+    return stages.map((stage, index) => {
+      const stageKind = String(stage?.stageKind ?? "").trim();
+      const stageLabel = String(stage?.stageLabel ?? "").trim();
+      if (!stageKind || !stageLabel) {
+        throw new Error(`stages[${index}] requires stageKind and stageLabel`);
+      }
+      return {
+        stageKind,
+        stageLabel,
+        ...(stringOrNull(stage.evidenceText) ? { evidenceText: String(stage.evidenceText).trim() } : {}),
+      };
+    });
+  }
+
+  publicSelectionFlowPreview(flow) {
+    return {
+      source: flow.source,
+      currentStagePosition: flow.currentStagePosition ?? 1,
+      confidence: flow.confidence ?? null,
+      inboxClipRef: flow.inboxClipId ? this.assignClipRef(flow.inboxClipId) : null,
+      stages: flow.stages,
+    };
+  }
+
+  publicSelectionFlow(flow) {
+    const out = {
+      entryRef: this.assignEntryRef(flow.entryId),
+      source: flow.source,
+      currentStagePosition: flow.currentStagePosition,
+      confidence: flow.confidence ?? null,
+      inboxClipRef: flow.inboxClipId ? this.assignClipRef(flow.inboxClipId) : null,
+      stages: (flow.stages ?? []).map((stage) => ({
+        position: stage.position,
+        stageKind: stage.stageKind,
+        stageLabel: stage.stageLabel,
+        evidenceText: stage.evidenceText,
+      })),
+    };
+    if (exposeInternalFields()) {
+      out.id = flow.id;
+      out.entryId = flow.entryId;
+      out.inboxClipId = flow.inboxClipId;
+      out.createdAt = stringOrNull(flow.createdAt);
+      out.updatedAt = stringOrNull(flow.updatedAt);
+      out.stages = (flow.stages ?? []).map((stage) => ({
+        id: stage.id,
+        position: stage.position,
+        stageKind: stage.stageKind,
+        stageLabel: stage.stageLabel,
+        evidenceText: stage.evidenceText,
+      }));
+    }
+    return out;
+  }
 }
 
 function captureJobEmail(input) {
@@ -515,6 +679,20 @@ async function main() {
     name: "entre-remote-mcp",
     version: "0.1.0",
   });
+  const stageSchema = z.object({
+    stageKind: z.enum(["application", "document", "test", "interview", "group", "offer", "other"]),
+    stageLabel: z.string(),
+    evidenceText: z.string().optional(),
+  });
+  const selectionFlowSchema = {
+    source: z.enum(["template", "manual", "ai_inbox", "ai_paste"]),
+    currentStagePosition: z.number().int().positive().optional(),
+    confidence: z.number().int().min(0).max(100).optional(),
+    inboxClipRef: z.string().optional().describe("list_inbox_clips が返す ref。例: clip-1"),
+    inboxClipId: z.string().optional().describe("内部IDを明示したい場合のみ指定"),
+    stages: z.array(stageSchema).min(1).max(20),
+    confirm: z.boolean().optional(),
+  };
 
   registerTool(
     server,
@@ -617,6 +795,44 @@ async function main() {
       },
     },
     captureJobEmail,
+  );
+
+  registerTool(
+    server,
+    "upsert_entry_selection_flow",
+    {
+      description:
+        "既存Entryに会社ごとの可変選考フローを保存します。entryRef は list_entries の ref を指定します。confirm=true のときだけ本番APIへ保存します。",
+      inputSchema: {
+        entryRef: z.string().describe("list_entries が返す ref。例: entry-1"),
+        ...selectionFlowSchema,
+      },
+    },
+    (input) => client.upsertEntrySelectionFlow(input),
+  );
+
+  registerTool(
+    server,
+    "create_entry_from_job_posting",
+    {
+      description:
+        "求人ページ本文をLLMが読んで作ったEntry候補と可変選考フローを新規保存します。confirm=true のときだけ本番APIへ保存します。",
+      inputSchema: {
+        companyName: z.string(),
+        route: z.string().optional().describe("本選考、インターンなど。省略時は本選考。"),
+        source: z.string().optional().describe("応募媒体名。例: サポーターズ、外資就活、求人ページ"),
+        sourceUrl: z.string().optional().describe("求人URL"),
+        memo: z.string().optional(),
+        flowSource: z.enum(["template", "manual", "ai_inbox", "ai_paste"]).optional().describe("選考フロー由来。省略時は ai_paste。"),
+        currentStagePosition: z.number().int().positive().optional(),
+        confidence: z.number().int().min(0).max(100).optional(),
+        inboxClipRef: z.string().optional().describe("list_inbox_clips が返す ref。例: clip-1"),
+        inboxClipId: z.string().optional().describe("内部IDを明示したい場合のみ指定"),
+        stages: z.array(stageSchema).min(1).max(20),
+        confirm: z.boolean().optional(),
+      },
+    },
+    (input) => client.createEntryFromJobPosting(input),
   );
 
   const transport = new StdioServerTransport();
