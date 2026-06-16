@@ -91,6 +91,7 @@ function EmptyState() {
       <div className="mt-4 flex flex-wrap justify-center gap-2">
         <Link
           href="/entry/new"
+          prefetch={false}
           className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
         >
           <Sparkles size={13} aria-hidden />

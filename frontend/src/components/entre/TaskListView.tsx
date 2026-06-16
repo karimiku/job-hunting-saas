@@ -177,6 +177,7 @@ export function TaskListView({ initialTasks, entries }: Props) {
                   <div className="mb-2 flex items-center justify-between gap-2 px-0.5">
                     <Link
                       href={group.entryId === "unknown" ? "/entry" : `/entry/${group.entryId}`}
+                      prefetch={false}
                       className="min-w-0 text-[11px] font-extrabold text-ink hover:text-sage"
                     >
                       <span className="truncate">{group.companyName}</span>
@@ -405,6 +406,7 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
           </p>
           <Link
             href="/entry/new"
+            prefetch={false}
             className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-sage px-3 py-1.5 text-[11px] font-bold text-white transition-transform hover:-translate-y-0.5"
           >
             <Plus size={13} aria-hidden />
@@ -538,6 +540,7 @@ function TaskEmptyState({ hasEntries }: { hasEntries: boolean }) {
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <Link
             href="/entry/new"
+            prefetch={false}
             className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
           >
             <ClipboardList size={13} aria-hidden />

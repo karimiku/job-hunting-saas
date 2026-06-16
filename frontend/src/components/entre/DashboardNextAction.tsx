@@ -96,6 +96,7 @@ export function DashboardNextAction(props: DashboardNextActionInput) {
 
         <Link
           href={action.href}
+          prefetch={false}
           className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg bg-sage px-4 text-[12px] font-bold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/40"
         >
           {action.cta}

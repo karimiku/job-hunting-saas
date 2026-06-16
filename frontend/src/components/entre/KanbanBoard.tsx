@@ -136,12 +136,14 @@ export function KanbanBoard({ initialEntries }: Props) {
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <Link
               href="/inbox"
+              prefetch={false}
               className="rounded-lg border border-sage bg-sage-wash px-3 py-1.5 text-[11px] font-bold text-sage transition-colors hover:bg-sage hover:text-white"
             >
               Inboxを見る
             </Link>
             <Link
               href="/entry/new"
+              prefetch={false}
               className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
             >
               <Plus size={13} aria-hidden />
@@ -210,6 +212,7 @@ function MobileKanbanSection({
             <li key={entry.id}>
               <Link
                 href={`/entry/${entry.id}`}
+                prefetch={false}
                 className="block rounded-lg border border-line bg-cream p-2.5 transition-colors hover:border-sage"
               >
                 <CardContent entry={entry} showSourceLink={false} />
