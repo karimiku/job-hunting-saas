@@ -8,6 +8,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
+	entryuc "github.com/karimiku/job-hunting-saas/internal/usecase/entry"
 	esmemo "github.com/karimiku/job-hunting-saas/internal/usecase/es_memo"
 	jobemail "github.com/karimiku/job-hunting-saas/internal/usecase/job_email"
 	taskuc "github.com/karimiku/job-hunting-saas/internal/usecase/task"
@@ -109,6 +110,55 @@ func TestServiceCreateTask_WithConfirmationSaves(t *testing.T) {
 	}
 }
 
+func TestServiceDeleteEntry_RequiresConfirmation(t *testing.T) {
+	userID := entity.NewUserID()
+	entryID := entity.NewEntryID()
+	entryRepo := &fakeEntryRepo{userID: userID}
+	service := newTestServiceWithEntryRepo(userID, &fakeContextQuery{entryID: entryID, company: "Example Inc."}, entryRepo, &recordingMemoRepo{}, &recordingTaskRepo{})
+
+	out, err := service.DeleteEntry(context.Background(), DeleteEntryInput{
+		EntryID: entryID.String(),
+	})
+	if err != nil {
+		t.Fatalf("DeleteEntry() failed: %v", err)
+	}
+	if entryRepo.deleted {
+		t.Fatal("entry should not be deleted without confirm=true")
+	}
+	got := out.(map[string]any)
+	if got["confirmationRequired"] != true {
+		t.Errorf("confirmationRequired = %v, want true", got["confirmationRequired"])
+	}
+	if got["relatedTaskCount"] != 1 {
+		t.Errorf("relatedTaskCount = %v, want 1", got["relatedTaskCount"])
+	}
+}
+
+func TestServiceDeleteEntry_WithConfirmationDeletes(t *testing.T) {
+	userID := entity.NewUserID()
+	entryID := entity.NewEntryID()
+	entryRepo := &fakeEntryRepo{userID: userID}
+	service := newTestServiceWithEntryRepo(userID, &fakeContextQuery{entryID: entryID, company: "Example Inc."}, entryRepo, &recordingMemoRepo{}, &recordingTaskRepo{})
+
+	out, err := service.DeleteEntry(context.Background(), DeleteEntryInput{
+		EntryID: entryID.String(),
+		Confirm: true,
+	})
+	if err != nil {
+		t.Fatalf("DeleteEntry() failed: %v", err)
+	}
+	if !entryRepo.deleted {
+		t.Fatal("entry should be deleted with confirm=true")
+	}
+	if entryRepo.deletedEntryID != entryID {
+		t.Errorf("deletedEntryID = %v, want %v", entryRepo.deletedEntryID, entryID)
+	}
+	got := out.(map[string]any)
+	if got["deleted"] != true {
+		t.Errorf("deleted = %v, want true", got["deleted"])
+	}
+}
+
 func TestServiceListESMemos_ReturnsCompanyForEntryMemo(t *testing.T) {
 	userID := entity.NewUserID()
 	entryID := entity.NewEntryID()
@@ -136,6 +186,10 @@ func TestServiceListESMemos_ReturnsCompanyForEntryMemo(t *testing.T) {
 
 func newTestService(userID entity.UserID, query ContextQuery, memoRepo *recordingMemoRepo, taskRepo *recordingTaskRepo) *Service {
 	entryRepo := &fakeEntryRepo{userID: userID}
+	return newTestServiceWithEntryRepo(userID, query, entryRepo, memoRepo, taskRepo)
+}
+
+func newTestServiceWithEntryRepo(userID entity.UserID, query ContextQuery, entryRepo *fakeEntryRepo, memoRepo *recordingMemoRepo, taskRepo *recordingTaskRepo) *Service {
 	return NewService(
 		userID,
 		query,
@@ -144,6 +198,7 @@ func newTestService(userID entity.UserID, query ContextQuery, memoRepo *recordin
 		taskuc.NewCreate(taskRepo, entryRepo),
 		jobemail.NewExtract(),
 		nil,
+		entryuc.NewDelete(entryRepo),
 		nil,
 		nil,
 	)
@@ -168,7 +223,7 @@ func (q *fakeContextQuery) GetEntryContext(_ context.Context, _ entity.UserID, e
 			ID:      entryID.String(),
 			Company: company,
 		},
-		Tasks: []TaskDTO{},
+		Tasks: []TaskDTO{{ID: "task-1", EntryID: entryID.String(), Title: "ES提出"}},
 	}, nil
 }
 
@@ -224,7 +279,9 @@ func (r *recordingTaskRepo) Delete(context.Context, entity.UserID, entity.TaskID
 }
 
 type fakeEntryRepo struct {
-	userID entity.UserID
+	userID         entity.UserID
+	deleted        bool
+	deletedEntryID entity.EntryID
 }
 
 func (r *fakeEntryRepo) Save(context.Context, *entity.Entry) error {
@@ -262,7 +319,12 @@ func (r *fakeEntryRepo) ListByUserID(context.Context, entity.UserID, repository.
 	return []*entity.Entry{}, nil
 }
 
-func (r *fakeEntryRepo) Delete(context.Context, entity.UserID, entity.EntryID) error {
+func (r *fakeEntryRepo) Delete(_ context.Context, userID entity.UserID, id entity.EntryID) error {
+	if userID != r.userID {
+		return repository.ErrNotFound
+	}
+	r.deleted = true
+	r.deletedEntryID = id
 	return nil
 }
 

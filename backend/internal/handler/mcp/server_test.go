@@ -40,7 +40,7 @@ func TestServeStdioListsInboxAndESMemoTools(t *testing.T) {
 		item := tool.(map[string]any)
 		names[item["name"].(string)] = true
 	}
-	for _, name := range []string{"list_inbox_clips", "list_es_memos", "append_es_memo", "create_task"} {
+	for _, name := range []string{"list_inbox_clips", "list_es_memos", "append_es_memo", "create_task", "delete_entry"} {
 		if !names[name] {
 			t.Fatalf("tool %q is missing from tools/list", name)
 		}
@@ -55,6 +55,17 @@ func TestServeStdioCallsListESMemos(t *testing.T) {
 	text := content[0].(map[string]any)["text"].(string)
 	if !strings.Contains(text, "改善経験") {
 		t.Fatalf("tool text = %s, want ES memo title", text)
+	}
+}
+
+func TestServeStdioCallsDeleteEntryPreview(t *testing.T) {
+	out := runMCPMessages(t, `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"delete_entry","arguments":{"entryId":"entry-1"}}}`)
+	resp := decodeRPCResponse(t, out[0])
+	result := resp["result"].(map[string]any)
+	content := result["content"].([]any)
+	text := content[0].(map[string]any)["text"].(string)
+	if !strings.Contains(text, `"confirmationRequired": true`) {
+		t.Fatalf("tool text = %s, want confirmation preview", text)
 	}
 }
 
@@ -134,6 +145,10 @@ func (fakeApplication) AppendESMemo(context.Context, mcpuc.AppendESMemoInput) (a
 
 func (fakeApplication) CreateTask(context.Context, mcpuc.CreateTaskInput) (any, error) {
 	return map[string]any{"created": true}, nil
+}
+
+func (fakeApplication) DeleteEntry(context.Context, mcpuc.DeleteEntryInput) (any, error) {
+	return map[string]any{"confirmationRequired": true, "action": "delete_entry"}, nil
 }
 
 func (fakeApplication) CaptureJobEmail(mcpuc.CaptureJobEmailInput) (jobemail.ExtractOutput, error) {

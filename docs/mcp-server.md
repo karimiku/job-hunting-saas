@@ -147,11 +147,12 @@ go run ./cmd/mcp-server
 | `list_es_memos` | ES/自己PR/面接ネタ用メモ一覧を返す |
 | `append_es_memo` | ES/自己PR/面接ネタ用メモを保存する |
 | `create_task` | Entryに紐づくTaskを作成する |
+| `delete_entry` | Entryを削除する |
 | `capture_job_email` | 選考メール本文からTask候補などをルールベースで抽出する |
 | `upsert_entry_selection_flow` | 既存Entryに会社ごとの可変選考フローを保存する |
 | `create_entry_from_job_posting` | 求人本文からAIが構造化したEntry候補と可変選考フローを新規保存する |
 
-`append_es_memo`、`create_task`、`upsert_entry_selection_flow`、`create_entry_from_job_posting` は `confirm: true` のときだけDBに保存する。未指定または `false` の場合は `confirmationRequired: true` と保存予定内容だけを返す。
+`append_es_memo`、`create_task`、`delete_entry`、`upsert_entry_selection_flow`、`create_entry_from_job_posting` は `confirm: true` のときだけDBに保存・削除する。未指定または `false` の場合は `confirmationRequired: true` と実行予定内容だけを返す。
 
 `capture_job_email` は従来通りローカルのルールベース抽出で、LLM APIを呼ばない。求人ページ本文の選考フロー抽出はCodex/ClaudeなどMCPクライアント側のLLMが行い、抽出後の `stages` を `upsert_entry_selection_flow` または `create_entry_from_job_posting` に渡す。
 

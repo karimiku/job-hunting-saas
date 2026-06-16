@@ -210,6 +210,10 @@ class EntreClient {
     return this.request("PUT", pathname, body);
   }
 
+  async delete(pathname) {
+    return this.request("DELETE", pathname);
+  }
+
   async request(method, pathname, body) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -487,6 +491,26 @@ class EntreClient {
     return {
       created: true,
       task: publicTask(created, entryContext.entry.company, entryContext.entry.ref, this.assignTaskRef(created.id)),
+    };
+  }
+
+  async deleteEntry(input) {
+    const entryRef = String(input.entryRef ?? input.entryId ?? "").trim();
+    const entryId = await this.resolveEntryRef(entryRef);
+    const entryContext = await this.getEntryContext(entryRef);
+    const preview = {
+      confirmationRequired: !input.confirm,
+      action: "delete_entry",
+      entry: entryContext.entry,
+      relatedTaskCount: entryContext.tasks.length,
+    };
+    if (!input.confirm) return preview;
+
+    await this.delete(`/api/v1/entries/${encodePathSegment(entryId)}`);
+    return {
+      deleted: true,
+      entry: entryContext.entry,
+      relatedTaskCount: entryContext.tasks.length,
     };
   }
 
@@ -781,6 +805,19 @@ async function main() {
       },
     },
     (input) => client.createTask(input),
+  );
+
+  registerTool(
+    server,
+    "delete_entry",
+    {
+      description: "応募先Entryを削除します。entryRef は list_entries の ref を指定します。confirm=true のときだけ本番APIへ削除を実行します。",
+      inputSchema: {
+        entryRef: z.string().describe("list_entries が返す ref。例: entry-1"),
+        confirm: z.boolean().optional(),
+      },
+    },
+    (input) => client.deleteEntry(input),
   );
 
   registerTool(

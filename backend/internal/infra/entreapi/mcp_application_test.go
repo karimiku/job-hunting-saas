@@ -205,6 +205,88 @@ func TestMCPApplication_ListESMemosAddsCompany(t *testing.T) {
 	}
 }
 
+func TestMCPApplication_DeleteEntryRequiresConfirmation(t *testing.T) {
+	var deleted bool
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/entries/entry-1", func(w http.ResponseWriter, r *http.Request) {
+		assertBearer(t, r)
+		switch r.Method {
+		case http.MethodGet:
+			writeTestJSON(t, w, map[string]any{
+				"id":         "entry-1",
+				"companyId":  "company-1",
+				"route":      "本選考",
+				"source":     "マイナビ",
+				"status":     "in_progress",
+				"stageKind":  "document",
+				"stageLabel": "ES",
+				"memo":       "",
+				"createdAt":  "2026-06-11T00:00:00Z",
+				"updatedAt":  "2026-06-11T00:00:00Z",
+			})
+		case http.MethodDelete:
+			deleted = true
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Fatalf("method = %s, want GET or DELETE", r.Method)
+		}
+	})
+	mux.HandleFunc("/api/v1/companies/company-1", func(w http.ResponseWriter, r *http.Request) {
+		assertBearer(t, r)
+		writeTestJSON(t, w, map[string]any{"id": "company-1", "name": "Example Inc."})
+	})
+	mux.HandleFunc("/api/v1/entries/entry-1/tasks", func(w http.ResponseWriter, r *http.Request) {
+		assertBearer(t, r)
+		writeTestJSON(t, w, map[string]any{
+			"tasks": []map[string]any{{
+				"id":        "task-1",
+				"entryId":   "entry-1",
+				"title":     "ES提出",
+				"type":      "deadline",
+				"dueDate":   nil,
+				"status":    "todo",
+				"notify":    false,
+				"memo":      "",
+				"createdAt": "2026-06-11T00:00:00Z",
+				"updatedAt": "2026-06-11T00:00:00Z",
+			}},
+		})
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	app, err := NewMCPApplication(server.URL, "test-token", server.Client())
+	if err != nil {
+		t.Fatalf("NewMCPApplication() failed: %v", err)
+	}
+	out, err := app.DeleteEntry(t.Context(), mcpuc.DeleteEntryInput{EntryID: "entry-1"})
+	if err != nil {
+		t.Fatalf("DeleteEntry() failed: %v", err)
+	}
+	if deleted {
+		t.Fatal("entry should not be deleted without confirm=true")
+	}
+	got := out.(map[string]any)
+	if got["confirmationRequired"] != true {
+		t.Fatalf("confirmationRequired = %v, want true", got["confirmationRequired"])
+	}
+	if got["relatedTaskCount"] != 1 {
+		t.Fatalf("relatedTaskCount = %v, want 1", got["relatedTaskCount"])
+	}
+
+	out, err = app.DeleteEntry(t.Context(), mcpuc.DeleteEntryInput{EntryID: "entry-1", Confirm: true})
+	if err != nil {
+		t.Fatalf("DeleteEntry(confirm=true) failed: %v", err)
+	}
+	if !deleted {
+		t.Fatal("entry should be deleted with confirm=true")
+	}
+	got = out.(map[string]any)
+	if got["deleted"] != true {
+		t.Fatalf("deleted = %v, want true", got["deleted"])
+	}
+}
+
 func assertBearer(t *testing.T, r *http.Request) {
 	t.Helper()
 	if got := r.Header.Get("Authorization"); got != "Bearer test-token" {
