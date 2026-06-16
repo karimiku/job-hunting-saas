@@ -13,7 +13,12 @@ const backendOrigin = trustedProxyOrigin({
   legacyEnvNames: ["NEXT_PUBLIC_API_BASE_URL"],
   fallback: "http://localhost:8080",
   allowedHostsEnvName: "BACKEND_API_ALLOWED_HOSTS",
-  defaultAllowedHosts: ["localhost", "127.0.0.1", "api.entre.kamiriku.com"],
+  defaultAllowedHosts: [
+    "localhost",
+    "127.0.0.1",
+    "api.entre.kamiriku.com",
+    "entre-backend-gfsd4pzoxq-an.a.run.app",
+  ],
 });
 
 const securityHeaders = [

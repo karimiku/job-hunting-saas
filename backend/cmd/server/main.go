@@ -193,6 +193,7 @@ func run() error {
 		userRepo,
 		entryuc.NewList(entryRepo),
 		companyuc.NewList(companyRepo),
+		inboxclipuc.NewList(inboxClipRepo),
 		taskuc.NewListAll(taskRepo),
 	)
 

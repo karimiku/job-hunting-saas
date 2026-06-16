@@ -461,6 +461,24 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/v1/page-data/app:
+    get:
+      operationId: getAppPageData
+      summary: 主要アプリ画面の初期表示データをまとめて取得する
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppPageDataResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/v1/tasks:
     get:
       operationId: listAllTasks
@@ -1048,6 +1066,34 @@ components:
         - user
         - entries
         - tasks
+
+    AppPageDataResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/CurrentUserResponse"
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/EntryResponse"
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaskResponse"
+        clips:
+          type: array
+          items:
+            $ref: "#/components/schemas/InboxClipResponse"
+        companies:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompanyResponse"
+      required:
+        - user
+        - entries
+        - tasks
+        - clips
+        - companies
 
     CreateStageHistoryRequest:
       type: object

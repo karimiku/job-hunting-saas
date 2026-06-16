@@ -133,6 +133,17 @@ const mockApi = http.createServer((req, res) => {
         return;
       }
 
+      if (url.pathname === "/api/v1/page-data/app" && req.method === "GET") {
+        json(res, 200, {
+          user,
+          entries: state.entries.map(entryResponse),
+          tasks: state.tasks,
+          clips: state.clips,
+          companies: state.companies,
+        });
+        return;
+      }
+
       if (url.pathname === "/api/v1/entries" && req.method === "GET") {
         json(res, 200, { entries: state.entries.map(entryResponse) });
         return;

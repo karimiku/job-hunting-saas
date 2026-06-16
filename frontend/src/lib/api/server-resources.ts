@@ -88,10 +88,27 @@ interface TaskPageDataResponse {
   tasks: TaskResponse[];
 }
 
+interface AppPageDataResponse {
+  user: AuthUser;
+  entries: EntryResponse[];
+  tasks: TaskResponse[];
+  clips: InboxClipResponse[];
+  companies: CompanyResponse[];
+}
+
 export interface TaskPageData {
   user: AuthUser;
   entries: EntryResponse[];
   tasks: TaskWithEntry[];
+}
+
+export interface AppPageData {
+  user: AuthUser;
+  entries: EntryResponse[];
+  tasks: TaskWithEntry[];
+  clips: InboxClipResponse[];
+  companies: CompanyResponse[];
+  navCounts: NavCounts;
 }
 
 // /task の初期表示に必要な user / entries / tasks を1回の backend fetch で取得する。
@@ -102,6 +119,25 @@ export async function getTaskPageDataServer(): Promise<TaskPageData | null> {
       user: data.user,
       entries: data.entries,
       tasks: attachCompanyNamesToTasks(data.tasks, data.entries),
+    };
+  } catch (e) {
+    if (e instanceof ApiError && e.unauthorized) return null;
+    throw e;
+  }
+}
+
+// dashboard / entry / kanban / inbox の初期表示に必要なデータを1回の backend fetch で取得する。
+export async function getAppPageDataServer(): Promise<AppPageData | null> {
+  try {
+    const data = await serverFetch<AppPageDataResponse>("/api/v1/page-data/app");
+    const tasks = attachCompanyNamesToTasks(data.tasks, data.entries);
+    return {
+      user: data.user,
+      entries: data.entries,
+      tasks,
+      clips: data.clips,
+      companies: data.companies,
+      navCounts: buildNavCounts(data.entries, data.tasks, data.clips),
     };
   } catch (e) {
     if (e instanceof ApiError && e.unauthorized) return null;
@@ -139,10 +175,6 @@ export function buildNavCounts(
 // サイドバーのバッジ用カウント。Entry / Inbox は一覧件数、Task は未完了タスク件数。
 // どれか1つの取得に失敗しても 0 にフォールバックしてサイドバー描画は止めない。
 export async function getNavCountsServer(): Promise<NavCounts> {
-  const [entries, clips, tasks] = await Promise.all([
-    listEntriesServer().catch(() => [] as EntryResponse[]),
-    listInboxClipsServer().catch(() => [] as InboxClipResponse[]),
-    listTasksServer().catch(() => [] as TaskResponse[]),
-  ]);
-  return buildNavCounts(entries, tasks, clips);
+  const pageData = await getAppPageDataServer().catch(() => null);
+  return pageData?.navCounts ?? { entry: 0, task: 0, inbox: 0 };
 }

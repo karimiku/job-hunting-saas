@@ -230,6 +230,15 @@ type AiAccessTokenResponse struct {
 	TokenPrefix string             `json:"tokenPrefix"`
 }
 
+// AppPageDataResponse defines model for AppPageDataResponse.
+type AppPageDataResponse struct {
+	Clips     []InboxClipResponse `json:"clips"`
+	Companies []CompanyResponse   `json:"companies"`
+	Entries   []EntryResponse     `json:"entries"`
+	Tasks     []TaskResponse      `json:"tasks"`
+	User      CurrentUserResponse `json:"user"`
+}
+
 // CompanyAliasResponse defines model for CompanyAliasResponse.
 type CompanyAliasResponse struct {
 	Alias     string             `json:"alias"`
@@ -602,6 +611,9 @@ type ServerInterface interface {
 	// ページクリップを削除する
 	// (DELETE /api/v1/inbox/clips/{clipId})
 	DeleteInboxClip(w http.ResponseWriter, r *http.Request, clipId ClipId)
+	// 主要アプリ画面の初期表示データをまとめて取得する
+	// (GET /api/v1/page-data/app)
+	GetAppPageData(w http.ResponseWriter, r *http.Request)
 	// タスク画面の初期表示データをまとめて取得する
 	// (GET /api/v1/page-data/task)
 	GetTaskPageData(w http.ResponseWriter, r *http.Request)
@@ -785,6 +797,12 @@ func (_ Unimplemented) CreateInboxClip(w http.ResponseWriter, r *http.Request) {
 // ページクリップを削除する
 // (DELETE /api/v1/inbox/clips/{clipId})
 func (_ Unimplemented) DeleteInboxClip(w http.ResponseWriter, r *http.Request, clipId ClipId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// 主要アプリ画面の初期表示データをまとめて取得する
+// (GET /api/v1/page-data/app)
+func (_ Unimplemented) GetAppPageData(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1429,6 +1447,20 @@ func (siw *ServerInterfaceWrapper) DeleteInboxClip(w http.ResponseWriter, r *htt
 	handler.ServeHTTP(w, r)
 }
 
+// GetAppPageData operation middleware
+func (siw *ServerInterfaceWrapper) GetAppPageData(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAppPageData(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetTaskPageData operation middleware
 func (siw *ServerInterfaceWrapper) GetTaskPageData(w http.ResponseWriter, r *http.Request) {
 
@@ -1739,6 +1771,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Delete(options.BaseURL+"/api/v1/inbox/clips/{clipId}", wrapper.DeleteInboxClip)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/page-data/app", wrapper.GetAppPageData)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v1/page-data/task", wrapper.GetTaskPageData)
