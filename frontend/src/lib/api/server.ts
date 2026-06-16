@@ -9,7 +9,12 @@
 import { cookies, headers } from "next/headers";
 import { ApiError } from "./client";
 
-const DEFAULT_BACKEND_ALLOWED_HOSTS = ["localhost", "127.0.0.1", "api.entre.kamiriku.com"];
+const DEFAULT_BACKEND_ALLOWED_HOSTS = [
+  "localhost",
+  "127.0.0.1",
+  "api.entre.kamiriku.com",
+  "entre-backend-gfsd4pzoxq-an.a.run.app",
+];
 const API_BASE = serverBackendOrigin();
 
 /**

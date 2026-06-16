@@ -2,32 +2,15 @@
 
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getCurrentUserServer } from "@/lib/auth-server";
-import { ApiError } from "@/lib/api/client-types";
-import {
-  buildNavCounts,
-  listEntriesWithCompanyNamesServer,
-  listInboxClipsServer,
-  listTasksServer,
-} from "@/lib/api/server-resources";
+import { getAppPageDataServer } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { EntryListView } from "@/components/entre/EntryListView";
 import { Plus } from "lucide-react";
 
 export default async function EntryListPage() {
-  // user とデータは独立なので並列取得 (auth を待ってから始めると backend RTT が1段増える)。
-  // entries はメインリソースなので 401 (未ログイン → 下で redirect) 以外は throw して error.tsx に拾わせる。
-  const [user, entries, clips, tasks] = await Promise.all([
-    getCurrentUserServer(),
-    listEntriesWithCompanyNamesServer().catch((e) => {
-      if (e instanceof ApiError && e.unauthorized) return [];
-      throw e;
-    }),
-    listInboxClipsServer().catch(() => []),
-    listTasksServer().catch(() => []),
-  ]);
-  if (!user) redirect("/login");
-  const navCounts = buildNavCounts(entries, tasks, clips);
+  const pageData = await getAppPageDataServer();
+  if (!pageData) redirect("/login");
+  const { user, entries, navCounts } = pageData;
 
   return (
     <AppShell userName={user.name} userSubtitle={user.email} navCounts={navCounts}>

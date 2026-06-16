@@ -9,6 +9,7 @@ vi.mock("./server", () => ({
 import {
   attachCompanyNamesToTasks,
   buildNavCounts,
+  getAppPageDataServer,
   getNavCountsServer,
   getTaskPageDataServer,
   listAllTasksServer,
@@ -119,6 +120,50 @@ describe("getTaskPageDataServer", () => {
   });
 });
 
+describe("getAppPageDataServer", () => {
+  it("主要画面用の集約APIを1回だけ呼び、navCounts と会社名付き tasks を返す", async () => {
+    serverFetch.mockResolvedValue({
+      user: { id: "u1", email: "student@example.com", name: "Student" },
+      entries: [
+        {
+          id: "e1",
+          companyId: "c1",
+          companyName: "○○商事",
+          route: "",
+          source: "",
+          status: "open",
+          stageKind: "pre_entry",
+          stageLabel: "",
+          memo: "",
+          createdAt: "x",
+          updatedAt: "x",
+        },
+      ],
+      tasks: [
+        { id: "t1", entryId: "e1", title: "ES提出", type: "deadline", status: "todo", dueDate: null, memo: "", createdAt: "x", updatedAt: "x" },
+        { id: "t2", entryId: "e1", title: "完了済み", type: "schedule", status: "done", dueDate: null, memo: "", createdAt: "x", updatedAt: "x" },
+      ],
+      clips: [{ id: "clip1", url: "https://example.com", title: "求人", source: "web", guess: "", capturedAt: "x" }],
+      companies: [{ id: "c1", name: "○○商事", memo: "", createdAt: "x", updatedAt: "x" }],
+    });
+
+    const pageData = await getAppPageDataServer();
+
+    expect(pageData?.user.email).toBe("student@example.com");
+    expect(pageData?.tasks[0]?.companyName).toBe("○○商事");
+    expect(pageData?.companies).toHaveLength(1);
+    expect(pageData?.navCounts).toEqual({ entry: 1, task: 1, inbox: 1 });
+    expect(serverFetch).toHaveBeenCalledTimes(1);
+    expect(serverFetch).toHaveBeenCalledWith("/api/v1/page-data/app", undefined);
+  });
+
+  it("401 は未ログインとして null を返す", async () => {
+    serverFetch.mockRejectedValue(new ApiError(401, "Unauthorized"));
+
+    await expect(getAppPageDataServer()).resolves.toBeNull();
+  });
+});
+
 describe("listEntriesWithCompanyNamesServer", () => {
   it("backend が会社名を同梱する entries API だけを呼ぶ", async () => {
     serverFetch.mockResolvedValue({
@@ -163,50 +208,41 @@ describe("attachCompanyNamesToTasks", () => {
 });
 
 describe("getNavCountsServer", () => {
-  it("entries, inbox, tasks をそれぞれ1回ずつ取得して件数を返す", async () => {
-    serverFetch.mockImplementation(async (path: string) => {
-      if (path === "/api/v1/entries") {
-        return {
-          entries: [
-            {
-              id: "e1",
-              companyId: "c1",
-              route: "",
-              source: "",
-              status: "open",
-              stageKind: "pre_entry",
-              stageLabel: "",
-              memo: "",
-              createdAt: "x",
-              updatedAt: "x",
-            },
-            {
-              id: "e2",
-              companyId: "c2",
-              route: "",
-              source: "",
-              status: "open",
-              stageKind: "pre_entry",
-              stageLabel: "",
-              memo: "",
-              createdAt: "x",
-              updatedAt: "x",
-            },
-          ],
-        };
-      }
-      if (path === "/api/v1/inbox/clips") {
-        return { clips: [{ id: "clip1" }] };
-      }
-      if (path === "/api/v1/tasks") {
-        return {
-          tasks: [
-            { id: "t1", entryId: "e1", title: "ES提出", type: "deadline", status: "todo", dueDate: null, memo: "", createdAt: "x", updatedAt: "x" },
-            { id: "t2", entryId: "e2", title: "SPI受験", type: "schedule", status: "done", dueDate: null, memo: "", createdAt: "x", updatedAt: "x" },
-          ],
-        };
-      }
-      throw new Error(`unexpected path: ${path}`);
+  it("主要画面用の集約APIを1回だけ呼んで件数を返す", async () => {
+    serverFetch.mockResolvedValue({
+      user: { id: "u1", email: "student@example.com", name: "Student" },
+      entries: [
+        {
+          id: "e1",
+          companyId: "c1",
+          route: "",
+          source: "",
+          status: "open",
+          stageKind: "pre_entry",
+          stageLabel: "",
+          memo: "",
+          createdAt: "x",
+          updatedAt: "x",
+        },
+        {
+          id: "e2",
+          companyId: "c2",
+          route: "",
+          source: "",
+          status: "open",
+          stageKind: "pre_entry",
+          stageLabel: "",
+          memo: "",
+          createdAt: "x",
+          updatedAt: "x",
+        },
+      ],
+      tasks: [
+        { id: "t1", entryId: "e1", title: "ES提出", type: "deadline", status: "todo", dueDate: null, memo: "", createdAt: "x", updatedAt: "x" },
+        { id: "t2", entryId: "e2", title: "SPI受験", type: "schedule", status: "done", dueDate: null, memo: "", createdAt: "x", updatedAt: "x" },
+      ],
+      clips: [{ id: "clip1", url: "https://example.com", title: "求人", source: "web", guess: "", capturedAt: "x" }],
+      companies: [],
     });
 
     await expect(getNavCountsServer()).resolves.toEqual({
@@ -214,10 +250,8 @@ describe("getNavCountsServer", () => {
       task: 1,
       inbox: 1,
     });
-    expect(serverFetch).toHaveBeenCalledTimes(3);
-    expect(serverFetch).toHaveBeenCalledWith("/api/v1/entries", undefined);
-    expect(serverFetch).toHaveBeenCalledWith("/api/v1/inbox/clips", undefined);
-    expect(serverFetch).toHaveBeenCalledWith("/api/v1/tasks", undefined);
+    expect(serverFetch).toHaveBeenCalledTimes(1);
+    expect(serverFetch).toHaveBeenCalledWith("/api/v1/page-data/app", undefined);
   });
 });
 

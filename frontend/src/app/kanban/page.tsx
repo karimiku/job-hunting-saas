@@ -2,26 +2,15 @@
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentUserServer } from "@/lib/auth-server";
-import {
-  buildNavCounts,
-  listEntriesWithCompanyNamesServer,
-  listInboxClipsServer,
-  listTasksServer,
-} from "@/lib/api/server-resources";
+import { getAppPageDataServer } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { KanbanBoard } from "@/components/entre/KanbanBoard";
 import { Plus } from "lucide-react";
 
 export default async function KanbanPage() {
-  const [user, entries, clips, tasks] = await Promise.all([
-    getCurrentUserServer(),
-    listEntriesWithCompanyNamesServer().catch(() => [] as never[]),
-    listInboxClipsServer().catch(() => []),
-    listTasksServer().catch(() => []),
-  ]);
-  if (!user) redirect("/login");
-  const navCounts = buildNavCounts(entries, tasks, clips);
+  const pageData = await getAppPageDataServer();
+  if (!pageData) redirect("/login");
+  const { user, entries, navCounts } = pageData;
 
   return (
     <AppShell userName={user.name} userSubtitle={user.email} navCounts={navCounts}>

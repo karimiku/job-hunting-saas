@@ -1,15 +1,8 @@
-// Server Component。auth + entries + tasks + inbox を SSR で並列取得し、
+// Server Component。auth + entries + tasks + inbox を SSR 集約APIで取得し、
 // 集計済みデータを子コンポーネントに props で渡す。useEffect は使わない。
 
 import { redirect } from "next/navigation";
-import { getCurrentUserServer } from "@/lib/auth-server";
-import {
-  attachCompanyNamesToTasks,
-  buildNavCounts,
-  listEntriesWithCompanyNamesServer,
-  listInboxClipsServer,
-  listTasksServer,
-} from "@/lib/api/server-resources";
+import { getAppPageDataServer } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { DashboardEntries } from "@/components/entre/DashboardEntries";
 import { DashboardQuests } from "@/components/entre/DashboardQuests";
@@ -18,17 +11,9 @@ import { DashboardStats } from "@/components/entre/DashboardStats";
 import { SignOutButton } from "@/components/entre/SignOutButton";
 
 export default async function DashboardPage() {
-  // user / entries / tasks / inbox は独立なので並列取得 (cookies() は内部で memoize される)
-  const [user, entries, rawTasks, clips] = await Promise.all([
-    getCurrentUserServer(),
-    listEntriesWithCompanyNamesServer().catch(() => []),
-    listTasksServer().catch(() => []),
-    listInboxClipsServer().catch(() => []),
-  ]);
-  if (!user) redirect("/login");
-
-  const tasks = attachCompanyNamesToTasks(rawTasks, entries);
-  const navCounts = buildNavCounts(entries, rawTasks, clips);
+  const pageData = await getAppPageDataServer();
+  if (!pageData) redirect("/login");
+  const { user, entries, tasks, navCounts } = pageData;
 
   const firstName = user.name.split(/[\s　]/)[0] || user.name;
   const openTasks = tasks.filter((t) => t.status === "todo").length;
