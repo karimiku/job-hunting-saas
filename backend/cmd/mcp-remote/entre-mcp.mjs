@@ -182,7 +182,7 @@ function publicESMemo(memo, companyName, entryRef = null) {
   return out;
 }
 
-class EntreClient {
+export class EntreClient {
   constructor({ baseURL, token }) {
     this.baseURL = baseURL;
     this.token = token;
@@ -877,8 +877,11 @@ async function main() {
   debug("node stdio server connected");
 }
 
-main().catch((error) => {
-  debug("fatal error: %s", error?.stack ?? error);
-  process.stderr.write(`entre MCP server error: ${error?.message ?? String(error)}\n`);
-  process.exit(1);
-});
+const invokedPath = process.argv[1] ? pathToFileURL(process.argv[1]).href : "";
+if (import.meta.url === invokedPath) {
+  main().catch((error) => {
+    debug("fatal error: %s", error?.stack ?? error);
+    process.stderr.write(`entre MCP server error: ${error?.message ?? String(error)}\n`);
+    process.exit(1);
+  });
+}
