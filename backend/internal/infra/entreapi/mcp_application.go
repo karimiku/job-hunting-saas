@@ -93,10 +93,16 @@ func (a *MCPApplication) GetEntryContext(ctx context.Context, rawEntryID string)
 	for _, task := range tasks.Tasks {
 		taskDTOs = append(taskDTOs, task.toMCP(companyName))
 	}
-	return &mcpuc.EntryContextDTO{
+	ctxDTO := &mcpuc.EntryContextDTO{
 		Entry: entry.toMCP(companyName),
 		Tasks: taskDTOs,
-	}, nil
+	}
+	var flow selectionFlowResponse
+	if err := a.get(ctx, "/api/v1/entries/"+url.PathEscape(entryID)+"/selection-flow", &flow); err == nil {
+		dto := flow.toMCP()
+		ctxDTO.SelectionFlow = &dto
+	}
+	return ctxDTO, nil
 }
 
 // ListOpenTasks returns non-done tasks.
@@ -267,6 +273,82 @@ func (a *MCPApplication) CaptureJobEmail(input mcpuc.CaptureJobEmailInput) (jobe
 	}), nil
 }
 
+// UpsertEntrySelectionFlow previews or saves a custom selection flow through the REST API.
+func (a *MCPApplication) UpsertEntrySelectionFlow(ctx context.Context, input mcpuc.UpsertEntrySelectionFlowInput) (any, error) {
+	entryID := strings.TrimSpace(input.EntryID)
+	if entryID == "" {
+		return nil, errors.New("entryId is required")
+	}
+	req := selectionFlowRequest{
+		Source:               defaultString(input.Source, "ai_paste"),
+		CurrentStagePosition: optionalInt(input.CurrentStagePosition),
+		Confidence:           input.Confidence,
+		InboxClipID:          optionalString(input.InboxClipID),
+		Stages:               selectionStageRequests(input.Stages),
+	}
+	preview := map[string]any{
+		"confirmationRequired": !input.Confirm,
+		"action":               "upsert_entry_selection_flow",
+		"entryId":              entryID,
+		"selectionFlow":        req,
+	}
+	if !input.Confirm {
+		return preview, nil
+	}
+	var flow selectionFlowResponse
+	if err := a.put(ctx, "/api/v1/entries/"+url.PathEscape(entryID)+"/selection-flow", req, &flow); err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"updated":       true,
+		"selectionFlow": flow.toMCP(),
+	}, nil
+}
+
+// CreateEntryFromJobPosting previews or creates an Entry and its custom selection flow through the REST API.
+func (a *MCPApplication) CreateEntryFromJobPosting(ctx context.Context, input mcpuc.CreateEntryFromJobPostingInput) (any, error) {
+	companyName := strings.TrimSpace(input.CompanyName)
+	if companyName == "" {
+		return nil, errors.New("companyName is required")
+	}
+	entryReq := createEntryWithCompanyRequest{
+		CompanyName: companyName,
+		Route:       defaultString(input.Route, "本選考"),
+		Source:      defaultString(input.Source, "求人ページ"),
+		SourceURL:   optionalString(input.SourceURL),
+		Memo:        optionalString(input.Memo),
+	}
+	flowReq := selectionFlowRequest{
+		Source:               defaultString(input.FlowSource, "ai_paste"),
+		CurrentStagePosition: optionalInt(input.CurrentStagePosition),
+		Confidence:           input.Confidence,
+		InboxClipID:          optionalString(input.InboxClipID),
+		Stages:               selectionStageRequests(input.Stages),
+	}
+	preview := map[string]any{
+		"confirmationRequired": !input.Confirm,
+		"action":               "create_entry_from_job_posting",
+		"entry":                entryReq,
+		"selectionFlow":        flowReq,
+	}
+	if !input.Confirm {
+		return preview, nil
+	}
+	var entry entryResponse
+	if err := a.post(ctx, "/api/v1/entries/with-company", entryReq, &entry); err != nil {
+		return nil, err
+	}
+	var flow selectionFlowResponse
+	if err := a.put(ctx, "/api/v1/entries/"+url.PathEscape(entry.ID)+"/selection-flow", flowReq, &flow); err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"created":       true,
+		"entry":         entry.toMCP(""),
+		"selectionFlow": flow.toMCP(),
+	}, nil
+}
+
 func (a *MCPApplication) listEntries(ctx context.Context) ([]entryResponse, error) {
 	var entries listEntriesResponse
 	if err := a.get(ctx, "/api/v1/entries", &entries); err != nil {
@@ -320,6 +402,10 @@ func (a *MCPApplication) get(ctx context.Context, path string, out any) error {
 
 func (a *MCPApplication) post(ctx context.Context, path string, body any, out any) error {
 	return a.do(ctx, http.MethodPost, path, body, out)
+}
+
+func (a *MCPApplication) put(ctx context.Context, path string, body any, out any) error {
+	return a.do(ctx, http.MethodPut, path, body, out)
 }
 
 func (a *MCPApplication) do(ctx context.Context, method string, path string, body any, out any) error {
@@ -489,22 +575,24 @@ type listInboxClipsResponse struct {
 }
 
 type inboxClipResponse struct {
-	ID         string `json:"id"`
-	URL        string `json:"url"`
-	Title      string `json:"title"`
-	Source     string `json:"source"`
-	Guess      string `json:"guess"`
-	CapturedAt string `json:"capturedAt"`
+	ID          string `json:"id"`
+	URL         string `json:"url"`
+	Title       string `json:"title"`
+	Source      string `json:"source"`
+	Guess       string `json:"guess"`
+	ContentText string `json:"contentText"`
+	CapturedAt  string `json:"capturedAt"`
 }
 
 func (c inboxClipResponse) toMCP() mcpuc.InboxClipDTO {
 	return mcpuc.InboxClipDTO{
-		ID:         c.ID,
-		URL:        c.URL,
-		Title:      c.Title,
-		Source:     c.Source,
-		Guess:      c.Guess,
-		CapturedAt: optionalString(c.CapturedAt),
+		ID:          c.ID,
+		URL:         c.URL,
+		Title:       c.Title,
+		Source:      c.Source,
+		Guess:       c.Guess,
+		ContentText: c.ContentText,
+		CapturedAt:  optionalString(c.CapturedAt),
 	}
 }
 
@@ -518,6 +606,91 @@ type createTaskRequest struct {
 	DueDate *string `json:"dueDate,omitempty"`
 	Memo    *string `json:"memo,omitempty"`
 	Notify  *bool   `json:"notify,omitempty"`
+}
+
+type createEntryWithCompanyRequest struct {
+	CompanyName string  `json:"companyName"`
+	Route       string  `json:"route"`
+	Source      string  `json:"source"`
+	SourceURL   *string `json:"sourceUrl,omitempty"`
+	Memo        *string `json:"memo,omitempty"`
+}
+
+type selectionFlowRequest struct {
+	Source               string                  `json:"source"`
+	CurrentStagePosition *int                    `json:"currentStagePosition,omitempty"`
+	Confidence           *int                    `json:"confidence,omitempty"`
+	InboxClipID          *string                 `json:"inboxClipId,omitempty"`
+	Stages               []selectionStageRequest `json:"stages"`
+}
+
+type selectionStageRequest struct {
+	StageKind    string  `json:"stageKind"`
+	StageLabel   string  `json:"stageLabel"`
+	EvidenceText *string `json:"evidenceText,omitempty"`
+}
+
+type selectionFlowResponse struct {
+	ID                   string                   `json:"id"`
+	EntryID              string                   `json:"entryId"`
+	Source               string                   `json:"source"`
+	CurrentStagePosition int                      `json:"currentStagePosition"`
+	Confidence           *int                     `json:"confidence"`
+	InboxClipID          *string                  `json:"inboxClipId"`
+	Stages               []selectionStageResponse `json:"stages"`
+	CreatedAt            string                   `json:"createdAt"`
+	UpdatedAt            string                   `json:"updatedAt"`
+}
+
+type selectionStageResponse struct {
+	ID           string `json:"id"`
+	Position     int    `json:"position"`
+	StageKind    string `json:"stageKind"`
+	StageLabel   string `json:"stageLabel"`
+	EvidenceText string `json:"evidenceText"`
+}
+
+func (f selectionFlowResponse) toMCP() mcpuc.SelectionFlowDTO {
+	stages := make([]mcpuc.SelectionStageDTO, 0, len(f.Stages))
+	for _, stage := range f.Stages {
+		stages = append(stages, mcpuc.SelectionStageDTO{
+			ID:           stage.ID,
+			Position:     stage.Position,
+			StageKind:    stage.StageKind,
+			StageLabel:   stage.StageLabel,
+			EvidenceText: stage.EvidenceText,
+		})
+	}
+	return mcpuc.SelectionFlowDTO{
+		ID:                   f.ID,
+		EntryID:              f.EntryID,
+		Source:               f.Source,
+		CurrentStagePosition: f.CurrentStagePosition,
+		Confidence:           f.Confidence,
+		InboxClipID:          f.InboxClipID,
+		Stages:               stages,
+		CreatedAt:            optionalString(f.CreatedAt),
+		UpdatedAt:            optionalString(f.UpdatedAt),
+	}
+}
+
+func selectionStageRequests(stages []mcpuc.SelectionStageDTO) []selectionStageRequest {
+	out := make([]selectionStageRequest, 0, len(stages))
+	for _, stage := range stages {
+		out = append(out, selectionStageRequest{
+			StageKind:    stage.StageKind,
+			StageLabel:   stage.StageLabel,
+			EvidenceText: optionalString(stage.EvidenceText),
+		})
+	}
+	return out
+}
+
+func optionalInt(value int) *int {
+	if value == 0 {
+		return nil
+	}
+	return &value
 }
 
 type createESMemoRequest struct {

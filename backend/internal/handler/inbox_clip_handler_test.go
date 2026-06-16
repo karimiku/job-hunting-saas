@@ -37,7 +37,7 @@ func seedClipWithURL(t *testing.T, repo *inmemory.InboxClipRepository, userID en
 	title, _ := value.NewInboxClipTitle("○○商事")
 	src, _ := value.NewSource("マイナビ")
 	guess, _ := value.NewInboxClipGuess("○○商事")
-	clip := entity.NewInboxClip(userID, url, title, src, guess)
+	clip := entity.NewInboxClip(userID, url, title, src, guess, value.InboxClipContentText{})
 	if err := repo.Create(context.Background(), clip); err != nil {
 		t.Fatalf("seed: %v", err)
 	}

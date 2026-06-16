@@ -6,6 +6,7 @@ export interface InboxClipResponse {
   title: string;
   source: string;
   guess: string;
+  contentText?: string;
   capturedAt: string;
 }
 
@@ -19,6 +20,7 @@ export interface CreateInboxClipInput {
   title: string;
   source: string;
   guess?: string;
+  contentText?: string;
 }
 
 export async function createInboxClip(input: CreateInboxClipInput): Promise<InboxClipResponse> {

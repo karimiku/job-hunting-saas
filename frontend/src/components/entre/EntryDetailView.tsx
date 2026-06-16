@@ -21,8 +21,10 @@ import {
   type StageKind,
 } from "@/lib/entry-stage";
 import { type TaskResponse } from "@/lib/api/tasks";
+import type { SelectionFlowResponse, SelectionStageResponse } from "@/lib/selection-flow";
 import {
   createTaskForEntryAction,
+  updateSelectionFlowCurrentStageAction,
   updateEntryAction,
 } from "@/app/entry/actions";
 import { deleteTaskAction, setTaskStatusAction } from "@/app/task/actions";
@@ -33,10 +35,15 @@ const OUTCOME_STATUS = ["in_progress", "offered", "accepted", "rejected", "withd
 interface Props {
   initialEntry: EntryResponse | null;
   initialTasks: TaskResponse[];
+  initialSelectionFlow?: SelectionFlowResponse | null;
 }
 
 /** Entry 詳細 — ステージ進捗バー + 「進める →」 + 内定スタンプ + Tasks 表示。 */
-export function EntryDetailView({ initialEntry, initialTasks }: Props) {
+export function EntryDetailView({
+  initialEntry,
+  initialTasks,
+  initialSelectionFlow,
+}: Props) {
   const [confetti, setConfetti] = useState(0);
   const [taskError, setTaskError] = useState<string | null>(null);
   const [entryError, setEntryError] = useState<string | null>(null);
@@ -46,6 +53,9 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
     stageLabel: string;
     status: string;
   } | null>(null);
+  const [selectionFlow, setSelectionFlow] = useState<SelectionFlowResponse | null>(
+    initialSelectionFlow ?? null,
+  );
   const [createdTasks, setCreatedTasks] = useState<TaskResponse[]>([]);
   const [deletedTaskIds, setDeletedTaskIds] = useState<Record<string, boolean>>({});
   const [optimisticTaskStatus, setOptimisticTaskStatus] = useState<
@@ -98,6 +108,34 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
         return;
       }
       if (nextKind === "offer") setConfetti((n) => n + 1);
+    });
+  };
+
+  const handleSelectFlowStage = (stage: SelectionStageResponse) => {
+    const next = {
+      stageKind: stage.stageKind,
+      stageLabel: stage.stageLabel,
+      status: statusForSelectionStage(stage.stageKind),
+    };
+    const previousFlow = selectionFlow;
+    setEntryError(null);
+    setOptimisticEntry(next);
+    if (selectionFlow) {
+      setSelectionFlow({
+        ...selectionFlow,
+        currentStagePosition: stage.position,
+      });
+    }
+    startTransition(async () => {
+      const result = await updateSelectionFlowCurrentStageAction(e.id, stage.position);
+      if (!result.ok || !result.selectionFlow) {
+        setSelectionFlow(previousFlow);
+        setOptimisticEntry(null);
+        setEntryError(result.error ?? "選考フローの更新に失敗しました");
+        return;
+      }
+      setSelectionFlow(result.selectionFlow);
+      if (stage.stageKind === "offer") setConfetti((n) => n + 1);
     });
   };
 
@@ -230,29 +268,56 @@ export function EntryDetailView({ initialEntry, initialTasks }: Props) {
             {ENTRY_STATUS_LABEL[e.status] ?? e.status}
           </span>
         </div>
-        <div className="grid grid-cols-3 gap-1.5 md:grid-cols-6">
-          {STAGE_ORDER.map((kind, i) => {
-            const reached = i <= currentIdx;
-            const selected = e.stageKind === kind;
-            return (
-              <button
-                type="button"
-                key={kind}
-                onClick={() => handleSelectStage(kind)}
-                disabled={isPending || selected}
-                aria-pressed={selected}
-                className="grid min-h-9 place-items-center rounded-md border text-[10px] font-bold transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:cursor-default"
-                style={{
-                  borderColor: selected ? STAGE_COLOR[kind] : "var(--color-line)",
-                  background: reached ? STAGE_COLOR[kind] : "var(--color-line-2)",
-                  color: reached ? "#fff" : "var(--color-ink-3)",
-                }}
-              >
-                {STAGE_LABEL[kind]}
-              </button>
-            );
-          })}
-        </div>
+        {selectionFlow ? (
+          <div className="grid grid-cols-2 gap-1.5 md:grid-cols-3">
+            {selectionFlow.stages.map((stage) => {
+              const reached = stage.position <= selectionFlow.currentStagePosition;
+              const selected = stage.position === selectionFlow.currentStagePosition;
+              const color = stageColor(stage.stageKind);
+              return (
+                <button
+                  type="button"
+                  key={stage.id}
+                  onClick={() => handleSelectFlowStage(stage)}
+                  disabled={isPending || selected}
+                  aria-pressed={selected}
+                  className="grid min-h-10 place-items-center rounded-md border px-2 text-[10px] font-bold transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:cursor-default"
+                  style={{
+                    borderColor: selected ? color : "var(--color-line)",
+                    background: reached ? color : "var(--color-line-2)",
+                    color: reached ? "#fff" : "var(--color-ink-3)",
+                  }}
+                >
+                  {stage.stageLabel}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-1.5 md:grid-cols-6">
+            {STAGE_ORDER.map((kind, i) => {
+              const reached = i <= currentIdx;
+              const selected = e.stageKind === kind;
+              return (
+                <button
+                  type="button"
+                  key={kind}
+                  onClick={() => handleSelectStage(kind)}
+                  disabled={isPending || selected}
+                  aria-pressed={selected}
+                  className="grid min-h-9 place-items-center rounded-md border text-[10px] font-bold transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:cursor-default"
+                  style={{
+                    borderColor: selected ? STAGE_COLOR[kind] : "var(--color-line)",
+                    background: reached ? STAGE_COLOR[kind] : "var(--color-line-2)",
+                    color: reached ? "#fff" : "var(--color-ink-3)",
+                  }}
+                >
+                  {STAGE_LABEL[kind]}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="mt-2 grid grid-cols-5 gap-1">
           {OUTCOME_STATUS.map((status) => {
             const selected = e.status === status;
@@ -453,6 +518,14 @@ function taskTime(task: TaskResponse): number {
   if (!task.dueDate) return Number.POSITIVE_INFINITY;
   const date = new Date(task.dueDate);
   return Number.isNaN(date.getTime()) ? Number.POSITIVE_INFINITY : date.getTime();
+}
+
+function statusForSelectionStage(stageKind: string): string {
+  return stageKind === "offer" ? "offered" : "in_progress";
+}
+
+function stageColor(stageKind: string): string {
+  return STAGE_COLOR[stageKind as StageKind] ?? "var(--color-ink-3)";
 }
 
 function compareTasks(a: TaskResponse, b: TaskResponse): number {

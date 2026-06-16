@@ -443,6 +443,86 @@ paths:
                 required:
                   - stageHistories
 
+  /api/v1/entries/{entryId}/selection-flow:
+    parameters:
+      - $ref: "#/components/parameters/EntryId"
+    get:
+      operationId: getSelectionFlow
+      summary: エントリーに紐づく可変選考フローを取得する
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SelectionFlowResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: upsertSelectionFlow
+      summary: エントリーに紐づく可変選考フローを作成または置換する
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertSelectionFlowRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SelectionFlowResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/entries/{entryId}/selection-flow/current-stage:
+    parameters:
+      - $ref: "#/components/parameters/EntryId"
+    patch:
+      operationId: updateSelectionFlowCurrentStage
+      summary: 可変選考フローの現在ステージを更新する
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSelectionFlowCurrentStageRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SelectionFlowResponse"
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/v1/page-data/task:
     get:
       operationId: getTaskPageData
@@ -1135,6 +1215,117 @@ components:
         - note
         - createdAt
 
+    SelectionStageInput:
+      type: object
+      properties:
+        stageKind:
+          type: string
+          enum: [application, document, test, interview, group, offer, other]
+        stageLabel:
+          type: string
+        evidenceText:
+          type: string
+      required:
+        - stageKind
+        - stageLabel
+
+    UpsertSelectionFlowRequest:
+      type: object
+      properties:
+        source:
+          type: string
+          enum: [template, manual, ai_inbox, ai_paste]
+        currentStagePosition:
+          type: integer
+          minimum: 1
+        confidence:
+          type: integer
+          minimum: 0
+          maximum: 100
+          nullable: true
+        inboxClipId:
+          type: string
+          format: uuid
+          nullable: true
+        stages:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/SelectionStageInput"
+      required:
+        - source
+        - stages
+
+    UpdateSelectionFlowCurrentStageRequest:
+      type: object
+      properties:
+        position:
+          type: integer
+          minimum: 1
+      required:
+        - position
+
+    SelectionStageResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        position:
+          type: integer
+        stageKind:
+          type: string
+        stageLabel:
+          type: string
+        evidenceText:
+          type: string
+      required:
+        - id
+        - position
+        - stageKind
+        - stageLabel
+        - evidenceText
+
+    SelectionFlowResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        entryId:
+          type: string
+          format: uuid
+        source:
+          type: string
+        currentStagePosition:
+          type: integer
+        confidence:
+          type: integer
+          nullable: true
+        inboxClipId:
+          type: string
+          format: uuid
+          nullable: true
+        stages:
+          type: array
+          items:
+            $ref: "#/components/schemas/SelectionStageResponse"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - entryId
+        - source
+        - currentStagePosition
+        - stages
+        - createdAt
+        - updatedAt
+
     CreateAiAccessTokenRequest:
       type: object
       properties:
@@ -1253,6 +1444,9 @@ components:
         guess:
           type: string
           maxLength: 256
+        contentText:
+          type: string
+          maxLength: 20000
       required:
         - url
         - title
@@ -1272,6 +1466,8 @@ components:
           type: string
         guess:
           type: string
+        contentText:
+          type: string
         capturedAt:
           type: string
           format: date-time
@@ -1281,6 +1477,7 @@ components:
         - title
         - source
         - guess
+        - contentText
         - capturedAt
 
     ErrorResponse:

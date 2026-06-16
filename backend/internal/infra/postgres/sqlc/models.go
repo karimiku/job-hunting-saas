@@ -293,13 +293,14 @@ type ExternalIdentity struct {
 }
 
 type InboxClip struct {
-	ID         uuid.UUID
-	UserID     uuid.UUID
-	Url        string
-	Title      string
-	Source     string
-	Guess      string
-	CapturedAt pgtype.Timestamptz
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	Url         string
+	Title       string
+	Source      string
+	Guess       string
+	ContentText string
+	CapturedAt  pgtype.Timestamptz
 }
 
 type PasswordCredential struct {
@@ -308,6 +309,27 @@ type PasswordCredential struct {
 	PasswordHash string
 	CreatedAt    pgtype.Timestamptz
 	UpdatedAt    pgtype.Timestamptz
+}
+
+type SelectionFlow struct {
+	ID                   uuid.UUID
+	EntryID              uuid.UUID
+	Source               string
+	CurrentStagePosition int32
+	Confidence           pgtype.Int4
+	InboxClipID          pgtype.UUID
+	CreatedAt            pgtype.Timestamptz
+	UpdatedAt            pgtype.Timestamptz
+}
+
+type SelectionStage struct {
+	ID           uuid.UUID
+	FlowID       uuid.UUID
+	Position     int32
+	StageKind    StageKind
+	StageLabel   string
+	EvidenceText string
+	CreatedAt    pgtype.Timestamptz
 }
 
 type StageHistory struct {

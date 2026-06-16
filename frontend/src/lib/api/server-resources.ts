@@ -9,6 +9,7 @@ import { ApiError, type AuthUser } from "./client-types";
 import type { EntryResponse, ListEntriesParams } from "./entries";
 import type { CompanyResponse } from "./companies";
 import type { InboxClipResponse } from "./inboxClips";
+import type { SelectionFlowResponse } from "../selection-flow";
 import type { TaskResponse } from "./tasks";
 
 export async function listEntriesServer(
@@ -25,6 +26,14 @@ export async function listEntriesServer(
 
 export async function getEntryServer(id: string): Promise<EntryResponse> {
   return serverFetch<EntryResponse>(`/api/v1/entries/${id}`);
+}
+
+export async function getSelectionFlowServer(
+  entryId: string,
+): Promise<SelectionFlowResponse> {
+  return serverFetch<SelectionFlowResponse>(
+    `/api/v1/entries/${entryId}/selection-flow`,
+  );
 }
 
 export async function listCompaniesServer(): Promise<CompanyResponse[]> {

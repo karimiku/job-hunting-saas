@@ -13,18 +13,19 @@ import (
 )
 
 const createInboxClip = `-- name: CreateInboxClip :exec
-INSERT INTO inbox_clips (id, user_id, url, title, source, guess, captured_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO inbox_clips (id, user_id, url, title, source, guess, content_text, captured_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
 type CreateInboxClipParams struct {
-	ID         uuid.UUID
-	UserID     uuid.UUID
-	Url        string
-	Title      string
-	Source     string
-	Guess      string
-	CapturedAt pgtype.Timestamptz
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	Url         string
+	Title       string
+	Source      string
+	Guess       string
+	ContentText string
+	CapturedAt  pgtype.Timestamptz
 }
 
 func (q *Queries) CreateInboxClip(ctx context.Context, arg CreateInboxClipParams) error {
@@ -35,6 +36,7 @@ func (q *Queries) CreateInboxClip(ctx context.Context, arg CreateInboxClipParams
 		arg.Title,
 		arg.Source,
 		arg.Guess,
+		arg.ContentText,
 		arg.CapturedAt,
 	)
 	return err
@@ -59,7 +61,7 @@ func (q *Queries) DeleteInboxClip(ctx context.Context, arg DeleteInboxClipParams
 }
 
 const findInboxClipByID = `-- name: FindInboxClipByID :one
-SELECT id, user_id, url, title, source, guess, captured_at
+SELECT id, user_id, url, title, source, guess, content_text, captured_at
 FROM inbox_clips
 WHERE user_id = $1 AND id = $2
 `
@@ -79,13 +81,14 @@ func (q *Queries) FindInboxClipByID(ctx context.Context, arg FindInboxClipByIDPa
 		&i.Title,
 		&i.Source,
 		&i.Guess,
+		&i.ContentText,
 		&i.CapturedAt,
 	)
 	return i, err
 }
 
 const findInboxClipByUserIDAndURL = `-- name: FindInboxClipByUserIDAndURL :one
-SELECT id, user_id, url, title, source, guess, captured_at
+SELECT id, user_id, url, title, source, guess, content_text, captured_at
 FROM inbox_clips
 WHERE user_id = $1 AND url = $2
 ORDER BY captured_at DESC
@@ -107,13 +110,14 @@ func (q *Queries) FindInboxClipByUserIDAndURL(ctx context.Context, arg FindInbox
 		&i.Title,
 		&i.Source,
 		&i.Guess,
+		&i.ContentText,
 		&i.CapturedAt,
 	)
 	return i, err
 }
 
 const listInboxClipsByUserID = `-- name: ListInboxClipsByUserID :many
-SELECT id, user_id, url, title, source, guess, captured_at
+SELECT id, user_id, url, title, source, guess, content_text, captured_at
 FROM inbox_clips
 WHERE user_id = $1
 ORDER BY captured_at DESC
@@ -135,6 +139,7 @@ func (q *Queries) ListInboxClipsByUserID(ctx context.Context, userID uuid.UUID) 
 			&i.Title,
 			&i.Source,
 			&i.Guess,
+			&i.ContentText,
 			&i.CapturedAt,
 		); err != nil {
 			return nil, err

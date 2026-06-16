@@ -139,3 +139,11 @@ func (fakeApplication) CreateTask(context.Context, mcpuc.CreateTaskInput) (any, 
 func (fakeApplication) CaptureJobEmail(mcpuc.CaptureJobEmailInput) (jobemail.ExtractOutput, error) {
 	return jobemail.ExtractOutput{CompanyName: "Example Inc."}, nil
 }
+
+func (fakeApplication) UpsertEntrySelectionFlow(context.Context, mcpuc.UpsertEntrySelectionFlowInput) (any, error) {
+	return map[string]any{"updated": true}, nil
+}
+
+func (fakeApplication) CreateEntryFromJobPosting(context.Context, mcpuc.CreateEntryFromJobPostingInput) (any, error) {
+	return map[string]any{"created": true}, nil
+}

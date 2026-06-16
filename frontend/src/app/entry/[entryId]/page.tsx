@@ -6,6 +6,7 @@ import { getCurrentUserServer } from "@/lib/auth-server";
 import {
   getEntryServer,
   getNavCountsServer,
+  getSelectionFlowServer,
   listCompaniesServer,
   listTasksByEntryServer,
 } from "@/lib/api/server-resources";
@@ -24,7 +25,7 @@ export default async function EntryDetailPage({ params }: Props) {
   // entry の取得失敗 (404 等) は EntryDetailView に渡す initial=null として扱い、UI 側でエラー表示。
   // 会社名は entry 取得後に単品 GET すると直列の RTT が1段増えるため、
   // 一覧を並列で引いて companyId で突き合わせる。
-  const [user, entryRaw, tasks, companies, navCounts] = await Promise.all([
+  const [user, entryRaw, tasks, companies, selectionFlow, navCounts] = await Promise.all([
     getCurrentUserServer(),
     getEntryServer(entryId).catch((e) => {
       if (e instanceof ApiError) return null;
@@ -32,6 +33,7 @@ export default async function EntryDetailPage({ params }: Props) {
     }),
     listTasksByEntryServer(entryId).catch(() => []),
     listCompaniesServer().catch(() => []),
+    getSelectionFlowServer(entryId).catch(() => null),
     getNavCountsServer(),
   ]);
   if (!user) redirect("/login");
@@ -54,7 +56,11 @@ export default async function EntryDetailPage({ params }: Props) {
         >
           ‹ Entry 一覧
         </Link>
-        <EntryDetailView initialEntry={entry} initialTasks={tasks} />
+        <EntryDetailView
+          initialEntry={entry}
+          initialTasks={tasks}
+          initialSelectionFlow={selectionFlow}
+        />
       </div>
     </AppShell>
   );

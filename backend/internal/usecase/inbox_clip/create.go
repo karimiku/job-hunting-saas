@@ -12,11 +12,12 @@ import (
 
 // CreateInput は InboxClip 作成への入力。
 type CreateInput struct {
-	UserID entity.UserID
-	URL    string
-	Title  string
-	Source string
-	Guess  string
+	UserID      entity.UserID
+	URL         string
+	Title       string
+	Source      string
+	Guess       string
+	ContentText string
 }
 
 // CreateOutput は InboxClip 作成の出力。
@@ -52,8 +53,12 @@ func (uc *Create) Execute(ctx context.Context, input CreateInput) (*CreateOutput
 	if err != nil {
 		return nil, err
 	}
+	contentText, err := value.NewInboxClipContentText(input.ContentText)
+	if err != nil {
+		return nil, err
+	}
 
-	clip, err := uc.registration.Register(ctx, input.UserID, url, title, source, guess)
+	clip, err := uc.registration.Register(ctx, input.UserID, url, title, source, guess, contentText)
 	if err != nil {
 		return nil, err
 	}

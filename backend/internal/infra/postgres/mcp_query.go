@@ -126,12 +126,13 @@ func (q *MCPQuery) ListInboxClips(ctx context.Context, userID entity.UserID) ([]
 	out := make([]mcpuc.InboxClipDTO, 0, len(rows))
 	for _, row := range rows {
 		out = append(out, mcpuc.InboxClipDTO{
-			ID:         row.ID.String(),
-			URL:        row.Url,
-			Title:      row.Title,
-			Source:     row.Source,
-			Guess:      row.Guess,
-			CapturedAt: formatPgTime(row.CapturedAt),
+			ID:          row.ID.String(),
+			URL:         row.Url,
+			Title:       row.Title,
+			Source:      row.Source,
+			Guess:       row.Guess,
+			ContentText: row.ContentText,
+			CapturedAt:  formatPgTime(row.CapturedAt),
 		})
 	}
 	return out, nil

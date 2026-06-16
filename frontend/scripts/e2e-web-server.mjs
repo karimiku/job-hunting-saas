@@ -16,6 +16,7 @@ const state = {
   entries: [],
   clips: [],
   tasks: [],
+  selectionFlows: [],
 };
 
 const now = () => new Date().toISOString();
@@ -85,6 +86,24 @@ const taskWithDefaults = (entryId, input) => ({
   status: "todo",
   dueDate: input.dueDate ?? null,
   memo: input.memo ?? "",
+  createdAt: now(),
+  updatedAt: now(),
+});
+
+const selectionFlowWithDefaults = (entryId, input) => ({
+  id: nextId("flow"),
+  entryId,
+  source: input.source ?? "template",
+  currentStagePosition: input.currentStagePosition ?? 1,
+  confidence: input.confidence ?? null,
+  inboxClipId: input.inboxClipId ?? null,
+  stages: (input.stages ?? []).map((stage, index) => ({
+    id: nextId("stage"),
+    position: index + 1,
+    stageKind: stage.stageKind,
+    stageLabel: stage.stageLabel,
+    evidenceText: stage.evidenceText ?? "",
+  })),
   createdAt: now(),
   updatedAt: now(),
 });
@@ -198,6 +217,72 @@ const mockApi = http.createServer((req, res) => {
         return;
       }
 
+      const selectionFlowMatch = url.pathname.match(
+        /^\/api\/v1\/entries\/([^/]+)\/selection-flow$/,
+      );
+      if (selectionFlowMatch && req.method === "GET") {
+        const flow = state.selectionFlows.find(
+          (item) => item.entryId === selectionFlowMatch[1],
+        );
+        json(res, flow ? 200 : 404, flow ?? { message: "not found" });
+        return;
+      }
+
+      if (selectionFlowMatch && req.method === "PUT") {
+        const body = await readJson(req);
+        const entry = state.entries.find((item) => item.id === selectionFlowMatch[1]);
+        if (!entry) {
+          json(res, 404, { message: "not found" });
+          return;
+        }
+        const flow = selectionFlowWithDefaults(entry.id, body);
+        state.selectionFlows = state.selectionFlows.filter(
+          (item) => item.entryId !== entry.id,
+        );
+        state.selectionFlows.push(flow);
+        const current = flow.stages.find(
+          (stage) => stage.position === flow.currentStagePosition,
+        );
+        if (current) {
+          entry.stageKind = current.stageKind;
+          entry.stageLabel = current.stageLabel;
+          entry.status = current.stageKind === "offer" ? "offered" : "in_progress";
+          entry.updatedAt = now();
+        }
+        json(res, 200, flow);
+        return;
+      }
+
+      const selectionFlowCurrentMatch = url.pathname.match(
+        /^\/api\/v1\/entries\/([^/]+)\/selection-flow\/current-stage$/,
+      );
+      if (selectionFlowCurrentMatch && req.method === "PATCH") {
+        const body = await readJson(req);
+        const flow = state.selectionFlows.find(
+          (item) => item.entryId === selectionFlowCurrentMatch[1],
+        );
+        const entry = state.entries.find(
+          (item) => item.id === selectionFlowCurrentMatch[1],
+        );
+        if (!flow || !entry) {
+          json(res, 404, { message: "not found" });
+          return;
+        }
+        const current = flow.stages.find((stage) => stage.position === body.position);
+        if (!current) {
+          json(res, 400, { message: "currentStagePosition must be within stages" });
+          return;
+        }
+        flow.currentStagePosition = body.position;
+        flow.updatedAt = now();
+        entry.stageKind = current.stageKind;
+        entry.stageLabel = current.stageLabel;
+        entry.status = current.stageKind === "offer" ? "offered" : "in_progress";
+        entry.updatedAt = now();
+        json(res, 200, flow);
+        return;
+      }
+
       if (url.pathname === "/api/v1/companies" && req.method === "GET") {
         json(res, 200, { companies: state.companies });
         return;
@@ -244,6 +329,7 @@ const mockApi = http.createServer((req, res) => {
           title: body.title,
           source: body.source,
           guess: body.guess ?? "",
+          contentText: body.contentText ?? "",
           capturedAt: now(),
         };
         state.clips = state.clips.filter((item) => item.url !== clip.url);

@@ -22,9 +22,9 @@ func TestList_OnlyOwnedReturned(t *testing.T) {
 	titleA, _ := value.NewInboxClipTitle("a")
 	titleB, _ := value.NewInboxClipTitle("b")
 	titleC, _ := value.NewInboxClipTitle("c")
-	_ = repo.Create(context.Background(), entity.NewInboxClip(owner, urlA, titleA, src, guess))
-	_ = repo.Create(context.Background(), entity.NewInboxClip(owner, urlB, titleB, src, guess))
-	_ = repo.Create(context.Background(), entity.NewInboxClip(other, urlC, titleC, src, guess))
+	_ = repo.Create(context.Background(), entity.NewInboxClip(owner, urlA, titleA, src, guess, value.InboxClipContentText{}))
+	_ = repo.Create(context.Background(), entity.NewInboxClip(owner, urlB, titleB, src, guess, value.InboxClipContentText{}))
+	_ = repo.Create(context.Background(), entity.NewInboxClip(other, urlC, titleC, src, guess, value.InboxClipContentText{}))
 
 	uc := NewList(repo)
 	out, err := uc.Execute(context.Background(), ListInput{UserID: owner})

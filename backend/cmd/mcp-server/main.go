@@ -18,9 +18,11 @@ import (
 	mcphandler "github.com/karimiku/job-hunting-saas/internal/handler/mcp"
 	"github.com/karimiku/job-hunting-saas/internal/infra/entreapi"
 	"github.com/karimiku/job-hunting-saas/internal/infra/postgres"
+	entryuc "github.com/karimiku/job-hunting-saas/internal/usecase/entry"
 	esmemo "github.com/karimiku/job-hunting-saas/internal/usecase/es_memo"
 	jobemail "github.com/karimiku/job-hunting-saas/internal/usecase/job_email"
 	mcpuc "github.com/karimiku/job-hunting-saas/internal/usecase/mcp"
+	selectionflowuc "github.com/karimiku/job-hunting-saas/internal/usecase/selection_flow"
 	taskuc "github.com/karimiku/job-hunting-saas/internal/usecase/task"
 )
 
@@ -64,6 +66,8 @@ func runWithIO(ctx context.Context, getenv func(string) string, in io.Reader, ou
 	}
 
 	entryRepo := postgres.NewEntryRepository(pool)
+	entryWithCompanyRepo := postgres.NewEntryWithCompanyRepository(pool)
+	selectionFlowRepo := postgres.NewSelectionFlowRepository(pool)
 	taskRepo := postgres.NewTaskRepository(pool)
 	memoRepo := postgres.NewESMemoRepository(pool)
 	query := postgres.NewMCPQuery(pool)
@@ -74,6 +78,9 @@ func runWithIO(ctx context.Context, getenv func(string) string, in io.Reader, ou
 		esmemo.NewList(memoRepo),
 		taskuc.NewCreate(taskRepo, entryRepo),
 		jobemail.NewExtract(),
+		entryuc.NewCreateWithCompany(entryWithCompanyRepo),
+		selectionflowuc.NewUpsert(selectionFlowRepo, entryRepo),
+		selectionflowuc.NewGet(selectionFlowRepo, entryRepo),
 	)
 
 	log.Println("mcp-server using direct database mode")

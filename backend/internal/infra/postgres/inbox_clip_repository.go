@@ -27,13 +27,14 @@ func NewInboxClipRepository(db sqlc.DBTX) *InboxClipRepository {
 // Create はクリップを保存する。InboxClip は不変なので update は提供しない。
 func (r *InboxClipRepository) Create(ctx context.Context, clip *entity.InboxClip) error {
 	if err := r.q.CreateInboxClip(ctx, sqlc.CreateInboxClipParams{
-		ID:         uuid.UUID(clip.ID()),
-		UserID:     uuid.UUID(clip.UserID()),
-		Url:        clip.URL().String(),
-		Title:      clip.Title().String(),
-		Source:     clip.Source().String(),
-		Guess:      clip.Guess().String(),
-		CapturedAt: pgtype.Timestamptz{Time: clip.CapturedAt(), Valid: true},
+		ID:          uuid.UUID(clip.ID()),
+		UserID:      uuid.UUID(clip.UserID()),
+		Url:         clip.URL().String(),
+		Title:       clip.Title().String(),
+		Source:      clip.Source().String(),
+		Guess:       clip.Guess().String(),
+		ContentText: clip.ContentText().String(),
+		CapturedAt:  pgtype.Timestamptz{Time: clip.CapturedAt(), Valid: true},
 	}); err != nil {
 		if isUniqueViolation(err) {
 			return repository.ErrAlreadyExists
@@ -122,6 +123,10 @@ func reconstructInboxClip(row sqlc.InboxClip) (*entity.InboxClip, error) {
 	if err != nil {
 		return nil, fmt.Errorf("BUG: invalid data in DB: inbox_clip guess: %w", err)
 	}
+	contentText, err := value.NewInboxClipContentText(row.ContentText)
+	if err != nil {
+		return nil, fmt.Errorf("BUG: invalid data in DB: inbox_clip content_text: %w", err)
+	}
 	return entity.ReconstructInboxClip(
 		entity.InboxClipID(row.ID),
 		entity.UserID(row.UserID),
@@ -129,6 +134,7 @@ func reconstructInboxClip(row sqlc.InboxClip) (*entity.InboxClip, error) {
 		title,
 		source,
 		guess,
+		contentText,
 		row.CapturedAt.Time,
 	), nil
 }

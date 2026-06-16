@@ -8,6 +8,8 @@
 import { revalidatePath } from "next/cache";
 import { serverFetch } from "@/lib/api/server";
 import type { EntryResponse, UpdateEntryInput } from "@/lib/api/entries";
+import type { UpsertSelectionFlowInput } from "@/lib/api/selectionFlows";
+import type { SelectionFlowResponse } from "@/lib/selection-flow";
 import type { CreateTaskInput, TaskResponse } from "@/lib/api/tasks";
 
 export interface UpdateEntryResult {
@@ -18,6 +20,12 @@ export interface UpdateEntryResult {
 export interface CreateTaskResult {
   ok: boolean;
   task?: TaskResponse;
+  error?: string;
+}
+
+export interface UpdateSelectionFlowResult {
+  ok: boolean;
+  selectionFlow?: SelectionFlowResponse;
   error?: string;
 }
 
@@ -34,11 +42,46 @@ export async function updateEntryAction(
   } catch {
     return { ok: false, error: "選考ステータスの更新に失敗しました" };
   }
-  revalidatePath(`/entry/${entryId}`);
-  revalidatePath("/entry");
-  revalidatePath("/kanban");
-  revalidatePath("/dashboard");
+  revalidateEntrySurfaces(entryId);
   return { ok: true };
+}
+
+export async function upsertSelectionFlowAction(
+  entryId: string,
+  input: UpsertSelectionFlowInput,
+): Promise<UpdateSelectionFlowResult> {
+  try {
+    const selectionFlow = await serverFetch<SelectionFlowResponse>(
+      `/api/v1/entries/${entryId}/selection-flow`,
+      {
+        method: "PUT",
+        body: JSON.stringify(input),
+      },
+    );
+    revalidateEntrySurfaces(entryId);
+    return { ok: true, selectionFlow };
+  } catch {
+    return { ok: false, error: "選考フローの保存に失敗しました" };
+  }
+}
+
+export async function updateSelectionFlowCurrentStageAction(
+  entryId: string,
+  position: number,
+): Promise<UpdateSelectionFlowResult> {
+  try {
+    const selectionFlow = await serverFetch<SelectionFlowResponse>(
+      `/api/v1/entries/${entryId}/selection-flow/current-stage`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ position }),
+      },
+    );
+    revalidateEntrySurfaces(entryId);
+    return { ok: true, selectionFlow };
+  } catch {
+    return { ok: false, error: "選考フローの更新に失敗しました" };
+  }
 }
 
 // entry 配下にタスクを作成する。作成したタスクを返し、楽観表示の確定に使えるようにする。
@@ -59,4 +102,11 @@ export async function createTaskForEntryAction(
   revalidatePath("/task");
   revalidatePath("/dashboard");
   return { ok: true, task };
+}
+
+function revalidateEntrySurfaces(entryId: string) {
+  revalidatePath(`/entry/${entryId}`);
+  revalidatePath("/entry");
+  revalidatePath("/kanban");
+  revalidatePath("/dashboard");
 }

@@ -14,7 +14,7 @@ func TestNewInboxClip_BasicFields(t *testing.T) {
 	source, _ := value.NewSource("マイナビ")
 	guess, _ := value.NewInboxClipGuess("○○商事")
 
-	clip := NewInboxClip(userID, url, title, source, guess)
+	clip := NewInboxClip(userID, url, title, source, guess, value.InboxClipContentText{})
 
 	if clip.UserID() != userID {
 		t.Errorf("UserID = %v, want %v", clip.UserID(), userID)
@@ -46,7 +46,7 @@ func TestNewInboxClip_GuessIsOptional(t *testing.T) {
 	source, _ := value.NewSource("マイナビ")
 	guess, _ := value.NewInboxClipGuess("")
 
-	clip := NewInboxClip(userID, url, title, source, guess)
+	clip := NewInboxClip(userID, url, title, source, guess, value.InboxClipContentText{})
 	if clip.Guess().String() != "" {
 		t.Errorf("Guess = %q, want empty", clip.Guess().String())
 	}
@@ -61,11 +61,15 @@ func TestReconstructInboxClip(t *testing.T) {
 	guess, _ := value.NewInboxClipGuess("guess")
 
 	captured, _ := time.Parse(time.RFC3339, "2026-04-26T00:00:00Z")
-	clip := ReconstructInboxClip(id, userID, url, title, source, guess, captured)
+	contentText, _ := value.NewInboxClipContentText("選考フロー: ES提出、一次面接")
+	clip := ReconstructInboxClip(id, userID, url, title, source, guess, contentText, captured)
 	if clip.ID() != id {
 		t.Errorf("ID = %v, want %v", clip.ID(), id)
 	}
 	if clip.UserID() != userID {
 		t.Errorf("UserID = %v, want %v", clip.UserID(), userID)
+	}
+	if clip.ContentText().String() != "選考フロー: ES提出、一次面接" {
+		t.Errorf("ContentText = %q", clip.ContentText().String())
 	}
 }

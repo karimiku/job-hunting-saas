@@ -5,7 +5,8 @@ job-hunting-saas は stdio MCP server を提供し、Claude Desktop / Codex / Ge
 
 ## 想定ユースケース
 
-- 保存箱に入った求人ページをAIが `inbox://clips` から読み取り、Entry化や調査タスク作成の候補を作る
+- 保存箱に入った求人ページ本文をAIが `inbox://clips` から読み取り、会社ごとの可変選考フローを持つEntry候補を作る
+- CodexなどのMCPクライアントに求人本文を直接貼り付け、AIが構造化した選考フローでEntryを作成する
 - Entry一覧・未完了Task・応募先詳細をAIが引いて、今日やるべき締切や面接準備を整理する
 - メール本文を `capture_job_email` に渡して、面接日程・提出締切・持ち物などをTask候補として構造化する
 - 自己PR・ガクチカ・面接で出た話を `append_es_memo` でESメモとして蓄積する
@@ -18,8 +19,8 @@ MCP server も既存APIと同じ Clean Architecture の境界に合わせる。
 | --- | --- | --- |
 | cmd | `backend/cmd/mcp-server` | 環境変数読み込み、API bridge / DB direct のDI |
 | Handler | `backend/internal/handler/mcp` | MCP JSON-RPC over stdio、resources/tools の入出力変換 |
-| UseCase | `backend/internal/usecase/mcp`, `es_memo`, `job_email`, `task` | user scoped な操作、保存前preview、メール抽出 |
-| Domain | `backend/internal/domain/entity`, `value`, `repository` | ESMemo entity/value object、Repository interface |
+| UseCase | `backend/internal/usecase/mcp`, `es_memo`, `job_email`, `selection_flow`, `task` | user scoped な操作、保存前preview、メール抽出、可変選考フロー保存 |
+| Domain | `backend/internal/domain/entity`, `value`, `repository` | ESMemo / SelectionFlow entity/value object、Repository interface |
 | Infra | `backend/internal/infra/entreapi`, `backend/internal/infra/postgres` | Hosted API client / sqlc query / repository 実装 |
 
 ## Run
@@ -130,9 +131,9 @@ go run ./cmd/mcp-server
 | URI | 内容 |
 | --- | --- |
 | `entries://list` | 応募先一覧 |
-| `entries://{entryId}` | 応募先1件と紐づくTask |
+| `entries://{entryId}` | 応募先1件と紐づくTask・可変選考フロー |
 | `tasks://open` | 未完了Task一覧 |
-| `inbox://clips` | 保存箱のInbox clip一覧 |
+| `inbox://clips` | 保存箱のInbox clip一覧。Chrome拡張由来なら求人ページ本文 `contentText` を含む |
 | `es-memos://list` | ES/自己PR/面接ネタ用メモ一覧 |
 
 ## Tools
@@ -147,8 +148,12 @@ go run ./cmd/mcp-server
 | `append_es_memo` | ES/自己PR/面接ネタ用メモを保存する |
 | `create_task` | Entryに紐づくTaskを作成する |
 | `capture_job_email` | 選考メール本文からTask候補などをルールベースで抽出する |
+| `upsert_entry_selection_flow` | 既存Entryに会社ごとの可変選考フローを保存する |
+| `create_entry_from_job_posting` | 求人本文からAIが構造化したEntry候補と可変選考フローを新規保存する |
 
-`append_es_memo` と `create_task` は `confirm: true` のときだけDBに保存する。未指定または `false` の場合は `confirmationRequired: true` と保存予定内容だけを返す。
+`append_es_memo`、`create_task`、`upsert_entry_selection_flow`、`create_entry_from_job_posting` は `confirm: true` のときだけDBに保存する。未指定または `false` の場合は `confirmationRequired: true` と保存予定内容だけを返す。
+
+`capture_job_email` は従来通りローカルのルールベース抽出で、LLM APIを呼ばない。求人ページ本文の選考フロー抽出はCodex/ClaudeなどMCPクライアント側のLLMが行い、抽出後の `stages` を `upsert_entry_selection_flow` または `create_entry_from_job_posting` に渡す。
 
 ## Distribution note
 

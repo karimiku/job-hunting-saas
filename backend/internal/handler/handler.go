@@ -12,6 +12,7 @@ type Handler struct {
 	*TaskHandler
 	*PageDataHandler
 	*StageHistoryHandler
+	*SelectionFlowHandler
 	*InboxClipHandler
 	*AiAccessTokenHandler
 	*ESMemoHandler
