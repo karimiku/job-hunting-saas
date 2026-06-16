@@ -24,6 +24,12 @@ type TaskID uuid.UUID
 // StageHistoryID は選考フェーズ変更履歴を一意に識別するための ID 型。
 type StageHistoryID uuid.UUID
 
+// SelectionFlowID はEntryごとの選考フローを一意に識別するための ID 型。
+type SelectionFlowID uuid.UUID
+
+// SelectionStageID は選考フロー内のステージを一意に識別するための ID 型。
+type SelectionStageID uuid.UUID
+
 // CompanyAliasID は企業の別名を一意に識別するための ID 型。
 type CompanyAliasID uuid.UUID
 
@@ -58,6 +64,12 @@ func NewTaskID() TaskID { return TaskID(uuid.New()) }
 
 // NewStageHistoryID は新しい StageHistoryID を生成する。
 func NewStageHistoryID() StageHistoryID { return StageHistoryID(uuid.New()) }
+
+// NewSelectionFlowID は新しい SelectionFlowID を生成する。
+func NewSelectionFlowID() SelectionFlowID { return SelectionFlowID(uuid.New()) }
+
+// NewSelectionStageID は新しい SelectionStageID を生成する。
+func NewSelectionStageID() SelectionStageID { return SelectionStageID(uuid.New()) }
 
 // NewCompanyAliasID は新しい CompanyAliasID を生成する。
 func NewCompanyAliasID() CompanyAliasID { return CompanyAliasID(uuid.New()) }
@@ -94,6 +106,12 @@ func (id TaskID) String() string { return uuid.UUID(id).String() }
 // String は StageHistoryID を文字列表現で返す。
 func (id StageHistoryID) String() string { return uuid.UUID(id).String() }
 
+// String は SelectionFlowID を文字列表現で返す。
+func (id SelectionFlowID) String() string { return uuid.UUID(id).String() }
+
+// String は SelectionStageID を文字列表現で返す。
+func (id SelectionStageID) String() string { return uuid.UUID(id).String() }
+
 // String は CompanyAliasID を文字列表現で返す。
 func (id CompanyAliasID) String() string { return uuid.UUID(id).String() }
 
@@ -128,6 +146,12 @@ func (id TaskID) IsZero() bool { return uuid.UUID(id) == uuid.Nil }
 
 // IsZero は StageHistoryID がゼロ値 (未設定) かを返す。
 func (id StageHistoryID) IsZero() bool { return uuid.UUID(id) == uuid.Nil }
+
+// IsZero は SelectionFlowID がゼロ値 (未設定) かを返す。
+func (id SelectionFlowID) IsZero() bool { return uuid.UUID(id) == uuid.Nil }
+
+// IsZero は SelectionStageID がゼロ値 (未設定) かを返す。
+func (id SelectionStageID) IsZero() bool { return uuid.UUID(id) == uuid.Nil }
 
 // IsZero は CompanyAliasID がゼロ値 (未設定) かを返す。
 func (id CompanyAliasID) IsZero() bool { return uuid.UUID(id) == uuid.Nil }

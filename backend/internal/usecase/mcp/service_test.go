@@ -143,6 +143,9 @@ func newTestService(userID entity.UserID, query ContextQuery, memoRepo *recordin
 		esmemo.NewList(memoRepo),
 		taskuc.NewCreate(taskRepo, entryRepo),
 		jobemail.NewExtract(),
+		nil,
+		nil,
+		nil,
 	)
 }
 

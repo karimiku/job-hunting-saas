@@ -64,6 +64,39 @@ func (e CreateTaskRequestType) Valid() bool {
 	}
 }
 
+// Defines values for SelectionStageInputStageKind.
+const (
+	SelectionStageInputStageKindApplication SelectionStageInputStageKind = "application"
+	SelectionStageInputStageKindDocument    SelectionStageInputStageKind = "document"
+	SelectionStageInputStageKindGroup       SelectionStageInputStageKind = "group"
+	SelectionStageInputStageKindInterview   SelectionStageInputStageKind = "interview"
+	SelectionStageInputStageKindOffer       SelectionStageInputStageKind = "offer"
+	SelectionStageInputStageKindOther       SelectionStageInputStageKind = "other"
+	SelectionStageInputStageKindTest        SelectionStageInputStageKind = "test"
+)
+
+// Valid indicates whether the value is a known member of the SelectionStageInputStageKind enum.
+func (e SelectionStageInputStageKind) Valid() bool {
+	switch e {
+	case SelectionStageInputStageKindApplication:
+		return true
+	case SelectionStageInputStageKindDocument:
+		return true
+	case SelectionStageInputStageKindGroup:
+		return true
+	case SelectionStageInputStageKindInterview:
+		return true
+	case SelectionStageInputStageKindOffer:
+		return true
+	case SelectionStageInputStageKindOther:
+		return true
+	case SelectionStageInputStageKindTest:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UpdateEntryRequestStageKind.
 const (
 	UpdateEntryRequestStageKindApplication UpdateEntryRequestStageKind = "application"
@@ -160,6 +193,30 @@ func (e UpdateTaskRequestType) Valid() bool {
 	}
 }
 
+// Defines values for UpsertSelectionFlowRequestSource.
+const (
+	AiInbox  UpsertSelectionFlowRequestSource = "ai_inbox"
+	AiPaste  UpsertSelectionFlowRequestSource = "ai_paste"
+	Manual   UpsertSelectionFlowRequestSource = "manual"
+	Template UpsertSelectionFlowRequestSource = "template"
+)
+
+// Valid indicates whether the value is a known member of the UpsertSelectionFlowRequestSource enum.
+func (e UpsertSelectionFlowRequestSource) Valid() bool {
+	switch e {
+	case AiInbox:
+		return true
+	case AiPaste:
+		return true
+	case Manual:
+		return true
+	case Template:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ListEntriesParamsStatus.
 const (
 	ListEntriesParamsStatusAccepted   ListEntriesParamsStatus = "accepted"
@@ -189,31 +246,31 @@ func (e ListEntriesParamsStatus) Valid() bool {
 
 // Defines values for ListEntriesParamsStageKind.
 const (
-	Application ListEntriesParamsStageKind = "application"
-	Document    ListEntriesParamsStageKind = "document"
-	Group       ListEntriesParamsStageKind = "group"
-	Interview   ListEntriesParamsStageKind = "interview"
-	Offer       ListEntriesParamsStageKind = "offer"
-	Other       ListEntriesParamsStageKind = "other"
-	Test        ListEntriesParamsStageKind = "test"
+	ListEntriesParamsStageKindApplication ListEntriesParamsStageKind = "application"
+	ListEntriesParamsStageKindDocument    ListEntriesParamsStageKind = "document"
+	ListEntriesParamsStageKindGroup       ListEntriesParamsStageKind = "group"
+	ListEntriesParamsStageKindInterview   ListEntriesParamsStageKind = "interview"
+	ListEntriesParamsStageKindOffer       ListEntriesParamsStageKind = "offer"
+	ListEntriesParamsStageKindOther       ListEntriesParamsStageKind = "other"
+	ListEntriesParamsStageKindTest        ListEntriesParamsStageKind = "test"
 )
 
 // Valid indicates whether the value is a known member of the ListEntriesParamsStageKind enum.
 func (e ListEntriesParamsStageKind) Valid() bool {
 	switch e {
-	case Application:
+	case ListEntriesParamsStageKindApplication:
 		return true
-	case Document:
+	case ListEntriesParamsStageKindDocument:
 		return true
-	case Group:
+	case ListEntriesParamsStageKindGroup:
 		return true
-	case Interview:
+	case ListEntriesParamsStageKindInterview:
 		return true
-	case Offer:
+	case ListEntriesParamsStageKindOffer:
 		return true
-	case Other:
+	case ListEntriesParamsStageKindOther:
 		return true
-	case Test:
+	case ListEntriesParamsStageKindTest:
 		return true
 	default:
 		return false
@@ -307,10 +364,11 @@ type CreateEsMemoRequest struct {
 
 // CreateInboxClipRequest defines model for CreateInboxClipRequest.
 type CreateInboxClipRequest struct {
-	Guess  *string `json:"guess,omitempty"`
-	Source string  `json:"source"`
-	Title  string  `json:"title"`
-	Url    string  `json:"url"`
+	ContentText *string `json:"contentText,omitempty"`
+	Guess       *string `json:"guess,omitempty"`
+	Source      string  `json:"source"`
+	Title       string  `json:"title"`
+	Url         string  `json:"url"`
 }
 
 // CreateStageHistoryRequest defines model for CreateStageHistoryRequest.
@@ -379,12 +437,45 @@ type EsMemoResponse struct {
 
 // InboxClipResponse defines model for InboxClipResponse.
 type InboxClipResponse struct {
-	CapturedAt time.Time          `json:"capturedAt"`
-	Guess      string             `json:"guess"`
-	Id         openapi_types.UUID `json:"id"`
-	Source     string             `json:"source"`
-	Title      string             `json:"title"`
-	Url        string             `json:"url"`
+	CapturedAt  time.Time          `json:"capturedAt"`
+	ContentText string             `json:"contentText"`
+	Guess       string             `json:"guess"`
+	Id          openapi_types.UUID `json:"id"`
+	Source      string             `json:"source"`
+	Title       string             `json:"title"`
+	Url         string             `json:"url"`
+}
+
+// SelectionFlowResponse defines model for SelectionFlowResponse.
+type SelectionFlowResponse struct {
+	Confidence           *int                     `json:"confidence,omitempty"`
+	CreatedAt            time.Time                `json:"createdAt"`
+	CurrentStagePosition int                      `json:"currentStagePosition"`
+	EntryId              openapi_types.UUID       `json:"entryId"`
+	Id                   openapi_types.UUID       `json:"id"`
+	InboxClipId          *openapi_types.UUID      `json:"inboxClipId,omitempty"`
+	Source               string                   `json:"source"`
+	Stages               []SelectionStageResponse `json:"stages"`
+	UpdatedAt            time.Time                `json:"updatedAt"`
+}
+
+// SelectionStageInput defines model for SelectionStageInput.
+type SelectionStageInput struct {
+	EvidenceText *string                      `json:"evidenceText,omitempty"`
+	StageKind    SelectionStageInputStageKind `json:"stageKind"`
+	StageLabel   string                       `json:"stageLabel"`
+}
+
+// SelectionStageInputStageKind defines model for SelectionStageInput.StageKind.
+type SelectionStageInputStageKind string
+
+// SelectionStageResponse defines model for SelectionStageResponse.
+type SelectionStageResponse struct {
+	EvidenceText string             `json:"evidenceText"`
+	Id           openapi_types.UUID `json:"id"`
+	Position     int                `json:"position"`
+	StageKind    string             `json:"stageKind"`
+	StageLabel   string             `json:"stageLabel"`
 }
 
 // StageHistoryResponse defines model for StageHistoryResponse.
@@ -440,6 +531,11 @@ type UpdateEntryRequestStageKind string
 // UpdateEntryRequestStatus defines model for UpdateEntryRequest.Status.
 type UpdateEntryRequestStatus string
 
+// UpdateSelectionFlowCurrentStageRequest defines model for UpdateSelectionFlowCurrentStageRequest.
+type UpdateSelectionFlowCurrentStageRequest struct {
+	Position int `json:"position"`
+}
+
 // UpdateTaskRequest defines model for UpdateTaskRequest.
 type UpdateTaskRequest struct {
 	DueDate *time.Time               `json:"dueDate,omitempty"`
@@ -455,6 +551,18 @@ type UpdateTaskRequestStatus string
 
 // UpdateTaskRequestType defines model for UpdateTaskRequest.Type.
 type UpdateTaskRequestType string
+
+// UpsertSelectionFlowRequest defines model for UpsertSelectionFlowRequest.
+type UpsertSelectionFlowRequest struct {
+	Confidence           *int                             `json:"confidence,omitempty"`
+	CurrentStagePosition *int                             `json:"currentStagePosition,omitempty"`
+	InboxClipId          *openapi_types.UUID              `json:"inboxClipId,omitempty"`
+	Source               UpsertSelectionFlowRequestSource `json:"source"`
+	Stages               []SelectionStageInput            `json:"stages"`
+}
+
+// UpsertSelectionFlowRequestSource defines model for UpsertSelectionFlowRequest.Source.
+type UpsertSelectionFlowRequestSource string
 
 // AiAccessTokenId defines model for AiAccessTokenId.
 type AiAccessTokenId = openapi_types.UUID
@@ -512,6 +620,12 @@ type CreateEntryWithCompanyJSONRequestBody = CreateEntryWithCompanyRequest
 
 // UpdateEntryJSONRequestBody defines body for UpdateEntry for application/json ContentType.
 type UpdateEntryJSONRequestBody = UpdateEntryRequest
+
+// UpsertSelectionFlowJSONRequestBody defines body for UpsertSelectionFlow for application/json ContentType.
+type UpsertSelectionFlowJSONRequestBody = UpsertSelectionFlowRequest
+
+// UpdateSelectionFlowCurrentStageJSONRequestBody defines body for UpdateSelectionFlowCurrentStage for application/json ContentType.
+type UpdateSelectionFlowCurrentStageJSONRequestBody = UpdateSelectionFlowCurrentStageRequest
 
 // CreateStageHistoryJSONRequestBody defines body for CreateStageHistory for application/json ContentType.
 type CreateStageHistoryJSONRequestBody = CreateStageHistoryRequest
@@ -584,6 +698,15 @@ type ServerInterface interface {
 	// エントリーを部分更新する
 	// (PATCH /api/v1/entries/{entryId})
 	UpdateEntry(w http.ResponseWriter, r *http.Request, entryId EntryId)
+	// エントリーに紐づく可変選考フローを取得する
+	// (GET /api/v1/entries/{entryId}/selection-flow)
+	GetSelectionFlow(w http.ResponseWriter, r *http.Request, entryId EntryId)
+	// エントリーに紐づく可変選考フローを作成または置換する
+	// (PUT /api/v1/entries/{entryId}/selection-flow)
+	UpsertSelectionFlow(w http.ResponseWriter, r *http.Request, entryId EntryId)
+	// 可変選考フローの現在ステージを更新する
+	// (PATCH /api/v1/entries/{entryId}/selection-flow/current-stage)
+	UpdateSelectionFlowCurrentStage(w http.ResponseWriter, r *http.Request, entryId EntryId)
 	// エントリーに紐づく選考フェーズ履歴一覧を取得する
 	// (GET /api/v1/entries/{entryId}/stage-histories)
 	ListStageHistories(w http.ResponseWriter, r *http.Request, entryId EntryId)
@@ -743,6 +866,24 @@ func (_ Unimplemented) GetEntry(w http.ResponseWriter, r *http.Request, entryId 
 // エントリーを部分更新する
 // (PATCH /api/v1/entries/{entryId})
 func (_ Unimplemented) UpdateEntry(w http.ResponseWriter, r *http.Request, entryId EntryId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// エントリーに紐づく可変選考フローを取得する
+// (GET /api/v1/entries/{entryId}/selection-flow)
+func (_ Unimplemented) GetSelectionFlow(w http.ResponseWriter, r *http.Request, entryId EntryId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// エントリーに紐づく可変選考フローを作成または置換する
+// (PUT /api/v1/entries/{entryId}/selection-flow)
+func (_ Unimplemented) UpsertSelectionFlow(w http.ResponseWriter, r *http.Request, entryId EntryId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// 可変選考フローの現在ステージを更新する
+// (PATCH /api/v1/entries/{entryId}/selection-flow/current-stage)
+func (_ Unimplemented) UpdateSelectionFlowCurrentStage(w http.ResponseWriter, r *http.Request, entryId EntryId) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -1253,6 +1394,81 @@ func (siw *ServerInterfaceWrapper) UpdateEntry(w http.ResponseWriter, r *http.Re
 	handler.ServeHTTP(w, r)
 }
 
+// GetSelectionFlow operation middleware
+func (siw *ServerInterfaceWrapper) GetSelectionFlow(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "entryId" -------------
+	var entryId EntryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "entryId", chi.URLParam(r, "entryId"), &entryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "entryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSelectionFlow(w, r, entryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpsertSelectionFlow operation middleware
+func (siw *ServerInterfaceWrapper) UpsertSelectionFlow(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "entryId" -------------
+	var entryId EntryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "entryId", chi.URLParam(r, "entryId"), &entryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "entryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpsertSelectionFlow(w, r, entryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateSelectionFlowCurrentStage operation middleware
+func (siw *ServerInterfaceWrapper) UpdateSelectionFlowCurrentStage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+
+	// ------------- Path parameter "entryId" -------------
+	var entryId EntryId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "entryId", chi.URLParam(r, "entryId"), &entryId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid"})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "entryId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateSelectionFlowCurrentStage(w, r, entryId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // ListStageHistories operation middleware
 func (siw *ServerInterfaceWrapper) ListStageHistories(w http.ResponseWriter, r *http.Request) {
 
@@ -1744,6 +1960,15 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Patch(options.BaseURL+"/api/v1/entries/{entryId}", wrapper.UpdateEntry)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/entries/{entryId}/selection-flow", wrapper.GetSelectionFlow)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v1/entries/{entryId}/selection-flow", wrapper.UpsertSelectionFlow)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/api/v1/entries/{entryId}/selection-flow/current-stage", wrapper.UpdateSelectionFlowCurrentStage)
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v1/entries/{entryId}/stage-histories", wrapper.ListStageHistories)

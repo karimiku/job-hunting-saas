@@ -166,7 +166,7 @@ func seedInboxClip(t *testing.T, repo *inmemory.InboxClipRepository, userID enti
 	if err != nil {
 		t.Fatalf("NewInboxClipGuess: %v", err)
 	}
-	clip := entity.NewInboxClip(userID, clipURL, title, source, guess)
+	clip := entity.NewInboxClip(userID, clipURL, title, source, guess, value.InboxClipContentText{})
 	if err := repo.Create(t.Context(), clip); err != nil {
 		t.Fatalf("create inbox clip: %v", err)
 	}

@@ -26,6 +26,7 @@ import (
 	entryuc "github.com/karimiku/job-hunting-saas/internal/usecase/entry"
 	esmemo "github.com/karimiku/job-hunting-saas/internal/usecase/es_memo"
 	inboxclipuc "github.com/karimiku/job-hunting-saas/internal/usecase/inbox_clip"
+	selectionflowuc "github.com/karimiku/job-hunting-saas/internal/usecase/selection_flow"
 	stagehistoryuc "github.com/karimiku/job-hunting-saas/internal/usecase/stage_history"
 	taskuc "github.com/karimiku/job-hunting-saas/internal/usecase/task"
 	useruc "github.com/karimiku/job-hunting-saas/internal/usecase/user"
@@ -56,6 +57,7 @@ func run() error {
 		entryWithCompanyRepo repository.EntryWithCompanyRepository
 		taskRepo             repository.TaskRepository
 		stageHistoryRepo     repository.StageHistoryRepository
+		selectionFlowRepo    repository.SelectionFlowRepository
 		userRepo             repository.UserRepository
 		extIDRepo            repository.ExternalIdentityRepository
 		inboxClipRepo        repository.InboxClipRepository
@@ -77,6 +79,7 @@ func run() error {
 		entryWithCompanyRepo = postgres.NewEntryWithCompanyRepository(pool)
 		taskRepo = postgres.NewTaskRepository(pool)
 		stageHistoryRepo = postgres.NewStageHistoryRepository(pool)
+		selectionFlowRepo = postgres.NewSelectionFlowRepository(pool)
 		userRepo = postgres.NewUserRepository(pool)
 		extIDRepo = postgres.NewExternalIdentityRepository(pool)
 		inboxClipRepo = postgres.NewInboxClipRepository(pool)
@@ -103,6 +106,7 @@ func run() error {
 		entryWithCompanyRepo = inmemory.NewEntryWithCompanyRepository(inMemoryCompanyRepo, inMemoryEntryRepo)
 		taskRepo = inmemory.NewTaskRepository(inMemoryEntryRepo)
 		stageHistoryRepo = inmemory.NewStageHistoryRepository()
+		selectionFlowRepo = inmemory.NewSelectionFlowRepository()
 		inboxClipRepo = inmemory.NewInboxClipRepository()
 		esMemoRepo = inmemory.NewESMemoRepository()
 		aiTokenRepo = inmemory.NewAIAccessTokenRepository()
@@ -202,6 +206,12 @@ func run() error {
 		stagehistoryuc.NewList(stageHistoryRepo, entryRepo),
 	)
 
+	selectionFlowHandler := handler.NewSelectionFlowHandler(
+		selectionflowuc.NewGet(selectionFlowRepo, entryRepo),
+		selectionflowuc.NewUpsert(selectionFlowRepo, entryRepo),
+		selectionflowuc.NewUpdateCurrent(selectionFlowRepo, entryRepo),
+	)
+
 	inboxClipHandler := handler.NewInboxClipHandler(
 		inboxclipuc.NewCreate(inboxClipRepo),
 		inboxclipuc.NewList(inboxClipRepo),
@@ -232,6 +242,7 @@ func run() error {
 		TaskHandler:          taskHandler,
 		PageDataHandler:      pageDataHandler,
 		StageHistoryHandler:  stageHistoryHandler,
+		SelectionFlowHandler: selectionFlowHandler,
 		InboxClipHandler:     inboxClipHandler,
 		AiAccessTokenHandler: aiTokenHandler,
 		ESMemoHandler:        esMemoHandler,

@@ -11,6 +11,8 @@ const (
 	InboxClipTitleMaxLength = 512
 	// InboxClipGuessMaxLength は推定会社名の最大文字数（rune 数）。
 	InboxClipGuessMaxLength = 256
+	// InboxClipContentTextMaxLength は求人ページ本文スナップショットの最大文字数（rune 数）。
+	InboxClipContentTextMaxLength = 20000
 )
 
 var (
@@ -24,6 +26,10 @@ var (
 	ErrInboxClipGuessInvalid = errors.New("inbox clip guess format is invalid")
 	// ErrInboxClipGuessTooLong は guess が上限長を超えたときに返されるエラー。
 	ErrInboxClipGuessTooLong = errors.New("inbox clip guess is too long")
+	// ErrInboxClipContentTextInvalid は contentText の形式が不正なときに返されるエラー。
+	ErrInboxClipContentTextInvalid = errors.New("inbox clip content text format is invalid")
+	// ErrInboxClipContentTextTooLong は contentText が上限長を超えたときに返されるエラー。
+	ErrInboxClipContentTextTooLong = errors.New("inbox clip content text is too long")
 )
 
 // InboxClipTitle は Chrome 拡張等で保存したページタイトル。
@@ -76,3 +82,23 @@ func (g InboxClipGuess) String() string { return g.value }
 func (g InboxClipGuess) Equals(other InboxClipGuess) bool {
 	return g.value == other.value
 }
+
+// InboxClipContentText は求人ページ本文のスナップショット。空文字を許容する。
+type InboxClipContentText struct {
+	value string
+}
+
+// NewInboxClipContentText は raw から InboxClipContentText を生成する。
+func NewInboxClipContentText(raw string) (InboxClipContentText, error) {
+	trimmed := strings.TrimSpace(raw)
+	if utf8.RuneCountInString(trimmed) > InboxClipContentTextMaxLength {
+		return InboxClipContentText{}, ErrInboxClipContentTextTooLong
+	}
+	if strings.ContainsRune(trimmed, '\x00') {
+		return InboxClipContentText{}, ErrInboxClipContentTextInvalid
+	}
+	return InboxClipContentText{value: trimmed}, nil
+}
+
+// String は contentText を文字列で返す。
+func (t InboxClipContentText) String() string { return t.value }

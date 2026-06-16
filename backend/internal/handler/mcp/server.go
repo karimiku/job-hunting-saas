@@ -21,7 +21,7 @@ const (
 	defaultProtocolVersion = "2024-11-05"
 	serverName             = "job-hunting-saas-mcp"
 	serverVersion          = "0.1.0"
-	serverInstructions     = "Use this server for user-scoped job-hunting data. Read inbox clips, entries, tasks, and ES memos before proposing actions. append_es_memo and create_task only preview changes unless confirm=true; ask the user before confirmed writes. capture_job_email extracts candidates locally and does not call an LLM API."
+	serverInstructions     = "Use this server for user-scoped job-hunting data. Read inbox clips, entries, tasks, selection flows, and ES memos before proposing actions. append_es_memo, create_task, upsert_entry_selection_flow, and create_entry_from_job_posting only preview changes unless confirm=true; ask the user before confirmed writes. capture_job_email extracts candidates locally and does not call an LLM API. For pasted job postings, the MCP client should parse the text and pass structured stages to the write tools."
 )
 
 // Application はMCP handlerが呼び出すユースケース境界。
@@ -34,6 +34,8 @@ type Application interface {
 	AppendESMemo(ctx context.Context, input mcpuc.AppendESMemoInput) (any, error)
 	CreateTask(ctx context.Context, input mcpuc.CreateTaskInput) (any, error)
 	CaptureJobEmail(input mcpuc.CaptureJobEmailInput) (jobemail.ExtractOutput, error)
+	UpsertEntrySelectionFlow(ctx context.Context, input mcpuc.UpsertEntrySelectionFlowInput) (any, error)
+	CreateEntryFromJobPosting(ctx context.Context, input mcpuc.CreateEntryFromJobPostingInput) (any, error)
 }
 
 // Server はstdio MCPリクエストを処理するサーバー。
@@ -349,8 +351,58 @@ func listTools() any {
 					"companyName": map[string]any{"type": "string", "description": "分かっている場合の会社名"},
 				}, []string{"text"}),
 			},
+			{
+				"name":        "upsert_entry_selection_flow",
+				"description": "既存Entryに会社ごとの可変選考フローを保存します。求人ページ本文をLLMが読んで構造化した stages を渡してください。confirm=true のときだけDBへ保存します。",
+				"inputSchema": selectionFlowToolSchema(true),
+			},
+			{
+				"name":        "create_entry_from_job_posting",
+				"description": "求人ページ本文をLLMが読んで作ったEntry候補と可変選考フローを新規保存します。confirm=true のときだけDBへ保存します。",
+				"inputSchema": createEntryFromJobPostingSchema(),
+			},
 		},
 	}
+}
+
+func selectionFlowToolSchema(requireEntry bool) map[string]any {
+	required := []string{"source", "stages"}
+	properties := map[string]any{
+		"entryId":              map[string]any{"type": "string", "description": "Entry UUID"},
+		"source":               map[string]any{"type": "string", "enum": []string{"template", "manual", "ai_inbox", "ai_paste"}},
+		"currentStagePosition": map[string]any{"type": "integer", "minimum": 1, "description": "現在ステージの1始まり位置。省略時は1。"},
+		"confidence":           map[string]any{"type": "integer", "minimum": 0, "maximum": 100},
+		"inboxClipId":          map[string]any{"type": "string", "description": "Inbox由来の場合の任意のClip UUID"},
+		"stages": map[string]any{
+			"type":     "array",
+			"minItems": 1,
+			"maxItems": 20,
+			"items": objectSchema(map[string]any{
+				"stageKind":    map[string]any{"type": "string", "enum": []string{"application", "document", "test", "interview", "group", "offer", "other"}},
+				"stageLabel":   map[string]any{"type": "string"},
+				"evidenceText": map[string]any{"type": "string", "description": "求人本文中の根拠テキスト"},
+			}, []string{"stageKind", "stageLabel"}),
+		},
+		"confirm": map[string]any{"type": "boolean", "description": "true のときだけ保存"},
+	}
+	if requireEntry {
+		required = append([]string{"entryId"}, required...)
+	}
+	return objectSchema(properties, required)
+}
+
+func createEntryFromJobPostingSchema() map[string]any {
+	schema := selectionFlowToolSchema(false)
+	properties := schema["properties"].(map[string]any)
+	delete(properties, "entryId")
+	properties["companyName"] = map[string]any{"type": "string"}
+	properties["route"] = map[string]any{"type": "string", "description": "本選考、インターンなど。省略時は本選考。"}
+	properties["source"] = map[string]any{"type": "string", "description": "応募媒体名"}
+	properties["sourceUrl"] = map[string]any{"type": "string", "description": "求人URL"}
+	properties["memo"] = map[string]any{"type": "string"}
+	properties["flowSource"] = map[string]any{"type": "string", "enum": []string{"template", "manual", "ai_inbox", "ai_paste"}, "description": "選考フロー由来。省略時は ai_paste。"}
+	schema["required"] = []string{"companyName", "stages"}
+	return schema
 }
 
 func objectSchema(properties map[string]any, required []string) map[string]any {
@@ -417,6 +469,16 @@ func (s *Server) callTool(ctx context.Context, params json.RawMessage) (any, err
 		var args mcpuc.CaptureJobEmailInput
 		if err = json.Unmarshal(p.Arguments, &args); err == nil {
 			value, err = s.app.CaptureJobEmail(args)
+		}
+	case "upsert_entry_selection_flow":
+		var args mcpuc.UpsertEntrySelectionFlowInput
+		if err = json.Unmarshal(p.Arguments, &args); err == nil {
+			value, err = s.app.UpsertEntrySelectionFlow(ctx, args)
+		}
+	case "create_entry_from_job_posting":
+		var args mcpuc.CreateEntryFromJobPostingInput
+		if err = json.Unmarshal(p.Arguments, &args); err == nil {
+			value, err = s.app.CreateEntryFromJobPosting(ctx, args)
 		}
 	default:
 		err = fmt.Errorf("unknown tool %q", p.Name)

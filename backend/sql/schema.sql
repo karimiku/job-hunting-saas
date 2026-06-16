@@ -110,6 +110,7 @@ CREATE TABLE inbox_clips (
     title       TEXT        NOT NULL,
     source      TEXT        NOT NULL,
     guess       TEXT        NOT NULL DEFAULT '',
+    content_text TEXT       NOT NULL DEFAULT '',
     captured_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT inbox_clips_user_id_url_key UNIQUE (user_id, url)
 );
@@ -137,6 +138,29 @@ CREATE TABLE ai_access_tokens (
     revoked_at   TIMESTAMPTZ
 );
 
+CREATE TABLE selection_flows (
+    id                     UUID        PRIMARY KEY,
+    entry_id               UUID        NOT NULL UNIQUE REFERENCES entries(id) ON DELETE CASCADE,
+    source                 TEXT        NOT NULL,
+    current_stage_position INTEGER     NOT NULL DEFAULT 1 CHECK (current_stage_position > 0),
+    confidence             INTEGER     CHECK (confidence IS NULL OR (confidence >= 0 AND confidence <= 100)),
+    inbox_clip_id          UUID        REFERENCES inbox_clips(id) ON DELETE SET NULL,
+    created_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT selection_flows_source_check CHECK (source IN ('template', 'manual', 'ai_inbox', 'ai_paste'))
+);
+
+CREATE TABLE selection_stages (
+    id            UUID        PRIMARY KEY,
+    flow_id       UUID        NOT NULL REFERENCES selection_flows(id) ON DELETE CASCADE,
+    position      INTEGER     NOT NULL CHECK (position > 0),
+    stage_kind    stage_kind  NOT NULL,
+    stage_label   TEXT        NOT NULL,
+    evidence_text TEXT        NOT NULL DEFAULT '',
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT selection_stages_flow_id_position_key UNIQUE (flow_id, position)
+);
+
 -- ============================================================
 -- インデックス
 -- ============================================================
@@ -156,6 +180,10 @@ CREATE INDEX idx_tasks_due_date ON tasks(due_date)
     WHERE status = 'todo' AND due_date IS NOT NULL;
 
 CREATE INDEX idx_stage_histories_entry_id ON stage_histories(entry_id);
+
+CREATE INDEX idx_selection_flows_entry_id ON selection_flows(entry_id);
+
+CREATE INDEX idx_selection_stages_flow_id_position ON selection_stages(flow_id, position);
 
 CREATE INDEX idx_company_aliases_user_company ON company_aliases(user_id, company_id);
 

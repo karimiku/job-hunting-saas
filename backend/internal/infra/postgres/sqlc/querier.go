@@ -15,11 +15,13 @@ type Querier interface {
 	CreateCompanyAlias(ctx context.Context, arg CreateCompanyAliasParams) error
 	CreateESMemo(ctx context.Context, arg CreateESMemoParams) (EsMemo, error)
 	CreateInboxClip(ctx context.Context, arg CreateInboxClipParams) error
+	CreateSelectionStage(ctx context.Context, arg CreateSelectionStageParams) error
 	CreateStageHistory(ctx context.Context, arg CreateStageHistoryParams) error
 	DeleteCompany(ctx context.Context, arg DeleteCompanyParams) (int64, error)
 	DeleteCompanyAlias(ctx context.Context, arg DeleteCompanyAliasParams) (int64, error)
 	DeleteEntry(ctx context.Context, arg DeleteEntryParams) (int64, error)
 	DeleteInboxClip(ctx context.Context, arg DeleteInboxClipParams) (int64, error)
+	DeleteSelectionStagesByFlowID(ctx context.Context, flowID uuid.UUID) error
 	DeleteTask(ctx context.Context, arg DeleteTaskParams) (int64, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) (int64, error)
 	FindActiveAIAccessTokenByHash(ctx context.Context, tokenHash string) (AiAccessToken, error)
@@ -29,6 +31,7 @@ type Querier interface {
 	FindExternalIdentityByProviderAndSubject(ctx context.Context, arg FindExternalIdentityByProviderAndSubjectParams) (ExternalIdentity, error)
 	FindInboxClipByID(ctx context.Context, arg FindInboxClipByIDParams) (InboxClip, error)
 	FindInboxClipByUserIDAndURL(ctx context.Context, arg FindInboxClipByUserIDAndURLParams) (InboxClip, error)
+	FindSelectionFlowByEntryID(ctx context.Context, arg FindSelectionFlowByEntryIDParams) (SelectionFlow, error)
 	FindTaskByID(ctx context.Context, arg FindTaskByIDParams) (Task, error)
 	FindUserByEmail(ctx context.Context, email string) (User, error)
 	FindUserByID(ctx context.Context, id uuid.UUID) (User, error)
@@ -40,6 +43,7 @@ type Querier interface {
 	ListESMemosByUserID(ctx context.Context, arg ListESMemosByUserIDParams) ([]EsMemo, error)
 	ListEntriesByUserID(ctx context.Context, arg ListEntriesByUserIDParams) ([]Entry, error)
 	ListInboxClipsByUserID(ctx context.Context, userID uuid.UUID) ([]InboxClip, error)
+	ListSelectionStagesByFlowID(ctx context.Context, flowID uuid.UUID) ([]SelectionStage, error)
 	ListStageHistoriesByEntryID(ctx context.Context, arg ListStageHistoriesByEntryIDParams) ([]StageHistory, error)
 	ListTasksByEntryID(ctx context.Context, arg ListTasksByEntryIDParams) ([]Task, error)
 	ListTasksByUserID(ctx context.Context, userID uuid.UUID) ([]Task, error)
@@ -51,6 +55,7 @@ type Querier interface {
 	TouchAIAccessTokenLastUsed(ctx context.Context, arg TouchAIAccessTokenLastUsedParams) error
 	UpsertCompany(ctx context.Context, arg UpsertCompanyParams) error
 	UpsertEntry(ctx context.Context, arg UpsertEntryParams) error
+	UpsertSelectionFlow(ctx context.Context, arg UpsertSelectionFlowParams) (SelectionFlow, error)
 	UpsertTask(ctx context.Context, arg UpsertTaskParams) error
 	UpsertUser(ctx context.Context, arg UpsertUserParams) error
 }

@@ -28,6 +28,7 @@ func (s *InboxClipRegistrationService) Register(
 	title value.InboxClipTitle,
 	source value.Source,
 	guess value.InboxClipGuess,
+	contentText value.InboxClipContentText,
 ) (*entity.InboxClip, error) {
 	existing, err := s.repo.FindByUserIDAndURL(ctx, userID, url)
 	if err == nil {
@@ -37,7 +38,7 @@ func (s *InboxClipRegistrationService) Register(
 		return nil, err
 	}
 
-	clip := entity.NewInboxClip(userID, url, title, source, guess)
+	clip := entity.NewInboxClip(userID, url, title, source, guess, contentText)
 	if err := s.repo.Create(ctx, clip); err != nil {
 		if errors.Is(err, repository.ErrAlreadyExists) {
 			return s.repo.FindByUserIDAndURL(ctx, userID, url)

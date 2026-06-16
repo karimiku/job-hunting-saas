@@ -29,7 +29,7 @@ func newTestInboxClip(t *testing.T, userID entity.UserID, rawURL string) *entity
 	if err != nil {
 		t.Fatalf("NewInboxClipGuess: %v", err)
 	}
-	return entity.NewInboxClip(userID, url, title, source, guess)
+	return entity.NewInboxClip(userID, url, title, source, guess, value.InboxClipContentText{})
 }
 
 func TestInboxClipRepository_Create_DuplicateURLForSameUser(t *testing.T) {

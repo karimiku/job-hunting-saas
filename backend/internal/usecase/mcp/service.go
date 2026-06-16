@@ -9,8 +9,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
+	entryuc "github.com/karimiku/job-hunting-saas/internal/usecase/entry"
 	esmemo "github.com/karimiku/job-hunting-saas/internal/usecase/es_memo"
 	jobemail "github.com/karimiku/job-hunting-saas/internal/usecase/job_email"
+	selectionflowuc "github.com/karimiku/job-hunting-saas/internal/usecase/selection_flow"
 	taskuc "github.com/karimiku/job-hunting-saas/internal/usecase/task"
 )
 
@@ -55,12 +57,13 @@ type TaskDTO struct {
 
 // InboxClipDTO はMCPクライアントに返すInbox Clip情報。
 type InboxClipDTO struct {
-	ID         string  `json:"id"`
-	URL        string  `json:"url"`
-	Title      string  `json:"title"`
-	Source     string  `json:"source"`
-	Guess      string  `json:"guess"`
-	CapturedAt *string `json:"capturedAt"`
+	ID          string  `json:"id"`
+	URL         string  `json:"url"`
+	Title       string  `json:"title"`
+	Source      string  `json:"source"`
+	Guess       string  `json:"guess"`
+	ContentText string  `json:"contentText"`
+	CapturedAt  *string `json:"capturedAt"`
 }
 
 // ESMemoDTO はMCPクライアントに返すES/自己PR/面接メモ情報。
@@ -78,8 +81,31 @@ type ESMemoDTO struct {
 
 // EntryContextDTO はエントリーと関連タスクをまとめたMCP向け情報。
 type EntryContextDTO struct {
-	Entry EntryDTO  `json:"entry"`
-	Tasks []TaskDTO `json:"tasks"`
+	Entry         EntryDTO          `json:"entry"`
+	Tasks         []TaskDTO         `json:"tasks"`
+	SelectionFlow *SelectionFlowDTO `json:"selectionFlow,omitempty"`
+}
+
+// SelectionStageDTO はMCPクライアントに返す選考フロー内ステージ。
+type SelectionStageDTO struct {
+	ID           string `json:"id,omitempty"`
+	Position     int    `json:"position"`
+	StageKind    string `json:"stageKind"`
+	StageLabel   string `json:"stageLabel"`
+	EvidenceText string `json:"evidenceText,omitempty"`
+}
+
+// SelectionFlowDTO はMCPクライアントに返すEntryごとの可変選考フロー。
+type SelectionFlowDTO struct {
+	ID                   string              `json:"id,omitempty"`
+	EntryID              string              `json:"entryId"`
+	Source               string              `json:"source"`
+	CurrentStagePosition int                 `json:"currentStagePosition"`
+	Confidence           *int                `json:"confidence,omitempty"`
+	InboxClipID          *string             `json:"inboxClipId,omitempty"`
+	Stages               []SelectionStageDTO `json:"stages"`
+	CreatedAt            *string             `json:"createdAt,omitempty"`
+	UpdatedAt            *string             `json:"updatedAt,omitempty"`
 }
 
 // AppendESMemoInput はMCP経由でESメモを追記する入力。
@@ -110,15 +136,44 @@ type CaptureJobEmailInput struct {
 	CompanyName string `json:"companyName"`
 }
 
+// UpsertEntrySelectionFlowInput はMCP経由で既存Entryの可変選考フローを保存する入力。
+type UpsertEntrySelectionFlowInput struct {
+	EntryID              string              `json:"entryId"`
+	Source               string              `json:"source"`
+	CurrentStagePosition int                 `json:"currentStagePosition"`
+	Confidence           *int                `json:"confidence"`
+	InboxClipID          string              `json:"inboxClipId"`
+	Stages               []SelectionStageDTO `json:"stages"`
+	Confirm              bool                `json:"confirm"`
+}
+
+// CreateEntryFromJobPostingInput はMCP経由で求人本文由来のEntryと可変選考フローを作成する入力。
+type CreateEntryFromJobPostingInput struct {
+	CompanyName          string              `json:"companyName"`
+	Route                string              `json:"route"`
+	Source               string              `json:"source"`
+	SourceURL            string              `json:"sourceUrl"`
+	Memo                 string              `json:"memo"`
+	FlowSource           string              `json:"flowSource"`
+	CurrentStagePosition int                 `json:"currentStagePosition"`
+	Confidence           *int                `json:"confidence"`
+	InboxClipID          string              `json:"inboxClipId"`
+	Stages               []SelectionStageDTO `json:"stages"`
+	Confirm              bool                `json:"confirm"`
+}
+
 // Service はMCPクライアントに公開する就活コンテキスト操作を提供する。
 type Service struct {
-	userID     entity.UserID
-	query      ContextQuery
-	appendMemo *esmemo.Append
-	listMemo   *esmemo.List
-	createTask *taskuc.Create
-	extract    *jobemail.Extract
-	now        func() time.Time
+	userID      entity.UserID
+	query       ContextQuery
+	appendMemo  *esmemo.Append
+	listMemo    *esmemo.List
+	createTask  *taskuc.Create
+	extract     *jobemail.Extract
+	createEntry *entryuc.CreateWithCompany
+	upsertFlow  *selectionflowuc.Upsert
+	getFlow     *selectionflowuc.Get
+	now         func() time.Time
 }
 
 // NewService はMCPサービスを生成する。
@@ -129,15 +184,21 @@ func NewService(
 	listMemo *esmemo.List,
 	createTask *taskuc.Create,
 	extract *jobemail.Extract,
+	createEntry *entryuc.CreateWithCompany,
+	upsertFlow *selectionflowuc.Upsert,
+	getFlow *selectionflowuc.Get,
 ) *Service {
 	return &Service{
-		userID:     userID,
-		query:      query,
-		appendMemo: appendMemo,
-		listMemo:   listMemo,
-		createTask: createTask,
-		extract:    extract,
-		now:        time.Now,
+		userID:      userID,
+		query:       query,
+		appendMemo:  appendMemo,
+		listMemo:    listMemo,
+		createTask:  createTask,
+		extract:     extract,
+		createEntry: createEntry,
+		upsertFlow:  upsertFlow,
+		getFlow:     getFlow,
+		now:         time.Now,
 	}
 }
 
@@ -152,7 +213,19 @@ func (s *Service) GetEntryContext(ctx context.Context, rawEntryID string) (*Entr
 	if err != nil {
 		return nil, err
 	}
-	return s.query.GetEntryContext(ctx, s.userID, entryID)
+	entryCtx, err := s.query.GetEntryContext(ctx, s.userID, entryID)
+	if err != nil {
+		return nil, err
+	}
+	if s.getFlow != nil {
+		if out, err := s.getFlow.Execute(ctx, selectionflowuc.GetInput{
+			UserID:  s.userID,
+			EntryID: entryID,
+		}); err == nil {
+			entryCtx.SelectionFlow = selectionFlowDTO(out.SelectionFlow)
+		}
+	}
+	return entryCtx, nil
 }
 
 // ListOpenTasks は未完了タスク一覧を返す。
@@ -304,6 +377,115 @@ func (s *Service) CaptureJobEmail(input CaptureJobEmailInput) (jobemail.ExtractO
 	}), nil
 }
 
+// UpsertEntrySelectionFlow は確認付きで既存Entryの可変選考フローを保存する。
+func (s *Service) UpsertEntrySelectionFlow(ctx context.Context, input UpsertEntrySelectionFlowInput) (any, error) {
+	entryID, err := parseEntryID(input.EntryID)
+	if err != nil {
+		return nil, err
+	}
+	inboxClipID, err := optionalInboxClipID(input.InboxClipID)
+	if err != nil {
+		return nil, err
+	}
+	flowInput := selectionflowuc.UpsertInput{
+		UserID:               s.userID,
+		EntryID:              entryID,
+		Source:               defaultString(input.Source, "ai_paste"),
+		CurrentStagePosition: input.CurrentStagePosition,
+		Confidence:           input.Confidence,
+		InboxClipID:          inboxClipID,
+		Stages:               stageInputs(input.Stages),
+	}
+	preview := map[string]any{
+		"confirmationRequired": !input.Confirm,
+		"action":               "upsert_entry_selection_flow",
+		"entryId":              entryID.String(),
+		"selectionFlow":        selectionFlowPreview(flowInput),
+	}
+	if !input.Confirm {
+		return preview, nil
+	}
+	if s.upsertFlow == nil {
+		return nil, fmt.Errorf("selection flow write is not configured")
+	}
+	out, err := s.upsertFlow.Execute(ctx, flowInput)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"updated":       true,
+		"entry":         entryDTOFromEntry(out.Entry),
+		"selectionFlow": selectionFlowDTO(out.SelectionFlow),
+	}, nil
+}
+
+// CreateEntryFromJobPosting は確認付きで求人本文由来のEntryと可変選考フローを作成する。
+func (s *Service) CreateEntryFromJobPosting(ctx context.Context, input CreateEntryFromJobPostingInput) (any, error) {
+	companyName := strings.TrimSpace(input.CompanyName)
+	if companyName == "" {
+		return nil, fmt.Errorf("companyName is required")
+	}
+	inboxClipID, err := optionalInboxClipID(input.InboxClipID)
+	if err != nil {
+		return nil, err
+	}
+	route := defaultString(input.Route, "本選考")
+	source := defaultString(input.Source, "求人ページ")
+	flowSource := defaultString(input.FlowSource, "ai_paste")
+	preview := map[string]any{
+		"confirmationRequired": !input.Confirm,
+		"action":               "create_entry_from_job_posting",
+		"entry": map[string]any{
+			"companyName": companyName,
+			"route":       route,
+			"source":      source,
+			"sourceUrl":   strings.TrimSpace(input.SourceURL),
+			"memo":        strings.TrimSpace(input.Memo),
+		},
+		"selectionFlow": map[string]any{
+			"source":               flowSource,
+			"currentStagePosition": input.CurrentStagePosition,
+			"confidence":           input.Confidence,
+			"inboxClipId":          optionalInboxClipIDString(inboxClipID),
+			"stages":               input.Stages,
+		},
+	}
+	if !input.Confirm {
+		return preview, nil
+	}
+	if s.createEntry == nil || s.upsertFlow == nil {
+		return nil, fmt.Errorf("entry and selection flow write are not configured")
+	}
+	created, err := s.createEntry.Execute(ctx, entryuc.CreateWithCompanyInput{
+		UserID:      s.userID,
+		CompanyName: companyName,
+		Route:       route,
+		Source:      source,
+		SourceURL:   strings.TrimSpace(input.SourceURL),
+		Memo:        strings.TrimSpace(input.Memo),
+	})
+	if err != nil {
+		return nil, err
+	}
+	flowOut, err := s.upsertFlow.Execute(ctx, selectionflowuc.UpsertInput{
+		UserID:               s.userID,
+		EntryID:              created.Entry.ID(),
+		Source:               flowSource,
+		CurrentStagePosition: input.CurrentStagePosition,
+		Confidence:           input.Confidence,
+		InboxClipID:          inboxClipID,
+		Stages:               stageInputs(input.Stages),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"created":       true,
+		"entry":         entryDTOFromEntry(created.Entry),
+		"selectionFlow": selectionFlowDTO(flowOut.SelectionFlow),
+	}, nil
+}
+
 func parseEntryID(raw string) (entity.EntryID, error) {
 	id, err := uuid.Parse(strings.TrimSpace(raw))
 	if err != nil {
@@ -321,6 +503,26 @@ func optionalEntryID(raw string) (*entity.EntryID, error) {
 		return nil, err
 	}
 	return &id, nil
+}
+
+func optionalInboxClipID(raw string) (*entity.InboxClipID, error) {
+	if strings.TrimSpace(raw) == "" {
+		return nil, nil
+	}
+	id, err := uuid.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return nil, fmt.Errorf("invalid inboxClipId: %w", err)
+	}
+	out := entity.InboxClipID(id)
+	return &out, nil
+}
+
+func optionalInboxClipIDString(id *entity.InboxClipID) *string {
+	if id == nil {
+		return nil
+	}
+	value := id.String()
+	return &value
 }
 
 func optionalEntryIDString(id *entity.EntryID) *string {
@@ -387,4 +589,79 @@ func esMemoDTO(memo *entity.ESMemo, company *string) ESMemoDTO {
 		CreatedAt: memo.CreatedAt().Format(time.RFC3339),
 		UpdatedAt: memo.UpdatedAt().Format(time.RFC3339),
 	}
+}
+
+func stageInputs(stages []SelectionStageDTO) []selectionflowuc.StageInput {
+	out := make([]selectionflowuc.StageInput, 0, len(stages))
+	for _, stage := range stages {
+		out = append(out, selectionflowuc.StageInput{
+			StageKind:    stage.StageKind,
+			StageLabel:   stage.StageLabel,
+			EvidenceText: stage.EvidenceText,
+		})
+	}
+	return out
+}
+
+func selectionFlowPreview(input selectionflowuc.UpsertInput) map[string]any {
+	return map[string]any{
+		"source":               input.Source,
+		"currentStagePosition": input.CurrentStagePosition,
+		"confidence":           input.Confidence,
+		"inboxClipId":          optionalInboxClipIDString(input.InboxClipID),
+		"stages":               input.Stages,
+	}
+}
+
+func selectionFlowDTO(flow *entity.SelectionFlow) *SelectionFlowDTO {
+	if flow == nil {
+		return nil
+	}
+	stages := make([]SelectionStageDTO, 0, len(flow.Stages()))
+	for _, stage := range flow.Stages() {
+		stages = append(stages, SelectionStageDTO{
+			ID:           stage.ID().String(),
+			Position:     stage.Position(),
+			StageKind:    stage.Stage().Kind().String(),
+			StageLabel:   stage.Stage().Label(),
+			EvidenceText: stage.EvidenceText(),
+		})
+	}
+	return &SelectionFlowDTO{
+		ID:                   flow.ID().String(),
+		EntryID:              flow.EntryID().String(),
+		Source:               flow.Source().String(),
+		CurrentStagePosition: flow.CurrentStagePosition(),
+		Confidence:           flow.Confidence(),
+		InboxClipID:          optionalInboxClipIDString(flow.InboxClipID()),
+		Stages:               stages,
+		CreatedAt:            stringPtr(flow.CreatedAt().Format(time.RFC3339)),
+		UpdatedAt:            stringPtr(flow.UpdatedAt().Format(time.RFC3339)),
+	}
+}
+
+func entryDTOFromEntry(entry *entity.Entry) EntryDTO {
+	sourceURL := ""
+	if entry.SourceURL() != nil {
+		sourceURL = entry.SourceURL().String()
+	}
+	createdAt := entry.CreatedAt().Format(time.RFC3339)
+	updatedAt := entry.UpdatedAt().Format(time.RFC3339)
+	return EntryDTO{
+		ID:         entry.ID().String(),
+		CompanyID:  entry.CompanyID().String(),
+		Route:      entry.Route().String(),
+		Source:     entry.Source().String(),
+		SourceURL:  sourceURL,
+		Status:     entry.Status().String(),
+		StageKind:  entry.Stage().Kind().String(),
+		StageLabel: entry.Stage().Label(),
+		Memo:       entry.Memo(),
+		CreatedAt:  &createdAt,
+		UpdatedAt:  &updatedAt,
+	}
+}
+
+func stringPtr(value string) *string {
+	return &value
 }

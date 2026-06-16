@@ -73,6 +73,7 @@ func TestInboxClipRepository_Create_Find(t *testing.T) {
 		newTestInboxClipTitle(t, "株式会社サンプル — 募集要項"),
 		newTestClipSource(t, "マイナビ"),
 		newTestInboxClipGuess(t, "株式会社サンプル"),
+		value.InboxClipContentText{},
 	)
 
 	if err := repo.Create(ctx, clip); err != nil {
@@ -121,6 +122,7 @@ func TestInboxClipRepository_Create_EmptyGuess(t *testing.T) {
 		newTestInboxClipTitle(t, "求人タイトル"),
 		newTestClipSource(t, "リクナビ"),
 		newTestInboxClipGuess(t, ""),
+		value.InboxClipContentText{},
 	)
 
 	if err := repo.Create(ctx, clip); err != nil {
@@ -150,6 +152,7 @@ func TestInboxClipRepository_Create_DuplicateURLForSameUser(t *testing.T) {
 		newTestInboxClipTitle(t, "求人タイトルA"),
 		newTestClipSource(t, "マイナビ"),
 		newTestInboxClipGuess(t, ""),
+		value.InboxClipContentText{},
 	)
 	second := entity.NewInboxClip(
 		userID,
@@ -157,6 +160,7 @@ func TestInboxClipRepository_Create_DuplicateURLForSameUser(t *testing.T) {
 		newTestInboxClipTitle(t, "求人タイトルB"),
 		newTestClipSource(t, "リクナビ"),
 		newTestInboxClipGuess(t, "株式会社サンプル"),
+		value.InboxClipContentText{},
 	)
 
 	if err := repo.Create(ctx, first); err != nil {
@@ -196,6 +200,7 @@ func TestInboxClipRepository_FindByID_WrongUser(t *testing.T) {
 		newTestInboxClipTitle(t, "T"),
 		newTestClipSource(t, "マイナビ"),
 		newTestInboxClipGuess(t, ""),
+		value.InboxClipContentText{},
 	)
 	if err := repo.Create(ctx, clip); err != nil {
 		t.Fatalf("Create failed: %v", err)
@@ -223,6 +228,7 @@ func TestInboxClipRepository_ListByUserID_OrderByCapturedAtDesc(t *testing.T) {
 		newTestInboxClipTitle(t, "older"),
 		newTestClipSource(t, "マイナビ"),
 		newTestInboxClipGuess(t, ""),
+		value.InboxClipContentText{},
 		mustParseTime(t, "2026-04-01T10:00:00Z"),
 	)
 	newer := entity.ReconstructInboxClip(
@@ -232,6 +238,7 @@ func TestInboxClipRepository_ListByUserID_OrderByCapturedAtDesc(t *testing.T) {
 		newTestInboxClipTitle(t, "newer"),
 		newTestClipSource(t, "マイナビ"),
 		newTestInboxClipGuess(t, ""),
+		value.InboxClipContentText{},
 		mustParseTime(t, "2026-04-02T10:00:00Z"),
 	)
 	for _, c := range []*entity.InboxClip{older, newer} {
@@ -270,6 +277,7 @@ func TestInboxClipRepository_ListByUserID_FiltersByOwner(t *testing.T) {
 		newTestInboxClipTitle(t, "mine"),
 		newTestClipSource(t, "マイナビ"),
 		newTestInboxClipGuess(t, ""),
+		value.InboxClipContentText{},
 	)
 	theirs := entity.NewInboxClip(
 		otherUserID,
@@ -277,6 +285,7 @@ func TestInboxClipRepository_ListByUserID_FiltersByOwner(t *testing.T) {
 		newTestInboxClipTitle(t, "theirs"),
 		newTestClipSource(t, "マイナビ"),
 		newTestInboxClipGuess(t, ""),
+		value.InboxClipContentText{},
 	)
 	for _, c := range []*entity.InboxClip{mine, theirs} {
 		if err := repo.Create(ctx, c); err != nil {
@@ -310,6 +319,7 @@ func TestInboxClipRepository_Delete(t *testing.T) {
 		newTestInboxClipTitle(t, "T"),
 		newTestClipSource(t, "マイナビ"),
 		newTestInboxClipGuess(t, ""),
+		value.InboxClipContentText{},
 	)
 	if err := repo.Create(ctx, clip); err != nil {
 		t.Fatalf("Create failed: %v", err)
@@ -354,6 +364,7 @@ func TestInboxClipRepository_Delete_WrongUser(t *testing.T) {
 		newTestInboxClipTitle(t, "T"),
 		newTestClipSource(t, "マイナビ"),
 		newTestInboxClipGuess(t, ""),
+		value.InboxClipContentText{},
 	)
 	if err := repo.Create(ctx, clip); err != nil {
 		t.Fatalf("Create failed: %v", err)

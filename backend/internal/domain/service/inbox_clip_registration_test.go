@@ -10,7 +10,7 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
 )
 
-func newTestInboxClipValues(t *testing.T) (value.URL, value.InboxClipTitle, value.Source, value.InboxClipGuess) {
+func newTestInboxClipValues(t *testing.T) (value.URL, value.InboxClipTitle, value.Source, value.InboxClipGuess, value.InboxClipContentText) {
 	t.Helper()
 
 	url, err := value.NewURL("https://example.com/jobs/1")
@@ -29,17 +29,21 @@ func newTestInboxClipValues(t *testing.T) (value.URL, value.InboxClipTitle, valu
 	if err != nil {
 		t.Fatalf("NewInboxClipGuess: %v", err)
 	}
-	return url, title, source, guess
+	contentText, err := value.NewInboxClipContentText("選考フロー: ES提出、一次面接")
+	if err != nil {
+		t.Fatalf("NewInboxClipContentText: %v", err)
+	}
+	return url, title, source, guess, contentText
 }
 
 func TestInboxClipRegistrationService_Register_ReturnsExisting(t *testing.T) {
 	userID := entity.NewUserID()
-	url, title, source, guess := newTestInboxClipValues(t)
-	existing := entity.NewInboxClip(userID, url, title, source, guess)
+	url, title, source, guess, contentText := newTestInboxClipValues(t)
+	existing := entity.NewInboxClip(userID, url, title, source, guess, contentText)
 	repo := &recordingInboxClipRepo{existing: existing}
 	service := NewInboxClipRegistrationService(repo)
 
-	got, err := service.Register(context.Background(), userID, url, title, source, guess)
+	got, err := service.Register(context.Background(), userID, url, title, source, guess, contentText)
 	if err != nil {
 		t.Fatalf("Register returned error: %v", err)
 	}
@@ -53,11 +57,11 @@ func TestInboxClipRegistrationService_Register_ReturnsExisting(t *testing.T) {
 
 func TestInboxClipRegistrationService_Register_CreatesNew(t *testing.T) {
 	userID := entity.NewUserID()
-	url, title, source, guess := newTestInboxClipValues(t)
+	url, title, source, guess, contentText := newTestInboxClipValues(t)
 	repo := &recordingInboxClipRepo{}
 	service := NewInboxClipRegistrationService(repo)
 
-	got, err := service.Register(context.Background(), userID, url, title, source, guess)
+	got, err := service.Register(context.Background(), userID, url, title, source, guess, contentText)
 	if err != nil {
 		t.Fatalf("Register returned error: %v", err)
 	}
@@ -74,15 +78,15 @@ func TestInboxClipRegistrationService_Register_CreatesNew(t *testing.T) {
 
 func TestInboxClipRegistrationService_Register_AlreadyExistsFetchesExisting(t *testing.T) {
 	userID := entity.NewUserID()
-	url, title, source, guess := newTestInboxClipValues(t)
-	existing := entity.NewInboxClip(userID, url, title, source, guess)
+	url, title, source, guess, contentText := newTestInboxClipValues(t)
+	existing := entity.NewInboxClip(userID, url, title, source, guess, contentText)
 	repo := &recordingInboxClipRepo{
 		createErr:           repository.ErrAlreadyExists,
 		existingAfterCreate: existing,
 	}
 	service := NewInboxClipRegistrationService(repo)
 
-	got, err := service.Register(context.Background(), userID, url, title, source, guess)
+	got, err := service.Register(context.Background(), userID, url, title, source, guess, contentText)
 	if err != nil {
 		t.Fatalf("Register returned error: %v", err)
 	}
@@ -93,11 +97,11 @@ func TestInboxClipRegistrationService_Register_AlreadyExistsFetchesExisting(t *t
 
 func TestInboxClipRegistrationService_Register_PropagatesFindError(t *testing.T) {
 	userID := entity.NewUserID()
-	url, title, source, guess := newTestInboxClipValues(t)
+	url, title, source, guess, contentText := newTestInboxClipValues(t)
 	expected := errors.New("db failed")
 	service := NewInboxClipRegistrationService(&recordingInboxClipRepo{findErr: expected})
 
-	_, err := service.Register(context.Background(), userID, url, title, source, guess)
+	_, err := service.Register(context.Background(), userID, url, title, source, guess, contentText)
 	if !errors.Is(err, expected) {
 		t.Fatalf("error = %v, want %v", err, expected)
 	}

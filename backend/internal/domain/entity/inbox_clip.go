@@ -9,13 +9,14 @@ import (
 // InboxClip は Chrome 拡張等が保存した求人ページのクリップ。
 // イミュータブル — エンティティへ変換される際に削除される設計。
 type InboxClip struct {
-	id         InboxClipID
-	userID     UserID
-	url        value.URL
-	title      value.InboxClipTitle
-	source     value.Source
-	guess      value.InboxClipGuess
-	capturedAt time.Time
+	id          InboxClipID
+	userID      UserID
+	url         value.URL
+	title       value.InboxClipTitle
+	source      value.Source
+	guess       value.InboxClipGuess
+	contentText value.InboxClipContentText
+	capturedAt  time.Time
 }
 
 // NewInboxClip は InboxClip を新規作成する。各値オブジェクトは呼び出し側でバリデーション済み前提。
@@ -25,15 +26,17 @@ func NewInboxClip(
 	title value.InboxClipTitle,
 	source value.Source,
 	guess value.InboxClipGuess,
+	contentText value.InboxClipContentText,
 ) *InboxClip {
 	return &InboxClip{
-		id:         NewInboxClipID(),
-		userID:     userID,
-		url:        url,
-		title:      title,
-		source:     source,
-		guess:      guess,
-		capturedAt: time.Now(),
+		id:          NewInboxClipID(),
+		userID:      userID,
+		url:         url,
+		title:       title,
+		source:      source,
+		guess:       guess,
+		contentText: contentText,
+		capturedAt:  time.Now(),
 	}
 }
 
@@ -46,16 +49,18 @@ func ReconstructInboxClip(
 	title value.InboxClipTitle,
 	source value.Source,
 	guess value.InboxClipGuess,
+	contentText value.InboxClipContentText,
 	capturedAt time.Time,
 ) *InboxClip {
 	return &InboxClip{
-		id:         id,
-		userID:     userID,
-		url:        url,
-		title:      title,
-		source:     source,
-		guess:      guess,
-		capturedAt: capturedAt,
+		id:          id,
+		userID:      userID,
+		url:         url,
+		title:       title,
+		source:      source,
+		guess:       guess,
+		contentText: contentText,
+		capturedAt:  capturedAt,
 	}
 }
 
@@ -76,6 +81,9 @@ func (c *InboxClip) Source() value.Source { return c.source }
 
 // Guess は推定された会社名を返す（空文字あり）。
 func (c *InboxClip) Guess() value.InboxClipGuess { return c.guess }
+
+// ContentText は求人ページ本文スナップショットを返す（空文字あり）。
+func (c *InboxClip) ContentText() value.InboxClipContentText { return c.contentText }
 
 // CapturedAt はクリップ作成日時を返す。
 func (c *InboxClip) CapturedAt() time.Time { return c.capturedAt }
