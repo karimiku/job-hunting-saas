@@ -76,6 +76,29 @@ describe("TaskDetailView", () => {
     );
   });
 
+  it("UTC 0時の期日をローカルタイムゾーンで前日にずらさず表示する", () => {
+    const originalTZ = process.env.TZ;
+    process.env.TZ = "America/Los_Angeles";
+
+    try {
+      render(
+        <TaskDetailView
+          task={task({ dueDate: "2026-06-01T00:00:00.000Z" })}
+          entry={entry()}
+        />,
+      );
+
+      expect(screen.getByText("2026/06/01")).toBeInTheDocument();
+      expect(screen.queryByText("2026/05/31")).not.toBeInTheDocument();
+    } finally {
+      if (originalTZ === undefined) {
+        delete process.env.TZ;
+      } else {
+        process.env.TZ = originalTZ;
+      }
+    }
+  });
+
   it("完了切替で Server Action を呼び、表示を更新する", async () => {
     render(<TaskDetailView task={task()} entry={entry()} />);
 

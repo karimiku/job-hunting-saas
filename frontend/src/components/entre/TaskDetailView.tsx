@@ -30,6 +30,8 @@ const STATUS_LABEL: Record<TaskWithEntry["status"], string> = {
   done: "完了",
 };
 
+const ISO_DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})(?:T|$)/;
+
 export function TaskDetailView({ task, entry }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -221,11 +223,32 @@ function formatDateTime(value: string): string {
 }
 
 function formatDate(value: string): string {
+  const dateOnly = formatIsoDateOnly(value);
+  if (dateOnly) return dateOnly;
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("ja-JP", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
+    timeZone: "UTC",
   }).format(date);
+}
+
+function formatIsoDateOnly(value: string): string | null {
+  const match = ISO_DATE_ONLY.exec(value);
+  if (!match) return null;
+
+  const [, year, month, day] = match;
+  const parsed = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  if (
+    parsed.getUTCFullYear() !== Number(year) ||
+    parsed.getUTCMonth() + 1 !== Number(month) ||
+    parsed.getUTCDate() !== Number(day)
+  ) {
+    return null;
+  }
+
+  return `${year}/${month}/${day}`;
 }
