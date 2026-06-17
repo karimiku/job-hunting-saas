@@ -12,6 +12,7 @@ import {
   getAppPageDataServer,
   getNavCountsServer,
   getTaskPageDataServer,
+  getTaskServer,
   listAllTasksServer,
   listEntriesWithCompanyNamesServer,
   listTasksServer,
@@ -77,6 +78,28 @@ describe("listTasksServer", () => {
     expect(tasks).toHaveLength(1);
     expect(serverFetch).toHaveBeenCalledTimes(1);
     expect(serverFetch).toHaveBeenCalledWith("/api/v1/tasks", undefined);
+  });
+});
+
+describe("getTaskServer", () => {
+  it("タスク詳細APIを呼ぶ", async () => {
+    serverFetch.mockResolvedValue({
+      id: "t1",
+      entryId: "e1",
+      title: "ES提出",
+      type: "deadline",
+      status: "todo",
+      dueDate: null,
+      memo: "",
+      createdAt: "x",
+      updatedAt: "x",
+    });
+
+    await expect(getTaskServer("t1")).resolves.toEqual(
+      expect.objectContaining({ id: "t1" }),
+    );
+    expect(serverFetch).toHaveBeenCalledTimes(1);
+    expect(serverFetch).toHaveBeenCalledWith("/api/v1/tasks/t1", undefined);
   });
 });
 

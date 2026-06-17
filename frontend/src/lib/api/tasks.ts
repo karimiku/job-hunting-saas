@@ -17,6 +17,10 @@ export async function listTasksByEntry(entryId: string): Promise<TaskResponse[]>
   return res.tasks;
 }
 
+export async function getTask(taskId: string): Promise<TaskResponse> {
+  return apiFetch<TaskResponse>(`/api/v1/tasks/${taskId}`);
+}
+
 export interface CreateTaskInput {
   title: string;
   type: "deadline" | "schedule";
@@ -33,6 +37,7 @@ export async function createTask(entryId: string, input: CreateTaskInput): Promi
 
 export interface UpdateTaskInput {
   title?: string;
+  type?: "deadline" | "schedule";
   status?: "todo" | "done";
   dueDate?: string | null;
   memo?: string;

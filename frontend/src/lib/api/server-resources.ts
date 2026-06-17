@@ -67,6 +67,10 @@ export async function listTasksByEntryServer(
   return res.tasks;
 }
 
+export async function getTaskServer(taskId: string): Promise<TaskResponse> {
+  return serverFetch<TaskResponse>(`/api/v1/tasks/${taskId}`);
+}
+
 export interface TaskWithEntry extends TaskResponse {
   /** タスクが属する entry の会社名 (join 済み、未設定なら undefined)。 */
   companyName?: string;

@@ -67,6 +67,7 @@ test.describe("Beta core flow — 保存箱からEntry/Kanban/Task管理", () =>
     await expect(kanban.getByText(company)).toBeVisible();
 
     await page.goto("/task");
+    await page.getByLabel("Entry").selectOption({ label: `${company} / 本選考` });
     await page.getByLabel("タスク名").fill(taskTitle);
     await page.getByLabel("期日").fill("2026-06-15");
     await page.getByRole("button", { name: "タスクを追加" }).click();
@@ -74,6 +75,13 @@ test.describe("Beta core flow — 保存箱からEntry/Kanban/Task管理", () =>
     await expect(page.getByText(taskTitle)).toBeVisible();
 
     const taskRow = page.getByRole("listitem").filter({ hasText: taskTitle });
+    await taskRow.getByRole("link", { name: new RegExp(taskTitle) }).click();
+    await page.waitForURL(/\/task\/[^/]+$/);
+    await expect(page.getByRole("heading", { name: taskTitle })).toBeVisible();
+    await expect(page.getByRole("link", { name: /応募先/ })).toContainText(company);
+    await expect(page.getByText("2026/06/15")).toBeVisible();
+
+    await page.goto("/task");
     const completeButton = taskRow.getByRole("button", {
       name: "タスク完了にする",
     });

@@ -1,7 +1,7 @@
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import { server } from "@/test/msw-server";
-import { listTasksByEntry, createTask, updateTask, deleteTask } from "./tasks";
+import { listTasksByEntry, createTask, updateTask, deleteTask, getTask } from "./tasks";
 
 const API = "http://localhost:8080";
 
@@ -35,6 +35,29 @@ describe("tasks API", () => {
     const result = await createTask("e1", { title: "ES提出", type: "deadline" });
     expect(body).toEqual({ title: "ES提出", type: "deadline" });
     expect(result.id).toBe("t-new");
+  });
+
+  it("getTask は GET /tasks/:id でタスク詳細を返す", async () => {
+    server.use(
+      http.get(`${API}/api/v1/tasks/t1`, () =>
+        HttpResponse.json({
+          id: "t1",
+          entryId: "e1",
+          title: "ES提出",
+          type: "deadline",
+          status: "todo",
+          dueDate: null,
+          memo: "最終チェック",
+          createdAt: "x",
+          updatedAt: "x",
+        }),
+      ),
+    );
+
+    const result = await getTask("t1");
+
+    expect(result.title).toBe("ES提出");
+    expect(result.memo).toBe("最終チェック");
   });
 
   it("updateTask は PATCH /tasks/:id で部分更新", async () => {

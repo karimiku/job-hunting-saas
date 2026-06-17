@@ -5,7 +5,7 @@
 import { useActionState, useMemo, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
-import { CalendarPlus, CheckCircle2, ClipboardList, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, CalendarPlus, CheckCircle2, ClipboardList, Plus, Trash2 } from "lucide-react";
 import {
   createTaskFromTaskPageAction,
   deleteTaskAction,
@@ -247,21 +247,34 @@ function TaskRow({
       >
         {done ? <CheckCircle2 size={15} aria-hidden /> : ""}
       </button>
-      <div className="min-w-0 flex-1">
-        <div className={`text-[12px] font-semibold ${done ? "line-through" : ""}`}>
-          {task.title}
-        </div>
-        <div className="mt-0.5 text-[10px] text-ink-3">
-          {task.memo ? task.memo : task.type === "deadline" ? "締切タスク" : "予定"}
-        </div>
-      </div>
-      <span
-        className={`shrink-0 rounded-md px-2 py-0.5 font-mono text-[10px] font-bold text-white ${
-          TYPE_BADGE[task.type] ?? "bg-sage"
-        }`}
+      <Link
+        href={`/task/${task.id}`}
+        prefetch={false}
+        className="group -my-1 flex min-w-0 flex-1 items-center gap-3 rounded-md py-1 pr-1 transition-colors hover:text-sage focus:outline-none focus:ring-2 focus:ring-sage/30"
       >
-        {formatDue(task.dueDate)}
-      </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <div className={`truncate text-[12px] font-semibold ${done ? "line-through" : ""}`}>
+              {task.title}
+            </div>
+            <ArrowRight
+              size={12}
+              className="shrink-0 text-ink-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus:opacity-100"
+              aria-hidden
+            />
+          </div>
+          <div className="mt-0.5 truncate text-[10px] text-ink-3">
+            {task.memo ? task.memo : task.type === "deadline" ? "締切タスク" : "予定"}
+          </div>
+        </div>
+        <span
+          className={`shrink-0 rounded-md px-2 py-0.5 font-mono text-[10px] font-bold text-white ${
+            TYPE_BADGE[task.type] ?? "bg-sage"
+          }`}
+        >
+          {formatDue(task.dueDate)}
+        </span>
+      </Link>
       <button
         type="button"
         onClick={() => onDelete(task)}

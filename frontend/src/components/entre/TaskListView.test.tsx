@@ -15,13 +15,16 @@ const setTaskStatusAction = vi.fn(
   async (
     taskId: string,
     status: "todo" | "done",
+    entryId?: string,
   ): Promise<ActionResult> => {
     void taskId;
+    void entryId;
     return { ok: true, status };
   },
 );
-const deleteTaskAction = vi.fn(async (taskId: string) => {
+const deleteTaskAction = vi.fn(async (taskId: string, entryId?: string) => {
   void taskId;
+  void entryId;
   return { ok: true };
 });
 const createTaskFromTaskPageAction = vi.fn(
@@ -34,9 +37,13 @@ const createTaskFromTaskPageAction = vi.fn(
 vi.mock("@/app/task/actions", () => ({
   createTaskFromTaskPageAction: (_prev: unknown, formData: FormData) =>
     createTaskFromTaskPageAction(_prev, formData),
-  deleteTaskAction: (taskId: string) => deleteTaskAction(taskId),
-  setTaskStatusAction: (taskId: string, status: "todo" | "done") =>
-    setTaskStatusAction(taskId, status),
+  deleteTaskAction: (taskId: string, entryId?: string) =>
+    deleteTaskAction(taskId, entryId),
+  setTaskStatusAction: (
+    taskId: string,
+    status: "todo" | "done",
+    entryId?: string,
+  ) => setTaskStatusAction(taskId, status, entryId),
 }));
 
 // Confetti の trigger 値を記録し、発火有無を検証する。
@@ -87,7 +94,10 @@ describe("TaskListView", () => {
     createTaskFromTaskPageAction.mockClear();
     confettiSpy.mockClear();
     setTaskStatusAction.mockImplementation(
-      async (_taskId: string, status: "todo" | "done") => ({ ok: true, status }),
+      async (_taskId: string, status: "todo" | "done", _entryId?: string) => {
+        void _entryId;
+        return { ok: true, status };
+      },
     );
   });
 
@@ -101,6 +111,14 @@ describe("TaskListView", () => {
     expect(screen.getByText("ES提出")).toBeInTheDocument();
     expect(screen.getAllByText(/○○商事/).length).toBeGreaterThan(0);
     expect(screen.getByText("5/30")).toBeInTheDocument();
+  });
+
+  it("タスク名からタスク詳細へ遷移できる", () => {
+    render(<TaskListView initialTasks={[task()]} entries={[entry()]} />);
+    expect(screen.getByRole("link", { name: /ES提出/ })).toHaveAttribute(
+      "href",
+      "/task/t1",
+    );
   });
 
   it("Entryフィルタで対象Entryのタスクだけ表示する", async () => {
@@ -136,7 +154,7 @@ describe("TaskListView", () => {
     await userEvent.click(toggle);
 
     await waitFor(() =>
-      expect(setTaskStatusAction).toHaveBeenCalledWith("t1", "done"),
+      expect(setTaskStatusAction).toHaveBeenCalledWith("t1", "done", "e1"),
     );
     // 楽観更新で aria-pressed が true になる
     await waitFor(() =>
@@ -153,7 +171,7 @@ describe("TaskListView", () => {
     await userEvent.click(toggle);
 
     await waitFor(() =>
-      expect(setTaskStatusAction).toHaveBeenCalledWith("t1", "todo"),
+      expect(setTaskStatusAction).toHaveBeenCalledWith("t1", "todo", "e1"),
     );
   });
 
@@ -201,7 +219,7 @@ describe("TaskListView", () => {
 
     await user.click(screen.getByRole("button", { name: /タスク「ES提出」を削除/ }));
 
-    await waitFor(() => expect(deleteTaskAction).toHaveBeenCalledWith("t1"));
+    await waitFor(() => expect(deleteTaskAction).toHaveBeenCalledWith("t1", "e1"));
     await waitFor(() => expect(screen.queryByText("ES提出")).not.toBeInTheDocument());
   });
 });
