@@ -21,26 +21,26 @@ import {
   type EntryResponse,
 } from "@/lib/api/entries";
 import { updateEntryAction } from "@/app/entry/actions";
+import {
+  KANBAN_STAGE_COLOR,
+  KANBAN_STAGE_LABEL,
+  KANBAN_STAGE_ORDER,
+  isKanbanStageKind,
+  statusForKanbanStage,
+  type KanbanStageKind,
+} from "@/lib/entry-stage";
 
-const COLUMNS = [
-  { kind: "application", label: "エントリー", color: "var(--color-stage-entry)" },
-  { kind: "document", label: "書類選考", color: "var(--color-stage-doc)" },
-  { kind: "test", label: "テスト/ES", color: "var(--color-stage-es)" },
-  { kind: "interview", label: "面接", color: "var(--color-stage-interview)" },
-  { kind: "offer", label: "内定", color: "var(--color-stage-offer)" },
-] as const;
-
-const STAGE_LABEL: Record<string, string> = {
-  application: "エントリー",
-  document: "書類選考",
-  test: "ES提出",
-  interview: "面接",
-  offer: "内定",
-};
+const COLUMNS = KANBAN_STAGE_ORDER.map((kind) => ({
+  kind,
+  label: KANBAN_STAGE_LABEL[kind],
+  color: KANBAN_STAGE_COLOR[kind],
+}));
 
 interface Props {
   initialEntries: EntryResponse[];
 }
+
+type EntryOverride = Pick<EntryResponse, "stageKind" | "stageLabel" | "status">;
 
 /** Entry を stageKind ごとに振り分けるカンバン。
  *  initialEntries は SSR で取得した snapshot。ドラッグで列間移動 → Server Action 経由で
@@ -49,8 +49,8 @@ interface Props {
  *  router.refresh() は不要 (overrides は成功時に clear)。
  *  API 失敗時は overrides を消してロールバック。 */
 export function KanbanBoard({ initialEntries }: Props) {
-  // entryId → 楽観的に上書きされた stageKind。API 成功で消し、失敗で消してロールバック。
-  const [overrides, setOverrides] = useState<Record<string, string>>({});
+  // entryId → 楽観的に上書きされたステージ情報。API 成功で消し、失敗で消してロールバック。
+  const [overrides, setOverrides] = useState<Record<string, EntryOverride>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // 同一カード連続移動の race 対策: entryId ごとに最新リクエスト ID を採番。
@@ -65,13 +65,12 @@ export function KanbanBoard({ initialEntries }: Props) {
   // overrides を適用した entries (initialEntries が SSR で来ている前提)
   const entries = initialEntries.map((e) => ({
     ...e,
-    stageKind: overrides[e.id] ?? e.stageKind,
+    ...overrides[e.id],
   }));
 
-  // group は interview 列に寄せる
-  const byKind = new Map<string, EntryResponse[]>();
+  const byKind = new Map<KanbanStageKind, EntryResponse[]>();
   for (const e of entries) {
-    const key = e.stageKind === "group" ? "interview" : e.stageKind;
+    const key = normalizeKanbanStageKind(e.stageKind);
     if (!byKind.has(key)) byKind.set(key, []);
     byKind.get(key)!.push(e);
   }
@@ -88,9 +87,10 @@ export function KanbanBoard({ initialEntries }: Props) {
     if (!over) return;
 
     const entryId = String(active.id);
-    const targetKind = String(over.id);
+    const targetKind = normalizeKanbanStageKind(String(over.id));
     const current = entries.find((e) => e.id === entryId);
-    if (!current || current.stageKind === targetKind) return;
+    if (!current || normalizeKanbanStageKind(current.stageKind) === targetKind) return;
+    const next = kanbanStageUpdateInput(targetKind);
 
     // この entry に対する最新リクエスト番号を採番。
     // 後続のドラッグで番号が更新されたら、自分は古いリクエストとして clear/refetch をスキップする。
@@ -99,12 +99,9 @@ export function KanbanBoard({ initialEntries }: Props) {
 
     // 楽観的反映
     setError(null);
-    setOverrides((prev) => ({ ...prev, [entryId]: targetKind }));
+    setOverrides((prev) => ({ ...prev, [entryId]: next }));
 
-    const result = await updateEntryAction(entryId, {
-      stageKind: targetKind,
-      stageLabel: STAGE_LABEL[targetKind] ?? targetKind,
-    });
+    const result = await updateEntryAction(entryId, next);
     // 自分が最新のリクエストのときだけ override を clear / ロールバックする。
     // そうでない場合は後続のドラッグが進行中なので、その完了に任せる。
     if (requestIdsRef.current.get(entryId) !== requestId) return;
@@ -171,7 +168,8 @@ export function KanbanBoard({ initialEntries }: Props) {
 
       <div
         data-testid="kanban-desktop-board"
-        className="hidden gap-2.5 overflow-x-auto pb-2 md:grid md:grid-cols-5"
+        className="hidden gap-2.5 overflow-x-auto pb-2 md:grid"
+        style={{ gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(10rem, 1fr))` }}
       >
         {COLUMNS.map((col) => (
           <KanbanColumn key={col.kind} col={col} cards={byKind.get(col.kind) ?? []} activeId={activeId} />
@@ -320,9 +318,19 @@ function CardContent({
   showSourceLink?: boolean;
 }) {
   const sourceUrl = entrySourceUrl(entry);
+  const stageKind = normalizeKanbanStageKind(entry.stageKind);
+  const stageLabel = entry.stageLabel || KANBAN_STAGE_LABEL[stageKind];
   return (
     <>
       <div className="mb-1.5 truncate text-[10px] font-bold">{companyDisplayName(entry)}</div>
+      <div className="mb-1.5 flex min-w-0">
+        <span
+          className="max-w-full truncate rounded border border-line bg-surface px-1.5 py-0.5 text-[9px] font-bold text-ink-3"
+          style={{ borderColor: KANBAN_STAGE_COLOR[stageKind] }}
+        >
+          {stageLabel}
+        </span>
+      </div>
       <div className="flex justify-between gap-2 text-[9px] text-ink-3">
         <span className="truncate">
           {entry.route} · {entry.source}
@@ -344,4 +352,16 @@ function CardContent({
       )}
     </>
   );
+}
+
+export function normalizeKanbanStageKind(value: string): KanbanStageKind {
+  return isKanbanStageKind(value) ? value : "other";
+}
+
+export function kanbanStageUpdateInput(stageKind: KanbanStageKind): EntryOverride {
+  return {
+    stageKind,
+    stageLabel: KANBAN_STAGE_LABEL[stageKind],
+    status: statusForKanbanStage(stageKind),
+  };
 }
