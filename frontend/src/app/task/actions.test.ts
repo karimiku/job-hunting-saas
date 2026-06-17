@@ -78,7 +78,7 @@ describe("task actions", () => {
   it("setTaskStatusAction は status を PATCH する", async () => {
     serverFetch.mockResolvedValue({ status: "done" });
 
-    const result = await setTaskStatusAction("t1", "done");
+    const result = await setTaskStatusAction("t1", "done", "e1");
 
     expect(result).toEqual({ ok: true, status: "done" });
     expect(serverFetch).toHaveBeenCalledWith("/api/v1/tasks/t1", {
@@ -86,18 +86,22 @@ describe("task actions", () => {
       body: JSON.stringify({ status: "done" }),
     });
     expect(revalidatePath).toHaveBeenCalledWith("/task");
+    expect(revalidatePath).toHaveBeenCalledWith("/task/t1");
+    expect(revalidatePath).toHaveBeenCalledWith("/entry/e1");
   });
 
   it("deleteTaskAction は task を DELETE して関連画面を revalidate する", async () => {
     serverFetch.mockResolvedValue(undefined);
 
-    const result = await deleteTaskAction("t1");
+    const result = await deleteTaskAction("t1", "e1");
 
     expect(result).toEqual({ ok: true });
     expect(serverFetch).toHaveBeenCalledWith("/api/v1/tasks/t1", {
       method: "DELETE",
     });
     expect(revalidatePath).toHaveBeenCalledWith("/task");
+    expect(revalidatePath).toHaveBeenCalledWith("/task/t1");
     expect(revalidatePath).toHaveBeenCalledWith("/dashboard");
+    expect(revalidatePath).toHaveBeenCalledWith("/entry/e1");
   });
 });

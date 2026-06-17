@@ -386,6 +386,12 @@ const mockApi = http.createServer((req, res) => {
       }
 
       const taskMatch = url.pathname.match(/^\/api\/v1\/tasks\/([^/]+)$/);
+      if (taskMatch && req.method === "GET") {
+        const task = state.tasks.find((item) => item.id === taskMatch[1]);
+        json(res, task ? 200 : 404, task ?? { message: "not found" });
+        return;
+      }
+
       if (taskMatch && req.method === "PATCH") {
         const body = await readJson(req);
         const task = state.tasks.find((item) => item.id === taskMatch[1]);

@@ -41,6 +41,7 @@ export async function deleteTaskAction(
       method: "DELETE",
     });
     revalidatePath("/task");
+    revalidatePath(`/task/${taskId}`);
     revalidatePath("/dashboard");
     if (entryId) revalidatePath(`/entry/${entryId}`);
     return { ok: true };
@@ -65,6 +66,7 @@ export async function setTaskStatusAction(
       body: JSON.stringify({ status }),
     });
     revalidatePath("/task");
+    revalidatePath(`/task/${taskId}`);
     if (entryId) revalidatePath(`/entry/${entryId}`);
     return { ok: true, status: updated.status };
   } catch {
