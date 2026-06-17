@@ -217,6 +217,22 @@ const mockApi = http.createServer((req, res) => {
         return;
       }
 
+      if (entryMatch && req.method === "DELETE") {
+        const entry = state.entries.find((item) => item.id === entryMatch[1]);
+        if (!entry) {
+          json(res, 404, { message: "not found" });
+          return;
+        }
+        state.entries = state.entries.filter((item) => item.id !== entry.id);
+        state.tasks = state.tasks.filter((task) => task.entryId !== entry.id);
+        state.selectionFlows = state.selectionFlows.filter(
+          (flow) => flow.entryId !== entry.id,
+        );
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+
       const selectionFlowMatch = url.pathname.match(
         /^\/api\/v1\/entries\/([^/]+)\/selection-flow$/,
       );

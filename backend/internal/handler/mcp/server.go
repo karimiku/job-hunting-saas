@@ -21,7 +21,7 @@ const (
 	defaultProtocolVersion = "2024-11-05"
 	serverName             = "job-hunting-saas-mcp"
 	serverVersion          = "0.1.0"
-	serverInstructions     = "Use this server for user-scoped job-hunting data. Read inbox clips, entries, tasks, selection flows, and ES memos before proposing actions. append_es_memo, create_task, upsert_entry_selection_flow, and create_entry_from_job_posting only preview changes unless confirm=true; ask the user before confirmed writes. capture_job_email extracts candidates locally and does not call an LLM API. For pasted job postings, the MCP client should parse the text and pass structured stages to the write tools."
+	serverInstructions     = "Use this server for user-scoped job-hunting data. Read inbox clips, entries, tasks, selection flows, and ES memos before proposing actions. append_es_memo, create_task, delete_entry, upsert_entry_selection_flow, and create_entry_from_job_posting only preview changes unless confirm=true; ask the user before confirmed writes. capture_job_email extracts candidates locally and does not call an LLM API. For pasted job postings, the MCP client should parse the text and pass structured stages to the write tools."
 )
 
 // Application はMCP handlerが呼び出すユースケース境界。
@@ -33,6 +33,7 @@ type Application interface {
 	ListESMemos(ctx context.Context, limit int32) ([]mcpuc.ESMemoDTO, error)
 	AppendESMemo(ctx context.Context, input mcpuc.AppendESMemoInput) (any, error)
 	CreateTask(ctx context.Context, input mcpuc.CreateTaskInput) (any, error)
+	DeleteEntry(ctx context.Context, input mcpuc.DeleteEntryInput) (any, error)
 	CaptureJobEmail(input mcpuc.CaptureJobEmailInput) (jobemail.ExtractOutput, error)
 	UpsertEntrySelectionFlow(ctx context.Context, input mcpuc.UpsertEntrySelectionFlowInput) (any, error)
 	CreateEntryFromJobPosting(ctx context.Context, input mcpuc.CreateEntryFromJobPostingInput) (any, error)
@@ -343,6 +344,14 @@ func listTools() any {
 				}, []string{"entryId", "title"}),
 			},
 			{
+				"name":        "delete_entry",
+				"description": "Entryを削除します。confirm=true のときだけDBから削除します。関連TaskもDBの外部キー制約に従って削除されます。",
+				"inputSchema": objectSchema(map[string]any{
+					"entryId": map[string]any{"type": "string", "description": "Entry UUID"},
+					"confirm": map[string]any{"type": "boolean", "description": "true のときだけ削除"},
+				}, []string{"entryId"}),
+			},
+			{
 				"name":        "capture_job_email",
 				"description": "選考メール本文を構造化し、Entry更新候補とTask作成候補を返します。LLM APIは呼びません。",
 				"inputSchema": objectSchema(map[string]any{
@@ -464,6 +473,11 @@ func (s *Server) callTool(ctx context.Context, params json.RawMessage) (any, err
 		var args mcpuc.CreateTaskInput
 		if err = json.Unmarshal(p.Arguments, &args); err == nil {
 			value, err = s.app.CreateTask(ctx, args)
+		}
+	case "delete_entry":
+		var args mcpuc.DeleteEntryInput
+		if err = json.Unmarshal(p.Arguments, &args); err == nil {
+			value, err = s.app.DeleteEntry(ctx, args)
 		}
 	case "capture_job_email":
 		var args mcpuc.CaptureJobEmailInput

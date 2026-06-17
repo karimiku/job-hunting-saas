@@ -129,6 +129,12 @@ type CreateTaskInput struct {
 	Confirm bool   `json:"confirm"`
 }
 
+// DeleteEntryInput はMCP経由でEntryを削除する入力。
+type DeleteEntryInput struct {
+	EntryID string `json:"entryId"`
+	Confirm bool   `json:"confirm"`
+}
+
 // CaptureJobEmailInput はMCP経由で選考メールを解析する入力。
 type CaptureJobEmailInput struct {
 	Subject     string `json:"subject"`
@@ -171,6 +177,7 @@ type Service struct {
 	createTask  *taskuc.Create
 	extract     *jobemail.Extract
 	createEntry *entryuc.CreateWithCompany
+	deleteEntry *entryuc.Delete
 	upsertFlow  *selectionflowuc.Upsert
 	getFlow     *selectionflowuc.Get
 	now         func() time.Time
@@ -185,6 +192,7 @@ func NewService(
 	createTask *taskuc.Create,
 	extract *jobemail.Extract,
 	createEntry *entryuc.CreateWithCompany,
+	deleteEntry *entryuc.Delete,
 	upsertFlow *selectionflowuc.Upsert,
 	getFlow *selectionflowuc.Get,
 ) *Service {
@@ -196,6 +204,7 @@ func NewService(
 		createTask:  createTask,
 		extract:     extract,
 		createEntry: createEntry,
+		deleteEntry: deleteEntry,
 		upsertFlow:  upsertFlow,
 		getFlow:     getFlow,
 		now:         time.Now,
@@ -361,6 +370,41 @@ func (s *Service) CreateTask(ctx context.Context, input CreateTaskInput) (any, e
 			"notify":  task.Notify(),
 			"memo":    task.Memo(),
 		},
+	}, nil
+}
+
+// DeleteEntry は確認付きでEntryを削除する。
+func (s *Service) DeleteEntry(ctx context.Context, input DeleteEntryInput) (any, error) {
+	entryID, err := parseEntryID(input.EntryID)
+	if err != nil {
+		return nil, err
+	}
+	entryCtx, err := s.query.GetEntryContext(ctx, s.userID, entryID)
+	if err != nil {
+		return nil, err
+	}
+	preview := map[string]any{
+		"confirmationRequired": !input.Confirm,
+		"action":               "delete_entry",
+		"entry":                entryCtx.Entry,
+		"relatedTaskCount":     len(entryCtx.Tasks),
+	}
+	if !input.Confirm {
+		return preview, nil
+	}
+	if s.deleteEntry == nil {
+		return nil, fmt.Errorf("entry delete is not configured")
+	}
+	if err := s.deleteEntry.Execute(ctx, entryuc.DeleteInput{
+		UserID:  s.userID,
+		EntryID: entryID,
+	}); err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"deleted":          true,
+		"entry":            entryCtx.Entry,
+		"relatedTaskCount": len(entryCtx.Tasks),
 	}, nil
 }
 

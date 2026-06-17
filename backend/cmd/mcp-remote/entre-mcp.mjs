@@ -182,7 +182,7 @@ function publicESMemo(memo, companyName, entryRef = null) {
   return out;
 }
 
-class EntreClient {
+export class EntreClient {
   constructor({ baseURL, token }) {
     this.baseURL = baseURL;
     this.token = token;
@@ -208,6 +208,10 @@ class EntreClient {
 
   async put(pathname, body) {
     return this.request("PUT", pathname, body);
+  }
+
+  async delete(pathname) {
+    return this.request("DELETE", pathname);
   }
 
   async request(method, pathname, body) {
@@ -487,6 +491,26 @@ class EntreClient {
     return {
       created: true,
       task: publicTask(created, entryContext.entry.company, entryContext.entry.ref, this.assignTaskRef(created.id)),
+    };
+  }
+
+  async deleteEntry(input) {
+    const entryRef = String(input.entryRef ?? input.entryId ?? "").trim();
+    const entryId = await this.resolveEntryRef(entryRef);
+    const entryContext = await this.getEntryContext(entryRef);
+    const preview = {
+      confirmationRequired: !input.confirm,
+      action: "delete_entry",
+      entry: entryContext.entry,
+      relatedTaskCount: entryContext.tasks.length,
+    };
+    if (!input.confirm) return preview;
+
+    await this.delete(`/api/v1/entries/${encodePathSegment(entryId)}`);
+    return {
+      deleted: true,
+      entry: entryContext.entry,
+      relatedTaskCount: entryContext.tasks.length,
     };
   }
 
@@ -785,6 +809,19 @@ async function main() {
 
   registerTool(
     server,
+    "delete_entry",
+    {
+      description: "応募先Entryを削除します。entryRef は list_entries の ref を指定します。confirm=true のときだけ本番APIへ削除を実行します。",
+      inputSchema: {
+        entryRef: z.string().describe("list_entries が返す ref。例: entry-1"),
+        confirm: z.boolean().optional(),
+      },
+    },
+    (input) => client.deleteEntry(input),
+  );
+
+  registerTool(
+    server,
     "capture_job_email",
     {
       description: "選考メール本文を簡易抽出し、Entry更新候補とTask作成候補を返します。LLM APIは呼びません。",
@@ -840,8 +877,11 @@ async function main() {
   debug("node stdio server connected");
 }
 
-main().catch((error) => {
-  debug("fatal error: %s", error?.stack ?? error);
-  process.stderr.write(`entre MCP server error: ${error?.message ?? String(error)}\n`);
-  process.exit(1);
-});
+const invokedPath = process.argv[1] ? pathToFileURL(process.argv[1]).href : "";
+if (import.meta.url === invokedPath) {
+  main().catch((error) => {
+    debug("fatal error: %s", error?.stack ?? error);
+    process.stderr.write(`entre MCP server error: ${error?.message ?? String(error)}\n`);
+    process.exit(1);
+  });
+}

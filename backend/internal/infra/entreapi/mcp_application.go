@@ -260,6 +260,35 @@ func (a *MCPApplication) CreateTask(ctx context.Context, input mcpuc.CreateTaskI
 	}, nil
 }
 
+// DeleteEntry previews or deletes an entry through the REST API.
+func (a *MCPApplication) DeleteEntry(ctx context.Context, input mcpuc.DeleteEntryInput) (any, error) {
+	entryID := strings.TrimSpace(input.EntryID)
+	if entryID == "" {
+		return nil, errors.New("entryId is required")
+	}
+	entryCtx, err := a.GetEntryContext(ctx, entryID)
+	if err != nil {
+		return nil, err
+	}
+	preview := map[string]any{
+		"confirmationRequired": !input.Confirm,
+		"action":               "delete_entry",
+		"entry":                entryCtx.Entry,
+		"relatedTaskCount":     len(entryCtx.Tasks),
+	}
+	if !input.Confirm {
+		return preview, nil
+	}
+	if err := a.delete(ctx, "/api/v1/entries/"+url.PathEscape(entryID)); err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"deleted":          true,
+		"entry":            entryCtx.Entry,
+		"relatedTaskCount": len(entryCtx.Tasks),
+	}, nil
+}
+
 // CaptureJobEmail extracts structured candidates locally. No LLM API is called.
 func (a *MCPApplication) CaptureJobEmail(input mcpuc.CaptureJobEmailInput) (jobemail.ExtractOutput, error) {
 	if strings.TrimSpace(input.Text) == "" {
@@ -406,6 +435,10 @@ func (a *MCPApplication) post(ctx context.Context, path string, body any, out an
 
 func (a *MCPApplication) put(ctx context.Context, path string, body any, out any) error {
 	return a.do(ctx, http.MethodPut, path, body, out)
+}
+
+func (a *MCPApplication) delete(ctx context.Context, path string) error {
+	return a.do(ctx, http.MethodDelete, path, nil, nil)
 }
 
 func (a *MCPApplication) do(ctx context.Context, method string, path string, body any, out any) error {

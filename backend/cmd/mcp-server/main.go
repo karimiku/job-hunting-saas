@@ -79,6 +79,7 @@ func runWithIO(ctx context.Context, getenv func(string) string, in io.Reader, ou
 		taskuc.NewCreate(taskRepo, entryRepo),
 		jobemail.NewExtract(),
 		entryuc.NewCreateWithCompany(entryWithCompanyRepo),
+		entryuc.NewDelete(entryRepo),
 		selectionflowuc.NewUpsert(selectionFlowRepo, entryRepo),
 		selectionflowuc.NewGet(selectionFlowRepo, entryRepo),
 	)

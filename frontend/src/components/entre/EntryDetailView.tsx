@@ -24,6 +24,7 @@ import { type TaskResponse } from "@/lib/api/tasks";
 import type { SelectionFlowResponse, SelectionStageResponse } from "@/lib/selection-flow";
 import {
   createTaskForEntryAction,
+  deleteEntryAction,
   updateSelectionFlowCurrentStageAction,
   updateEntryAction,
 } from "@/app/entry/actions";
@@ -47,6 +48,7 @@ export function EntryDetailView({
   const [confetti, setConfetti] = useState(0);
   const [taskError, setTaskError] = useState<string | null>(null);
   const [entryError, setEntryError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [optimisticEntry, setOptimisticEntry] = useState<{
     stageKind: string;
@@ -227,10 +229,27 @@ export function EntryDetailView({
     });
   };
 
+  const handleDeleteEntry = () => {
+    if (
+      !window.confirm(
+        `「${companyDisplayName(e)}」のEntryを削除しますか？関連するタスクも削除されます。`,
+      )
+    ) {
+      return;
+    }
+    setDeleteError(null);
+    startTransition(async () => {
+      const result = await deleteEntryAction(e.id);
+      if (!result.ok) {
+        setDeleteError(result.error ?? "Entryの削除に失敗しました");
+      }
+    });
+  };
+
   return (
     <div className="relative">
       {/* Header */}
-      <div className="mb-4 flex items-center gap-3">
+      <div className="mb-4 flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <h1 className="font-serif text-lg font-extrabold tracking-tight break-words">
             {companyDisplayName(e)}
@@ -250,15 +269,32 @@ export function EntryDetailView({
             </a>
           )}
         </div>
-        {isOffer && (
-          <div
-            className="rounded-lg border-[2.5px] border-mint bg-mint/10 px-2.5 py-1.5 font-serif text-sm font-black text-mint"
-            style={{ animation: "entre-stamp 0.6s cubic-bezier(0.2, 0.8, 0.4, 1) both" }}
+        <div className="flex shrink-0 items-center gap-2">
+          {isOffer && (
+            <div
+              className="rounded-lg border-[2.5px] border-mint bg-mint/10 px-2.5 py-1.5 font-serif text-sm font-black text-mint"
+              style={{ animation: "entre-stamp 0.6s cubic-bezier(0.2, 0.8, 0.4, 1) both" }}
+            >
+              内定！
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={handleDeleteEntry}
+            disabled={isPending}
+            aria-label={`${companyDisplayName(e)} のEntryを削除`}
+            className="inline-flex h-8 items-center gap-1 rounded-md border border-line bg-surface px-2.5 text-[10px] font-bold text-ink-3 transition-colors hover:border-pink-deep hover:text-pink-deep focus:outline-none focus:ring-2 focus:ring-pink-deep/20 disabled:opacity-60"
           >
-            内定！
-          </div>
-        )}
+            <Trash2 size={14} aria-hidden />
+            削除
+          </button>
+        </div>
       </div>
+      {deleteError && (
+        <p role="alert" className="mb-3 rounded-md bg-pink/40 px-2.5 py-1.5 text-[10px] font-semibold text-ink">
+          {deleteError}
+        </p>
+      )}
 
       {/* Stage selector */}
       <section className="mb-3 rounded-xl border border-line bg-surface p-3">
