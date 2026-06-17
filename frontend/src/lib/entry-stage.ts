@@ -66,8 +66,13 @@ export function stageLabelOf(value: string): string {
 }
 
 export function stageIndexOf(value: string): number {
-  const index = KANBAN_STAGE_ORDER.indexOf(value as KanbanStageKind);
+  const index = STAGE_ORDER.indexOf(value as StageKind);
   return index < 0 ? 0 : index;
+}
+
+export function kanbanStageIndexOf(value: string): number {
+  const index = KANBAN_STAGE_ORDER.indexOf(value as KanbanStageKind);
+  return index < 0 ? KANBAN_STAGE_ORDER.indexOf("other") : index;
 }
 
 export function statusForStage(stageKind: StageKind): string {
