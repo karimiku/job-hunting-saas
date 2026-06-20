@@ -257,15 +257,15 @@ func run() error {
 		corsOriginsRaw = os.Getenv("CORS_ALLOWED_ORIGIN")
 	}
 	corsOrigins := allowedOrigins(corsOriginsRaw)
-	globalRateLimit, err := requestsPerMinuteFromEnv("RATE_LIMIT_GLOBAL_REQUESTS_PER_MINUTE", 120)
+	globalRateLimit, err := requestsPerMinuteFromEnv("RATE_LIMIT_GLOBAL_REQUESTS_PER_MINUTE", 30)
 	if err != nil {
 		return err
 	}
-	authRateLimit, err := requestsPerMinuteFromEnv("RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE", 10)
+	authRateLimit, err := requestsPerMinuteFromEnv("RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE", 5)
 	if err != nil {
 		return err
 	}
-	userRateLimit, err := requestsPerMinuteFromEnv("RATE_LIMIT_AUTHENTICATED_REQUESTS_PER_MINUTE", 300)
+	userRateLimit, err := requestsPerMinuteFromEnv("RATE_LIMIT_AUTHENTICATED_REQUESTS_PER_MINUTE", 60)
 	if err != nil {
 		return err
 	}

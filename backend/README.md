@@ -129,9 +129,9 @@ make mcp-server
 | `CORS_ALLOWED_ORIGINS` | カンマ区切りの許可 origin（Web + 拡張） | `http://localhost:3000,chrome-extension://<extension-id>` |
 | `COOKIE_SECURE` | 本番 HTTPS は `true`、localhost は `false` | `false` |
 | `COOKIE_SAME_SITE` | `lax` / `strict` / `none`。拡張から Cookie を送る本番は `none`。`none` は Origin/Referer CSRF 検証とセットで使う | `lax` |
-| `RATE_LIMIT_GLOBAL_REQUESTS_PER_MINUTE` | IPごとの全体レート制限。`0` で無効 | `120` |
-| `RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE` | IPごとの `/auth/session` レート制限。`0` で無効 | `10` |
-| `RATE_LIMIT_AUTHENTICATED_REQUESTS_PER_MINUTE` | ログインユーザーごとのAPIレート制限。`0` で無効 | `300` |
+| `RATE_LIMIT_GLOBAL_REQUESTS_PER_MINUTE` | IPごとの全体レート制限。`0` で無効 | `30` |
+| `RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE` | IPごとの `/auth/session` レート制限。`0` で無効 | `5` |
+| `RATE_LIMIT_AUTHENTICATED_REQUESTS_PER_MINUTE` | ログインユーザーごとのAPIレート制限。`0` で無効 | `60` |
 | `ALLOW_INSECURE_NO_AUTH` | `true` で認証なし起動（ローカル検証用） | 未設定 |
 
 > ⚠️ service account JSON と `.env` はコミットしない（`.gitignore` 済みであることを確認）。secret 値そのものを README に書かないこと。
