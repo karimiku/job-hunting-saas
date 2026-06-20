@@ -85,16 +85,16 @@ func (l *fixedWindowRateLimiter) pruneLocked(now time.Time) {
 	}
 }
 
-// NewIPRateLimiter limits requests by the best client IP visible to the app.
-// It is a lightweight in-process guard; Cloud Armor/LB is still the stronger
-// place to enforce IP policy before Cloud Run starts work.
+// NewIPRateLimiter は、アプリから見えるクライアントIPごとにリクエスト数を制限する。
+// Cloud Runへリクエストが到達した後の軽量なアプリ内ガードであり、
+// 本格的なIP制限はCloud Armor/LBでCloud Runの手前に置く。
 func NewIPRateLimiter(limit int, window time.Duration) func(http.Handler) http.Handler {
 	limiter := newFixedWindowRateLimiter(limit, window)
 	return newRateLimitMiddleware(limiter, clientIPFromRequest)
 }
 
-// NewAuthenticatedUserRateLimiter limits requests by authenticated user ID.
-// It should be wired after auth middleware has populated the request context.
+// NewAuthenticatedUserRateLimiter は、認証済みユーザーIDごとにリクエスト数を制限する。
+// 認証ミドルウェアがリクエストコンテキストにユーザーIDを載せた後に配線する。
 func NewAuthenticatedUserRateLimiter(limit int, window time.Duration) func(http.Handler) http.Handler {
 	limiter := newFixedWindowRateLimiter(limit, window)
 	return newRateLimitMiddleware(limiter, func(r *http.Request) string {
