@@ -126,6 +126,10 @@ jobs:
             --region "$REGION" \
             --image "${{ steps.image.outputs.uri }}" \
             --platform managed \
+            --cpu-throttling \
+            --min-instances 0 \
+            --max-instances 3 \
+            --concurrency 80 \
             --quiet
 
       - name: Smoke test

@@ -92,6 +92,30 @@ gcloud billing budgets list \
 - 100%通知が届いた時点で、実際の課金額がすでに1000円を超えている可能性がある。
 - 自動停止を入れる場合は、別途「Pub/Sub + 停止用処理」の設計レビューを行う。
 
+### Runtime Guardrails
+
+Cloud Run deployでは、少なくとも以下を明示する。
+
+```text
+min instances: 0
+max instances: 3
+CPU allocation: request-based billing / CPU throttling enabled
+container concurrency: 80
+```
+
+Backend APIはアプリ内の軽量レート制限も持つ。
+
+```text
+RATE_LIMIT_GLOBAL_REQUESTS_PER_MINUTE=120
+RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE=10
+RATE_LIMIT_AUTHENTICATED_REQUESTS_PER_MINUTE=300
+```
+
+注意:
+
+- アプリ内レート制限はCloud Runインスタンスごとの防御であり、分散攻撃や請求対策の最終防衛線ではない。
+- IP制限、WAF、DDoS対策を本格化する場合は、Cloud Armor + external Application Load Balancer + serverless NEG を使い、Cloud Runの直接到達経路を閉じる。
+
 ## Cost Alert Response
 
 ### 1. 状況確認
