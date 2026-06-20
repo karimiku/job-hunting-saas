@@ -98,9 +98,9 @@ Cloud Run deployでは、少なくとも以下を明示する。
 
 ```text
 min instances: 0
-max instances: 3
+max instances: 1
 CPU allocation: request-based billing / CPU throttling enabled
-container concurrency: 80
+container concurrency: 20
 ```
 
 Backend APIはアプリ内の軽量レート制限も持つ。
