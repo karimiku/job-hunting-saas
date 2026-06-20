@@ -144,7 +144,7 @@ variable "cloud_run_min_instance_count" {
 variable "cloud_run_max_instance_count" {
   description = "Maximum Cloud Run instance count."
   type        = number
-  default     = 3
+  default     = 1
 }
 
 variable "cloud_run_cpu" {

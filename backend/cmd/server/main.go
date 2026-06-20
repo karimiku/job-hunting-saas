@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -256,7 +257,21 @@ func run() error {
 		corsOriginsRaw = os.Getenv("CORS_ALLOWED_ORIGIN")
 	}
 	corsOrigins := allowedOrigins(corsOriginsRaw)
+	globalRateLimit, err := requestsPerMinuteFromEnv("RATE_LIMIT_GLOBAL_REQUESTS_PER_MINUTE", 30)
+	if err != nil {
+		return err
+	}
+	authRateLimit, err := requestsPerMinuteFromEnv("RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE", 5)
+	if err != nil {
+		return err
+	}
+	userRateLimit, err := requestsPerMinuteFromEnv("RATE_LIMIT_AUTHENTICATED_REQUESTS_PER_MINUTE", 60)
+	if err != nil {
+		return err
+	}
+
 	router.Use(corsMiddleware(corsOrigins))
+	router.Use(middleware.NewIPRateLimiter(globalRateLimit, time.Minute))
 	router.Use(middleware.NewServerTiming())
 
 	router.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
@@ -269,6 +284,7 @@ func run() error {
 	// 認証不要ルート（ログイン / ログアウト）
 	if authHandler != nil {
 		router.Group(func(r chi.Router) {
+			r.Use(middleware.NewIPRateLimiter(authRateLimit, time.Minute))
 			r.Use(middleware.NewOriginGuard(corsOrigins))
 			authHandler.PublicRoutes(r)
 		})
@@ -278,6 +294,7 @@ func run() error {
 	router.Group(func(r chi.Router) {
 		if authMiddleware != nil {
 			r.Use(authMiddleware)
+			r.Use(middleware.NewAuthenticatedUserRateLimiter(userRateLimit, time.Minute))
 			r.Use(middleware.NewSessionCSRFProtection(corsOrigins))
 		}
 		if authHandler != nil {
@@ -303,6 +320,21 @@ func run() error {
 		return fmt.Errorf("listen: %w", err)
 	}
 	return nil
+}
+
+func requestsPerMinuteFromEnv(name string, defaultValue int) (int, error) {
+	raw := strings.TrimSpace(os.Getenv(name))
+	if raw == "" {
+		return defaultValue, nil
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, fmt.Errorf("invalid %s %q (want non-negative integer requests per minute): %w", name, raw, err)
+	}
+	if value < 0 {
+		return 0, fmt.Errorf("invalid %s %q (must be non-negative)", name, raw)
+	}
+	return value, nil
 }
 
 func parseCookieSameSite(raw string) (http.SameSite, error) {
