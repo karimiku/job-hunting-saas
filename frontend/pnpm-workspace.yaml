@@ -3,3 +3,4 @@ ignoredBuiltDependencies:
   - unrs-resolver
 overrides:
   postcss: ^8.5.15
+  undici: 7.28.0
