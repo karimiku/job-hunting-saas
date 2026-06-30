@@ -4,7 +4,11 @@ package postgres_test
 
 import (
 	"context"
+	"fmt"
+	"net"
+	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 
@@ -14,7 +18,10 @@ import (
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 )
 
-const defaultTestDatabaseURL = "postgres://postgres:postgres@localhost:15432/job_hunting_test?sslmode=disable"
+const (
+	defaultTestDatabaseURL                = "postgres://postgres:postgres@localhost:15432/job_hunting_test?sslmode=disable"
+	destructiveIntegrationTestOverrideEnv = "ALLOW_DESTRUCTIVE_INTEGRATION_TEST_DB"
+)
 
 var (
 	testPool    *pgxpool.Pool
@@ -29,6 +36,9 @@ func initTestDB() (*pgxpool.Pool, error) {
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
 		databaseURL = defaultTestDatabaseURL
+	}
+	if err := assertSafeDestructiveTestDatabase(databaseURL); err != nil {
+		return nil, err
 	}
 
 	pool, err := pgxpool.New(ctx, databaseURL)
@@ -75,6 +85,48 @@ func initTestDB() (*pgxpool.Pool, error) {
 	}
 
 	return pool, nil
+}
+
+// assertSafeDestructiveTestDatabase prevents schema-reset tests from hitting a shared remote DB.
+func assertSafeDestructiveTestDatabase(databaseURL string) error {
+	if strings.EqualFold(os.Getenv(destructiveIntegrationTestOverrideEnv), "true") {
+		return nil
+	}
+
+	parsed, err := url.Parse(databaseURL)
+	if err != nil {
+		return fmt.Errorf("parse DATABASE_URL for destructive integration test safety check: %w", err)
+	}
+
+	host := parsed.Hostname()
+	if isLocalDatabaseHost(host) {
+		return nil
+	}
+
+	databaseName := strings.TrimPrefix(parsed.Path, "/")
+	if databaseName == "" {
+		databaseName = "(unknown database)"
+	}
+
+	return fmt.Errorf(
+		"refusing to reset integration test database %q on host %q; use a local test database or set %s=true",
+		databaseName,
+		host,
+		destructiveIntegrationTestOverrideEnv,
+	)
+}
+
+func isLocalDatabaseHost(host string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(host))
+	switch normalized {
+	case "localhost", "db", "postgres":
+		return true
+	case "":
+		return false
+	}
+
+	ip := net.ParseIP(normalized)
+	return ip != nil && ip.IsLoopback()
 }
 
 // setupTestDB はテスト用の pgxpool.Pool を返す。
