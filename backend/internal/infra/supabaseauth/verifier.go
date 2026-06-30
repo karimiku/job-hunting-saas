@@ -219,7 +219,9 @@ func (v *Verifier) fetchJWKS(ctx context.Context) (jose.JSONWebKeySet, error) {
 	if err != nil {
 		return jose.JSONWebKeySet{}, fmt.Errorf("supabaseauth: fetch JWKS: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		_, _ = io.Copy(io.Discard, resp.Body)
