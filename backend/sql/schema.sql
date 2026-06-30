@@ -17,7 +17,7 @@ CREATE TYPE task_type AS ENUM ('deadline', 'schedule');
 
 CREATE TYPE task_status AS ENUM ('todo', 'done');
 
-CREATE TYPE auth_provider AS ENUM ('google');
+CREATE TYPE auth_provider AS ENUM ('google', 'supabase');
 
 -- ============================================================
 -- テーブル（FK 依存順）

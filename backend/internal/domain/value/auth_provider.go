@@ -10,11 +10,13 @@ var (
 )
 
 const (
-	authProviderGoogle = "google"
+	authProviderGoogle   = "google"
+	authProviderSupabase = "supabase"
 )
 
 var validAuthProviders = map[string]bool{
-	authProviderGoogle: true,
+	authProviderGoogle:   true,
+	authProviderSupabase: true,
 }
 
 // AuthProvider は外部認証プロバイダーの種別を表す値オブジェクト。
@@ -45,3 +47,6 @@ func (p AuthProvider) Equals(other AuthProvider) bool {
 
 // AuthProviderGoogle は Google プロバイダーを返す定数コンストラクタ。
 func AuthProviderGoogle() AuthProvider { return AuthProvider{value: authProviderGoogle} }
+
+// AuthProviderSupabase は Supabase Auth プロバイダーを返す定数コンストラクタ。
+func AuthProviderSupabase() AuthProvider { return AuthProvider{value: authProviderSupabase} }
