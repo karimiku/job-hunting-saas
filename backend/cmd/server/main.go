@@ -20,6 +20,7 @@ import (
 	fbinfra "github.com/karimiku/job-hunting-saas/internal/infra/firebase"
 	"github.com/karimiku/job-hunting-saas/internal/infra/inmemory"
 	"github.com/karimiku/job-hunting-saas/internal/infra/postgres"
+	"github.com/karimiku/job-hunting-saas/internal/infra/supabaseauth"
 	"github.com/karimiku/job-hunting-saas/internal/middleware"
 	aiaccesstokenuc "github.com/karimiku/job-hunting-saas/internal/usecase/ai_access_token"
 	companyuc "github.com/karimiku/job-hunting-saas/internal/usecase/company"
@@ -114,34 +115,13 @@ func run() error {
 		log.Println("using in-memory repositories (ALLOW_INSECURE_NO_AUTH=true) — auth endpoints disabled, all data shared across users")
 	}
 
-	// Firebase 初期化 / Auth 配線は DB 永続化できる場合のみ有効化する
+	// Auth 配線は DB 永続化できる場合のみ有効化する。
 	var (
 		authHandler    *handler.AuthHandler
 		authMiddleware func(http.Handler) http.Handler
 		authConfig     handler.AuthConfig
 	)
 	if userRepo != nil && extIDRepo != nil {
-		projectID := os.Getenv("FIREBASE_PROJECT_ID")
-		if projectID == "" {
-			return errors.New("FIREBASE_PROJECT_ID must be set when DATABASE_URL is configured")
-		}
-		// GOOGLE_APPLICATION_CREDENTIALS を使うなら credentialsPath を空にして ADC に任せる
-		credentialsPath := os.Getenv("FIREBASE_CREDENTIALS_FILE")
-
-		fb, err := fbinfra.NewClient(ctx, credentialsPath, projectID)
-		if err != nil {
-			return fmt.Errorf("init firebase: %w", err)
-		}
-
-		authenticateUC := useruc.NewAuthenticate(userRepo, extIDRepo)
-		// Firebase SDK 型を handler / middleware に漏らさないため、adapter で DTO に変換する。
-		sessionCreator := fbinfra.NewSessionCreator(fb.Auth)
-		sessionVerifierCacheTTL, err := firebaseSessionVerifierCacheTTL(os.Getenv("FIREBASE_SESSION_VERIFY_CACHE_TTL"))
-		if err != nil {
-			return err
-		}
-		var sessionVerifier middleware.FirebaseSessionVerifier = fbinfra.NewSessionVerifier(fb.Auth)
-		sessionVerifier = middleware.NewCachedSessionVerifier(sessionVerifier, sessionVerifierCacheTTL)
 		cookieSameSite, err := parseCookieSameSite(os.Getenv("COOKIE_SAME_SITE"))
 		if err != nil {
 			return err
@@ -151,13 +131,58 @@ func run() error {
 			CookieSecure:   os.Getenv("COOKIE_SECURE") == "true",
 			CookieSameSite: cookieSameSite,
 		}
-		authHandler = handler.NewAuthHandler(sessionCreator, authenticateUC, userRepo, authConfig)
+
+		aiBearerVerifier := aiaccesstokenuc.NewVerify(aiTokenRepo)
+		bearerVerifier := middleware.NewChainedBearerTokenVerifier(aiBearerVerifier)
+
+		supabaseAuthConfigured := false
+		if supabaseIssuer := strings.TrimSpace(os.Getenv("SUPABASE_AUTH_ISSUER")); supabaseIssuer != "" {
+			supabaseVerifier, err := supabaseauth.NewVerifier(supabaseauth.Config{
+				Issuer:   supabaseIssuer,
+				Audience: os.Getenv("SUPABASE_JWT_AUDIENCE"),
+				JWKSURL:  os.Getenv("SUPABASE_JWKS_URL"),
+			}, extIDRepo)
+			if err != nil {
+				return fmt.Errorf("init supabase auth verifier: %w", err)
+			}
+			bearerVerifier = middleware.NewChainedBearerTokenVerifier(aiBearerVerifier, supabaseVerifier)
+			supabaseAuthConfigured = true
+			log.Println("supabase auth bearer verifier wired")
+		}
+
+		projectID := strings.TrimSpace(os.Getenv("FIREBASE_PROJECT_ID"))
+		var sessionVerifier middleware.FirebaseSessionVerifier
+		if projectID != "" {
+			// GOOGLE_APPLICATION_CREDENTIALS を使うなら credentialsPath を空にして ADC に任せる
+			credentialsPath := os.Getenv("FIREBASE_CREDENTIALS_FILE")
+
+			fb, err := fbinfra.NewClient(ctx, credentialsPath, projectID)
+			if err != nil {
+				return fmt.Errorf("init firebase: %w", err)
+			}
+
+			authenticateUC := useruc.NewAuthenticate(userRepo, extIDRepo)
+			// Firebase SDK 型を handler / middleware に漏らさないため、adapter で DTO に変換する。
+			sessionCreator := fbinfra.NewSessionCreator(fb.Auth)
+			sessionVerifierCacheTTL, err := firebaseSessionVerifierCacheTTL(os.Getenv("FIREBASE_SESSION_VERIFY_CACHE_TTL"))
+			if err != nil {
+				return err
+			}
+			sessionVerifier = fbinfra.NewSessionVerifier(fb.Auth)
+			sessionVerifier = middleware.NewCachedSessionVerifier(sessionVerifier, sessionVerifierCacheTTL)
+			authHandler = handler.NewAuthHandler(sessionCreator, authenticateUC, userRepo, authConfig)
+			log.Println("firebase auth wired")
+		}
+
+		if projectID == "" && !supabaseAuthConfigured {
+			return errors.New("FIREBASE_PROJECT_ID or SUPABASE_AUTH_ISSUER must be set when DATABASE_URL is configured")
+		}
+
 		authMiddleware = middleware.NewAuthWithBearer(
 			sessionVerifier,
 			extIDRepo,
-			aiaccesstokenuc.NewVerify(aiTokenRepo),
+			bearerVerifier,
 		)
-		log.Println("firebase auth wired")
 	}
 
 	companyHandler := handler.NewCompanyHandler(

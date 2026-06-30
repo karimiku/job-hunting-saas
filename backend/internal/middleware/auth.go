@@ -76,7 +76,7 @@ type FirebaseSessionVerifier interface {
 	VerifySessionCookie(ctx context.Context, sessionCookie string) (*SessionClaims, error)
 }
 
-// BearerTokenVerifier は Authorization: Bearer で渡されたAI連携トークンを userID に解決する。
+// BearerTokenVerifier は Authorization: Bearer で渡されたトークンを userID に解決する。
 type BearerTokenVerifier interface {
 	VerifyBearerToken(ctx context.Context, rawToken string) (entity.UserID, error)
 }
@@ -110,7 +110,7 @@ func NewAuthWithBearer(
 				userID, ok, err := verifyBearer(ctx, header, bearerVerifier)
 				addServerTimingSince(ctx, "auth_bearer", startedAt)
 				if err != nil {
-					if errors.Is(err, value.ErrAIAccessTokenInvalid) {
+					if isInvalidBearerTokenError(err) {
 						http.Error(w, "unauthenticated", http.StatusUnauthorized)
 						return
 					}
@@ -129,6 +129,10 @@ func NewAuthWithBearer(
 
 			cookie, err := r.Cookie(SessionCookieName)
 			if err != nil || cookie.Value == "" {
+				http.Error(w, "unauthenticated", http.StatusUnauthorized)
+				return
+			}
+			if fbAuth == nil {
 				http.Error(w, "unauthenticated", http.StatusUnauthorized)
 				return
 			}
@@ -162,6 +166,35 @@ func NewAuthWithBearer(
 	}
 }
 
+// NewChainedBearerTokenVerifier は複数の Bearer verifier を順番に試す。
+func NewChainedBearerTokenVerifier(verifiers ...BearerTokenVerifier) BearerTokenVerifier {
+	filtered := make([]BearerTokenVerifier, 0, len(verifiers))
+	for _, verifier := range verifiers {
+		if verifier != nil {
+			filtered = append(filtered, verifier)
+		}
+	}
+	return chainedBearerTokenVerifier{verifiers: filtered}
+}
+
+type chainedBearerTokenVerifier struct {
+	verifiers []BearerTokenVerifier
+}
+
+func (v chainedBearerTokenVerifier) VerifyBearerToken(ctx context.Context, rawToken string) (entity.UserID, error) {
+	for _, verifier := range v.verifiers {
+		userID, err := verifier.VerifyBearerToken(ctx, rawToken)
+		if err == nil {
+			return userID, nil
+		}
+		if isInvalidBearerTokenError(err) {
+			continue
+		}
+		return entity.UserID{}, err
+	}
+	return entity.UserID{}, value.ErrAuthTokenInvalid
+}
+
 func verifyBearer(ctx context.Context, header string, verifier BearerTokenVerifier) (entity.UserID, bool, error) {
 	const bearerPrefix = "Bearer "
 	if !strings.HasPrefix(header, bearerPrefix) {
@@ -176,4 +209,8 @@ func verifyBearer(ctx context.Context, header string, verifier BearerTokenVerifi
 		return entity.UserID{}, false, err
 	}
 	return userID, true, nil
+}
+
+func isInvalidBearerTokenError(err error) bool {
+	return errors.Is(err, value.ErrAuthTokenInvalid) || errors.Is(err, value.ErrAIAccessTokenInvalid)
 }
