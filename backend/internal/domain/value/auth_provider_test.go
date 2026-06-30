@@ -12,6 +12,7 @@ func TestNewAuthProvider(t *testing.T) {
 		wantErr error
 	}{
 		{"google", "google", nil},
+		{"supabase", "supabase", nil},
 		{"empty", "", ErrAuthProviderEmpty},
 		{"invalid", "facebook", ErrAuthProviderInvalid},
 		{"uppercase", "Google", ErrAuthProviderInvalid},
@@ -30,9 +31,13 @@ func TestNewAuthProvider(t *testing.T) {
 func TestAuthProvider_Equals(t *testing.T) {
 	a := AuthProviderGoogle()
 	b := AuthProviderGoogle()
+	c := AuthProviderSupabase()
 
 	if !a.Equals(b) {
 		t.Error("same providers should be equal")
+	}
+	if a.Equals(c) {
+		t.Error("different providers should not be equal")
 	}
 }
 
@@ -40,5 +45,8 @@ func TestAuthProvider_String(t *testing.T) {
 	p := AuthProviderGoogle()
 	if p.String() != "google" {
 		t.Errorf("String() = %q, want %q", p.String(), "google")
+	}
+	if got := AuthProviderSupabase().String(); got != "supabase" {
+		t.Errorf("String() = %q, want %q", got, "supabase")
 	}
 }
