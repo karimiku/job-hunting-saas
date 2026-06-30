@@ -62,7 +62,7 @@
           pname = "job-hunting-saas-backend";
           version = "0.1.0";
           src = ./backend;
-          vendorHash = "sha256-qnC21FJ7B+gp45Gs2HNCbiFXPLjaaxoTOAgkvsQaA/k=";
+          vendorHash = "sha256-/xKeWaN4Fr/ORByvJNe8XlUCk52NHtL7MQ2Tot/t+qQ=";
           subPackages = [ "cmd/server" ];
         };
         mkApp =
