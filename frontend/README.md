@@ -1,6 +1,6 @@
 # Entré Frontend
 
-Next.js 16（App Router / SSR / Server Actions）の Web フロントエンド。Firebase で Google ログインし、ホーム / Entry / カンバン / タスク / 保存箱を提供する。backend が OpenAPI で公開する型に合わせて API を呼ぶ。
+Next.js 16（App Router / SSR / Server Actions）の Web フロントエンド。Supabase Auth で Google ログインし、ホーム / Entry / カンバン / タスク / 保存箱を提供する。backend が OpenAPI で公開する型に合わせて API を呼ぶ。
 
 ## コア画面
 
@@ -31,31 +31,27 @@ pnpm lint       # ESLint
 
 ## 環境変数 (`frontend/.env.local`)
 
-backend への接続先と Firebase Web SDK の設定が必要。`.env.local` は `.gitignore` 済みなのでコミットしない。
+backend への接続先と Supabase Auth の公開設定が必要。`.env.local` は `.gitignore` 済みなのでコミットしない。
 
 | 変数 | 用途 | 例 |
 | --- | --- | --- |
-| `BACKEND_API_BASE_URL` | backend API のベース URL（Next.js rewrite / Server Component 用、非公開） | `http://localhost:8080` |
-| `BACKEND_API_ALLOWED_HOSTS` | backend proxy の許可 host allowlist | `localhost,127.0.0.1,api.entre.kamiriku.com,entre-backend-gfsd4pzoxq-an.a.run.app` |
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase Web API キー | — |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase 認証ドメイン。本番はアプリの同一ドメインにする | `entre.kamiriku.com` |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase プロジェクト ID | `your-project-id` |
-| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Storage バケット | `your-project.appspot.com` |
-| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Messaging Sender ID | — |
-| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase App ID | — |
-| `FIREBASE_AUTH_PROXY_HOST` | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` を独自ドメインにしたときの Firebase Hosting proxy 先 | `job-hunting-saas.firebaseapp.com` |
+| `BACKEND_API_BASE_URL` | backend API のベース URL（Server Component 用、非公開）。Vercel Services 本番では `/backend` prefix 付き URL を使う。Preview は未設定でも `VERCEL_URL` から同一 deployment の `/backend` を使う | `http://localhost:8080`, `https://entre.kamiriku.com/backend` |
+| `BACKEND_API_ALLOWED_HOSTS` | backend proxy の許可 host allowlist | `localhost,127.0.0.1,entre.kamiriku.com,*.vercel.app,api.entre.kamiriku.com,entre-backend-gfsd4pzoxq-an.a.run.app` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | `https://<project-ref>.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key。ブラウザに公開してよいキーだけを設定する | `sb_publishable_...` |
 
-値は Firebase Console の「プロジェクトの設定 → マイアプリ（Web アプリ）」から取得する。`NEXT_PUBLIC_` 接頭辞の変数はクライアントバンドルに埋め込まれる前提の公開値（Firebase Web SDK のキーは公開設計）。backend proxy の接続先は `BACKEND_API_BASE_URL` を使い、公開 env には置かない。
+Supabase の値は Dashboard の Project Settings / API から取得する。`NEXT_PUBLIC_` 接頭辞の変数はクライアントバンドルに埋め込まれる。`service_role` や secret key は絶対に設定しない。backend proxy の接続先は `BACKEND_API_BASE_URL` を使い、公開 env には置かない。
 
-本番の Google redirect ログインでは、ブラウザの third-party storage 制限を避けるため `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` を `entre.kamiriku.com` にする。Next.js は `/__/auth/*` を `FIREBASE_AUTH_PROXY_HOST` へ rewrite するため、Firebase helper はブラウザから同一originとして見える。
+Google OAuth を使うには Supabase Auth の Google provider を有効化し、Redirect URLs に `http://localhost:3000/auth/callback` と本番の `https://<frontend-domain>/auth/callback` を登録する。
 
 ## 認証フロー
 
-1. `/login` で Google ログイン（Firebase Web SDK）
-2. 取得した ID トークンを backend `POST /auth/session` に送り、httpOnly セッション Cookie を発行
-3. 以降の SSR / Server Action は Cookie を backend に転送して API を呼ぶ（`src/lib/api/server.ts`）
+1. `/login` で Google ログイン（Supabase Auth OAuth）
+2. `/auth/callback` で authorization code を Supabase session cookie に交換
+3. Client Component / Server Component / Server Action は Supabase session から access token を取得し、Go backend に `Authorization: Bearer <token>` を送る
+4. Go backend は Supabase JWKS で JWT を検証し、`external_identities(provider=supabase, subject=sub)` から app user に解決する
 
-backend 側の Firebase / CORS / Cookie 設定とセットで動く。横断的な手順はルート [README.md](../README.md) の「β環境セットアップ」を参照。
+backend 側の `SUPABASE_AUTH_ISSUER` / `SUPABASE_JWKS_URL` / `DATABASE_URL` 設定とセットで動く。横断的な手順はルート [README.md](../README.md) の「β環境セットアップ」を参照。
 
 ## ディレクトリ
 

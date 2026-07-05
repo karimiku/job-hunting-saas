@@ -41,19 +41,19 @@ export function AiAccessTokenPanel({
           </span>
           <div>
             <h2 className="text-[13px] font-extrabold">AI連携トークン</h2>
-            <p className="mt-0.5 text-[11px] text-ink-3">
+            <p className="mt-0.5 text-[12px] text-ink-3">
               Claude / Codex / MCP
             </p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <span className="rounded-md bg-sage-wash px-2 py-1 font-mono text-[10px] font-bold text-sage">
+          <span className="rounded-md bg-sage-wash px-2 py-1 font-mono text-[12px] font-bold text-sage">
             {activeTokens.length}
           </span>
           <button
             type="button"
             onClick={() => setModalOpen(true)}
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-line bg-white px-3 text-[11px] font-bold text-ink-2 transition-colors hover:bg-line-2"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-line bg-white px-3 text-[12px] font-bold text-ink-2 transition-colors hover:bg-line-2"
           >
             <HelpCircle size={14} aria-hidden />
             仕組み
@@ -62,7 +62,7 @@ export function AiAccessTokenPanel({
       </div>
 
       {loadError ? (
-        <p role="alert" className="mb-4 rounded-md bg-pink/40 px-3 py-2 text-[11px] font-semibold text-pink-deep">
+        <p role="alert" className="mb-4 rounded-md bg-pink/40 px-3 py-2 text-[12px] font-semibold text-pink-deep">
           {loadError}
         </p>
       ) : (
@@ -82,7 +82,7 @@ export function AiAccessTokenPanel({
       )}
 
       {createState.error && (
-        <p role="alert" className="mb-3 rounded-md bg-pink/40 px-3 py-2 text-[11px] font-semibold">
+        <p role="alert" className="mb-3 rounded-md bg-pink/40 px-3 py-2 text-[12px] font-semibold">
           {createState.error}
         </p>
       )}
@@ -127,10 +127,10 @@ function IssuedToken({ token, name }: { token: string; name?: string }) {
   if (!visible) {
     return (
       <div className="mb-3 flex min-w-0 items-center justify-between gap-3 rounded-lg border border-sage/25 bg-sage-wash px-3 py-2">
-        <span className="min-w-0 truncate text-[11px] font-extrabold text-sage">
+        <span className="min-w-0 truncate text-[12px] font-extrabold text-sage">
           トークンをコピーしました
         </span>
-        <span className="shrink-0 rounded-md bg-white px-2 py-1 text-[10px] font-bold text-ink-3">
+        <span className="shrink-0 rounded-md bg-white px-2 py-1 text-[12px] font-bold text-ink-3">
           再表示不可
         </span>
       </div>
@@ -147,10 +147,10 @@ function IssuedToken({ token, name }: { token: string; name?: string }) {
         <div className="flex min-w-0 items-start gap-2">
           <ShieldCheck className="mt-0.5 shrink-0 text-sage" size={16} aria-hidden />
           <div className="min-w-0">
-            <span className="block min-w-0 truncate text-[11px] font-extrabold text-sage">
+            <span className="block min-w-0 truncate text-[12px] font-extrabold text-sage">
               {name ?? "作成済み"}
             </span>
-            <p className="mt-1 text-[10px] font-bold text-ink-3">
+            <p className="mt-1 text-[12px] font-bold text-ink-3">
               この値は今だけ表示されます。
             </p>
           </div>
@@ -160,14 +160,14 @@ function IssuedToken({ token, name }: { token: string; name?: string }) {
           <button
             type="button"
             onClick={() => setHiddenToken(token)}
-            className="inline-flex h-8 items-center gap-1 rounded-md border border-line bg-white px-2 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+            className="inline-flex h-8 items-center gap-1 rounded-md border border-line bg-white px-2 text-[12px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
           >
             <EyeOff size={13} aria-hidden />
             隠す
           </button>
         </div>
       </div>
-      <code className="block w-full max-w-full overflow-x-auto whitespace-nowrap rounded-md bg-white px-3 py-2 font-mono text-[11px] font-bold text-ink">
+      <code className="block w-full max-w-full overflow-x-auto whitespace-nowrap rounded-md bg-white px-3 py-2 font-mono text-[12px] font-bold text-ink">
         {token}
       </code>
     </div>
@@ -193,7 +193,7 @@ function CopyButton({
         onCopied?.();
         window.setTimeout(() => setCopied(false), 1400);
       }}
-      className="inline-flex h-8 shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-line bg-white px-2 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+      className="inline-flex h-8 shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-line bg-white px-2 text-[12px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
     >
       {copied ? <Check size={13} aria-hidden /> : <Copy size={13} aria-hidden />}
       {copied ? "完了" : label}
@@ -215,7 +215,7 @@ function TokenHelpModal({ onClose }: { onClose: () => void }) {
             <h3 id="ai-token-help-title" className="text-[15px] font-extrabold">
               AI連携トークンについて
             </h3>
-            <p className="mt-1 text-[11px] text-ink-3">設定コマンドではなく、tokenの扱いだけをここで確認できます。</p>
+            <p className="mt-1 text-[12px] text-ink-3">設定コマンドではなく、tokenの扱いだけをここで確認できます。</p>
           </div>
           <button
             type="button"
@@ -266,21 +266,21 @@ function TokenRow({ token }: { token: AiAccessTokenResponse }) {
         <div className="flex min-w-0 items-center gap-2">
           <span className="truncate text-[12px] font-extrabold">{token.name}</span>
           <span
-            className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold ${
+            className={`rounded-md px-1.5 py-0.5 text-[12px] font-bold ${
               revoked ? "bg-line-2 text-ink-3" : "bg-sage-soft text-sage"
             }`}
           >
             {revoked ? "失効" : "有効"}
           </span>
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-semibold text-ink-3">
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-semibold text-ink-3">
           <span className="font-mono">{token.tokenPrefix}...</span>
           <span>再表示不可</span>
           <span>作成 {formatDate(token.createdAt)}</span>
           <span>利用 {token.lastUsedAt ? formatDate(token.lastUsedAt) : "-"}</span>
         </div>
         {state.error && (
-          <p role="alert" className="mt-2 text-[10px] font-bold text-pink-deep">
+          <p role="alert" className="mt-2 text-[12px] font-bold text-pink-deep">
             {state.error}
           </p>
         )}
@@ -307,7 +307,7 @@ function RevokeButton({ name }: { name: string }) {
           e.preventDefault();
         }
       }}
-      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-line bg-surface px-3 text-[11px] font-bold text-ink-3 transition-colors enabled:hover:border-pink-deep enabled:hover:text-pink-deep disabled:opacity-60"
+      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-line bg-surface px-3 text-[12px] font-bold text-ink-3 transition-colors enabled:hover:border-pink-deep enabled:hover:text-pink-deep disabled:opacity-60"
     >
       <Trash2 size={13} aria-hidden />
       {pending ? "失効中" : "失効"}

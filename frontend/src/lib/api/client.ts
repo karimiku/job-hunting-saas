@@ -1,8 +1,10 @@
-// Client Component 専用の fetch ラッパー。Session Cookie を含めるため credentials: include を必ず付ける。
+// Client Component 専用の fetch ラッパー。
+// Supabase session があれば access token を Authorization: Bearer として backend に渡す。
 // HTTP エラーは ApiError に統一して投げる（呼び出し側で .unauthorized / .notFound で分岐できる）。
-// Server Component からは ./server.ts の serverFetch を使うこと (cookie 転送のため)。
+// Server Component からは ./server.ts の serverFetch を使うこと。
 
 import { ApiError } from "./client-types";
+import { getSupabaseBrowserAccessToken } from "../supabase/client";
 export { ApiError } from "./client-types";
 
 // 同一 origin の /backend 経由で backend へ届く (next.config.ts の rewrite が proxy する)。
@@ -14,13 +16,21 @@ export async function apiFetch<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
+  const headers = new Headers(init.headers);
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  if (!headers.has("Authorization")) {
+    const accessToken = await getSupabaseBrowserAccessToken();
+    if (accessToken) {
+      headers.set("Authorization", `Bearer ${accessToken}`);
+    }
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(init.headers ?? {}),
-    },
+    headers,
   });
   if (!res.ok) {
     let message = `HTTP ${res.status}`;

@@ -74,7 +74,7 @@ function SettingsRow({ label, value }: { label: string; value: string }) {
   return (
     <li className="flex items-center justify-between gap-3 border-b border-dashed border-line py-2 last:border-0">
       <span className="shrink-0 text-[12px] font-semibold">{label}</span>
-      <span className="min-w-0 truncate text-right text-[11px] text-ink-3">{value}</span>
+      <span className="min-w-0 truncate text-right text-[12px] text-ink-3">{value}</span>
     </li>
   );
 }

@@ -7,7 +7,7 @@ const ciChrome = process.env.CI ? { channel: "chrome" } : {};
 
 /**
  * Entré フロントエンド E2E テスト設定。
- * 認証必要なページは Firebase ログインが要るため、本コンフィグでは
+ * 認証必要なページは外部 OAuth が要るため、本コンフィグでは
  * - 公開ルート (LP / login / onboarding) のみ対象
  * - 認証必須ページの「未ログイン → /login にリダイレクト」のガード挙動
  * を smoke check する。
