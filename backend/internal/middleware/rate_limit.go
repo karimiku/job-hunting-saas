@@ -182,9 +182,11 @@ func clientIPWithTrustedProxies(r *http.Request, trustedHops int) string {
 	}
 
 	// XFF is "client, proxy1, proxy2, ...": the value trustedHops from the right
-	// is what the outermost trusted proxy observed as the client. A shorter list
-	// than expected means the request did not traverse the trusted chain, so we
-	// fail closed to the direct peer rather than trusting a client-supplied value.
+	// is what the outermost trusted proxy observed as the client. When XFF is
+	// present we trust only that position; a list shorter than expected (or an
+	// unparseable entry) means the request did not traverse the trusted chain, so
+	// we fail closed to the direct peer instead of consulting other client-supplied
+	// headers like X-Real-IP.
 	if xff := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); xff != "" {
 		parts := strings.Split(xff, ",")
 		if idx := len(parts) - trustedHops; idx >= 0 {
@@ -192,9 +194,10 @@ func clientIPWithTrustedProxies(r *http.Request, trustedHops int) string {
 				return ip.String()
 			}
 		}
+		return remoteAddrIP(r)
 	}
 
-	// X-Real-IP is a single value set by the nearest trusted proxy.
+	// No XFF: some trusted proxies instead set a single X-Real-IP.
 	if ip := net.ParseIP(strings.TrimSpace(r.Header.Get("X-Real-IP"))); ip != nil {
 		return ip.String()
 	}

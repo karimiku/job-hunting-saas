@@ -117,6 +117,20 @@ func TestClientIPFailsClosedWhenForwardedForShorterThanTrustedHops(t *testing.T)
 	}
 }
 
+func TestClientIPShortForwardedForIgnoresSpoofedRealIP(t *testing.T) {
+	// When XFF is present but shorter than the trusted chain, we must not fall back
+	// to an attacker-supplied X-Real-IP; the request failed the trusted-chain check
+	// so the direct peer is the only reliable key.
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("X-Forwarded-For", "203.0.113.10")
+	req.Header.Set("X-Real-IP", "9.9.9.9")
+	req.RemoteAddr = "10.0.0.1:12345"
+
+	if got := clientIPWithTrustedProxies(req, 2); got != "10.0.0.1" {
+		t.Fatalf("clientIPWithTrustedProxies(2) short XFF + spoofed X-Real-IP = %q, want RemoteAddr 10.0.0.1", got)
+	}
+}
+
 func TestClientIPFallsBackToRemoteAddr(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.RemoteAddr = "203.0.113.20:12345"
