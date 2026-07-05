@@ -41,12 +41,12 @@ export function InboxList({
                 href={c.url}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-1 inline-flex max-w-full items-center gap-1 font-mono text-[10px] text-ink-3 transition-colors hover:text-sage"
+                className="mt-1 inline-flex max-w-full items-center gap-1 font-mono text-[12px] text-ink-3 transition-colors hover:text-sage"
               >
                 <span className="truncate">{c.url}</span>
                 <ExternalLink size={10} className="shrink-0" aria-hidden />
               </a>
-              <div className="mt-1 flex items-center gap-2 text-[10px] text-ink-2">
+              <div className="mt-1 flex items-center gap-2 text-[12px] text-ink-2">
                 <span className="rounded-sm bg-cream-2 px-1.5 py-0.5 font-bold">{c.source}</span>
                 <span>{formatRelative(c.capturedAt, renderedAt)}</span>
                 {c.guess ? (
@@ -85,17 +85,17 @@ function EmptyState() {
         <Inbox size={24} aria-hidden />
       </div>
       <p className="mt-3 font-serif text-base font-extrabold">クリップは空です</p>
-      <p className="mt-1 text-[11px] text-ink-2">
-        保存した求人は、ここで会社名を確認して Entry にできます。
+      <p className="mt-1 text-[12px] text-ink-2">
+        保存した求人は、ここで会社名を確認して応募先にできます。
       </p>
       <div className="mt-4 flex flex-wrap justify-center gap-2">
         <Link
           href="/entry/new"
           prefetch={false}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-[12px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
         >
           <Sparkles size={13} aria-hidden />
-          Entryを追加
+          応募先を追加
         </Link>
       </div>
     </div>

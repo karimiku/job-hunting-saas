@@ -8,6 +8,7 @@ import { DashboardEntries } from "@/components/entre/DashboardEntries";
 import { DashboardQuests } from "@/components/entre/DashboardQuests";
 import { DashboardNextAction } from "@/components/entre/DashboardNextAction";
 import { DashboardStats } from "@/components/entre/DashboardStats";
+import { GettingStartedGuide } from "@/components/entre/GettingStartedGuide";
 import { SignOutButton } from "@/components/entre/SignOutButton";
 
 export default async function DashboardPage() {
@@ -17,6 +18,9 @@ export default async function DashboardPage() {
 
   const firstName = user.name.split(/[\s　]/)[0] || user.name;
   const openTasks = tasks.filter((t) => t.status === "todo").length;
+  const hasEntries = entries.length > 0;
+  const hasTasks = tasks.length > 0;
+  const hasDoneTasks = tasks.some((t) => t.status === "done");
 
   return (
     <AppShell userName={user.name} userSubtitle={user.email} navCounts={navCounts}>
@@ -32,22 +36,41 @@ export default async function DashboardPage() {
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
-            <span className="rounded-full bg-sage-wash px-3.5 py-1.5 text-[11px] font-bold text-sage">
+            <span className="rounded-full bg-sage-wash px-3.5 py-1.5 text-[12px] font-bold text-sage">
               未完了 {openTasks}
             </span>
             <SignOutButton />
           </div>
         </header>
 
-        <DashboardNextAction
-          inboxCount={navCounts.inbox}
-          entryCount={entries.length}
-          openTaskCount={openTasks}
-        />
+        {hasEntries ? (
+          <>
+            <DashboardNextAction
+              inboxCount={navCounts.inbox}
+              entryCount={entries.length}
+              openTaskCount={openTasks}
+            />
 
-        <div className="mb-4 md:mb-5">
-          <DashboardStats entries={entries} />
-        </div>
+            <div className="mb-4 md:mb-5">
+              <DashboardStats entries={entries} />
+            </div>
+          </>
+        ) : (
+          <GettingStartedGuide
+            hasEntries={hasEntries}
+            hasTasks={hasTasks}
+            hasDoneTasks={hasDoneTasks}
+          />
+        )}
+
+        {hasEntries && !hasTasks && (
+          <GettingStartedGuide
+            hasEntries={hasEntries}
+            hasTasks={hasTasks}
+            hasDoneTasks={hasDoneTasks}
+            compact
+          />
+        )}
 
         <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
           <DashboardEntries entries={entries} tasks={tasks} />

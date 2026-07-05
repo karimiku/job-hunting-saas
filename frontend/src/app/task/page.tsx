@@ -29,8 +29,8 @@ export default async function TaskPage() {
               締切・予定
             </span>
           </h1>
-          <p className="mt-0.5 text-[11px] text-ink-3">
-            今日やることを上から片づけます。締切、面接予定、準備メモをEntryに紐づけます。
+          <p className="mt-0.5 text-[12px] text-ink-3">
+            今日やることを上から片づけます。締切、面接予定、準備メモを応募先に紐づけます。
           </p>
         </header>
 

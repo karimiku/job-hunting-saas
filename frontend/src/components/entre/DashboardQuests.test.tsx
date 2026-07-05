@@ -53,6 +53,19 @@ describe("buildQuests", () => {
     expect(buildQuests([t({ dueDate: "2026-06-15" })], now)[0].color).toBe("bg-sky");
     expect(buildQuests([t({ dueDate: null })], now)[0].color).toBe("bg-sage");
   });
+
+  it("期限切れは「M/D ・n日超過」を due ラベルにし bg-pink のまま強調する", () => {
+    const now = new Date("2026-05-29T00:00:00Z");
+    const [q] = buildQuests([t({ dueDate: "2026-05-20" })], now);
+    expect(q.due).toBe("5/20 ・9日超過");
+    expect(q.color).toBe("bg-pink");
+  });
+
+  it("今日が期限なら超過表記にしない", () => {
+    const now = new Date("2026-05-29T00:00:00Z");
+    const [q] = buildQuests([t({ dueDate: "2026-05-29" })], now);
+    expect(q.due).toBe("5/29");
+  });
 });
 
 describe("questProgress", () => {
@@ -65,6 +78,11 @@ describe("questProgress", () => {
 });
 
 describe("DashboardQuests", () => {
+  it("見出しは「直近のタスク」", () => {
+    render(<DashboardQuests tasks={[]} />);
+    expect(screen.getByText("直近のタスク")).toBeInTheDocument();
+  });
+
   it("実タスクをクエストとして描画する", () => {
     render(
       <DashboardQuests
@@ -75,8 +93,10 @@ describe("DashboardQuests", () => {
     expect(screen.queryByTestId("quest-empty")).toBeNull();
   });
 
-  it("タスクが無ければ空状態を表示する", () => {
+  it("タスクが無ければ応募先の登録を促す空状態を表示する", () => {
     render(<DashboardQuests tasks={[]} />);
     expect(screen.getByTestId("quest-empty")).toBeInTheDocument();
+    expect(screen.getByText("応募先ごとに締切や予定を追加すると、近い順に表示されます。")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "応募先を確認" })).toHaveAttribute("href", "/entry");
   });
 });

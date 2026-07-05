@@ -1,25 +1,38 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("Onboarding flow (/onboarding)", () => {
-  test("3 ステップ進めて はじめる ✨ で /dashboard に遷移する", async ({ page }) => {
+  test("3 ステップ進めて 最初の応募先を登録する で /entry/new (未ログインなら /login) に遷移する", async ({
+    page,
+  }) => {
     await page.goto("/onboarding");
 
     await expect(page.getByText(/step 1 \/ 3/i)).toBeVisible();
-    await expect(page.getByText("はじめまして！")).toBeVisible();
+    await expect(page.getByText("受けている企業を、1か所に集めます")).toBeVisible();
+    await expect(page.getByRole("link", { name: "スキップしてホームへ" })).toBeVisible();
 
     // Step 1 → 2
     await page.getByRole("button", { name: /つぎへ/ }).click();
     await expect(page.getByText(/step 2 \/ 3/i)).toBeVisible();
-    await expect(page.getByText(/バラバラを、ぜんぶ1枚に/)).toBeVisible();
+    await expect(page.getByText("選考が進んだら、カードを動かすだけ")).toBeVisible();
+    await expect(page.getByRole("link", { name: "スキップしてホームへ" })).toBeVisible();
 
     // Step 2 → 3
     await page.getByRole("button", { name: /つぎへ/ }).click();
     await expect(page.getByText(/step 3 \/ 3/i)).toBeVisible();
-    await expect(page.getByText(/内定までの道のりを、一緒に/)).toBeVisible();
+    await expect(page.getByText("締切はタスクに。ホームが毎朝の起点")).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "あとで登録する（ホームへ）" }),
+    ).toBeVisible();
 
-    // Step 3 → finish (はじめる ✨)
-    await page.getByRole("button", { name: /はじめる/ }).click();
-    // 認証ガードで /login にリダイレクトされるはずだが、まずは /dashboard へ向かう挙動を確認
+    // Step 3 → finish (最初の応募先を登録する)
+    await page.getByRole("button", { name: "最初の応募先を登録する" }).click();
+    // 認証ガードで /login にリダイレクトされ得るが、まずは /entry/new へ向かう挙動を確認
+    await page.waitForURL(/\/(entry\/new|login)/);
+  });
+
+  test("スキップリンクで /dashboard に遷移する", async ({ page }) => {
+    await page.goto("/onboarding");
+    await page.getByRole("link", { name: "スキップしてホームへ" }).click();
     await page.waitForURL(/\/(dashboard|login)/);
   });
 

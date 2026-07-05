@@ -29,8 +29,8 @@ export function getDashboardNextAction({
 }: DashboardNextActionInput): DashboardNextActionModel {
   if (inboxCount > 0) {
     return {
-      title: `保存クリップ ${inboxCount}件をEntryにする`,
-      body: "残す求人だけEntryに変換します。不要なものは削除して、管理対象を増やしすぎないようにします。",
+      title: `保存箱の求人 ${inboxCount}件を応募先にする`,
+      body: "残す求人だけ応募先に変換します。不要なものは削除して、管理対象を増やしすぎないようにします。",
       href: "/inbox",
       cta: "保存箱を開く",
       activeStep: "inbox",
@@ -40,10 +40,10 @@ export function getDashboardNextAction({
 
   if (entryCount === 0) {
     return {
-      title: "最初のEntryを追加する",
+      title: "最初の応募先を登録する",
       body: "管理したい企業だけを追加します。企業名、応募経路、いまの選考フェーズが分かれば十分です。",
       href: "/entry/new",
-      cta: "Entryを追加",
+      cta: "応募先を追加",
       activeStep: "entry",
       Icon: ClipboardList,
     };
@@ -52,7 +52,7 @@ export function getDashboardNextAction({
   if (openTaskCount === 0) {
     return {
       title: "締切・予定を追加する",
-      body: "ES締切、面接日、準備タスクをEntryに紐づけて、今日やることに出します。",
+      body: "ES締切、面接日、準備タスクを応募先に紐づけて、今日やることに出します。",
       href: "/task",
       cta: "タスクを追加",
       activeStep: "task",
@@ -82,7 +82,7 @@ export function DashboardNextAction(props: DashboardNextActionInput) {
             <ActionIcon size={20} aria-hidden />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-black text-sage">
+            <p className="text-[12px] font-black text-sage">
               次にやること
             </p>
             <h2 className="mt-0.5 text-[17px] font-extrabold text-ink">

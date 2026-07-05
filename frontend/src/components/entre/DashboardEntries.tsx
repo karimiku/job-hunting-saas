@@ -95,12 +95,12 @@ export function DashboardEntries({
     <section className="rounded-xl border border-line bg-surface p-4 md:p-5">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-[14px] font-extrabold">進行中のEntry</h2>
-          <p className="mt-0.5 text-[10px] text-ink-3">
+          <h2 className="text-[14px] font-extrabold">進行中の応募先</h2>
+          <p className="mt-0.5 text-[12px] text-ink-3">
             次に確認する企業を、タスク期限とステージで並べます。
           </p>
         </div>
-        <Link href="/entry" prefetch={false} className="shrink-0 text-[10px] font-bold text-sage">
+        <Link href="/entry" prefetch={false} className="shrink-0 text-[12px] font-bold text-sage">
           一覧
         </Link>
       </div>
@@ -108,13 +108,13 @@ export function DashboardEntries({
       {items.length === 0 ? (
         <div className="rounded-lg border border-dashed border-line bg-cream px-3 py-5 text-center">
           <ClipboardList className="mx-auto mb-2 text-sage" size={18} aria-hidden />
-          <p className="text-[12px] font-bold text-ink-2">Entryはまだありません</p>
+          <p className="text-[12px] font-bold text-ink-2">応募先はまだ登録されていません</p>
           <Link
             href="/entry/new"
             prefetch={false}
-            className="mt-3 inline-flex rounded-lg bg-sage px-3 py-1.5 text-[11px] font-bold text-white"
+            className="mt-3 inline-flex rounded-lg bg-sage px-3 py-1.5 text-[12px] font-bold text-white"
           >
-            Entryを追加
+            応募先を追加
           </Link>
         </div>
       ) : (
@@ -129,7 +129,7 @@ export function DashboardEntries({
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="truncate text-[12px] font-extrabold">{item.company}</div>
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[9px] font-bold text-ink-3">
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] font-bold text-ink-3">
                       <span
                         className="rounded-sm px-1.5 py-0.5 text-white"
                         style={{ background: STAGE_BG[item.stageKind] ?? "var(--color-ink-3)" }}

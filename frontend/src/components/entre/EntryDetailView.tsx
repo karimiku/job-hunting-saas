@@ -30,6 +30,7 @@ import {
 } from "@/app/entry/actions";
 import { deleteTaskAction, setTaskStatusAction } from "@/app/task/actions";
 import { Confetti } from "./Confetti";
+import { TaskTemplateChips, type TaskTemplate } from "./TaskTemplateChips";
 
 const OUTCOME_STATUS = ["in_progress", "offered", "accepted", "rejected", "withdrawn"] as const;
 
@@ -69,6 +70,10 @@ export function EntryDetailView({
     dueDate: "",
     memo: "",
   });
+
+  const applyTaskTemplate = (template: TaskTemplate) => {
+    setTaskForm((prev) => ({ ...prev, title: template.title, type: template.type }));
+  };
 
   if (!initialEntry) {
     return (
@@ -232,7 +237,7 @@ export function EntryDetailView({
   const handleDeleteEntry = () => {
     if (
       !window.confirm(
-        `「${companyDisplayName(e)}」のEntryを削除しますか？関連するタスクも削除されます。`,
+        `「${companyDisplayName(e)}」の応募先を削除しますか？関連するタスクも削除されます。`,
       )
     ) {
       return;
@@ -241,7 +246,7 @@ export function EntryDetailView({
     startTransition(async () => {
       const result = await deleteEntryAction(e.id);
       if (!result.ok) {
-        setDeleteError(result.error ?? "Entryの削除に失敗しました");
+        setDeleteError(result.error ?? "応募先の削除に失敗しました");
       }
     });
   };
@@ -254,7 +259,7 @@ export function EntryDetailView({
           <h1 className="font-serif text-lg font-extrabold tracking-tight break-words">
             {companyDisplayName(e)}
           </h1>
-          <p className="mt-0.5 text-[10px] text-ink-3">
+          <p className="mt-0.5 text-[12px] text-ink-3">
             {e.source} · {e.route}
           </p>
           {sourceUrl && (
@@ -262,7 +267,7 @@ export function EntryDetailView({
               href={sourceUrl}
               target="_blank"
               rel="noreferrer"
-              className="mt-1 inline-flex max-w-full items-center gap-1 rounded-md border border-line bg-surface px-2 py-1 font-mono text-[10px] font-bold text-ink-3 transition-colors hover:border-sage hover:text-sage"
+              className="mt-1 inline-flex max-w-full items-center gap-1 rounded-md border border-line bg-surface px-2 py-1 font-mono text-[12px] font-bold text-ink-3 transition-colors hover:border-sage hover:text-sage"
             >
               <span className="truncate">{sourceUrl}</span>
               <ExternalLink size={11} className="shrink-0" aria-hidden />
@@ -282,8 +287,8 @@ export function EntryDetailView({
             type="button"
             onClick={handleDeleteEntry}
             disabled={isPending}
-            aria-label={`${companyDisplayName(e)} のEntryを削除`}
-            className="inline-flex h-8 items-center gap-1 rounded-md border border-line bg-surface px-2.5 text-[10px] font-bold text-ink-3 transition-colors hover:border-pink-deep hover:text-pink-deep focus:outline-none focus:ring-2 focus:ring-pink-deep/20 disabled:opacity-60"
+            aria-label={`${companyDisplayName(e)} の応募先を削除`}
+            className="inline-flex h-8 items-center gap-1 rounded-md border border-line bg-surface px-2.5 text-[12px] font-bold text-ink-3 transition-colors hover:border-pink-deep hover:text-pink-deep focus:outline-none focus:ring-2 focus:ring-pink-deep/20 disabled:opacity-60"
           >
             <Trash2 size={14} aria-hidden />
             削除
@@ -291,7 +296,7 @@ export function EntryDetailView({
         </div>
       </div>
       {deleteError && (
-        <p role="alert" className="mb-3 rounded-md bg-pink/40 px-2.5 py-1.5 text-[10px] font-semibold text-ink">
+        <p role="alert" className="mb-3 rounded-md bg-pink/40 px-2.5 py-1.5 text-[12px] font-semibold text-ink">
           {deleteError}
         </p>
       )}
@@ -299,8 +304,8 @@ export function EntryDetailView({
       {/* Stage selector */}
       <section className="mb-3 rounded-xl border border-line bg-surface p-3">
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-[10px] font-bold text-ink-2">選考ステータス</p>
-          <span className="rounded-full bg-cream px-2 py-0.5 text-[9px] font-black text-ink-3">
+          <p className="text-[12px] font-bold text-ink-2">選考ステータス</p>
+          <span className="rounded-full bg-cream px-2 py-0.5 text-[12px] font-black text-ink-3">
             {ENTRY_STATUS_LABEL[e.status] ?? e.status}
           </span>
         </div>
@@ -317,7 +322,7 @@ export function EntryDetailView({
                   onClick={() => handleSelectFlowStage(stage)}
                   disabled={isPending || selected}
                   aria-pressed={selected}
-                  className="grid min-h-10 place-items-center rounded-md border px-2 text-[10px] font-bold transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:cursor-default"
+                  className="grid min-h-10 place-items-center rounded-md border px-2 text-[12px] font-bold transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:cursor-default"
                   style={{
                     borderColor: selected ? color : "var(--color-line)",
                     background: reached ? color : "var(--color-line-2)",
@@ -341,7 +346,7 @@ export function EntryDetailView({
                   onClick={() => handleSelectStage(kind)}
                   disabled={isPending || selected}
                   aria-pressed={selected}
-                  className="grid min-h-9 place-items-center rounded-md border text-[10px] font-bold transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:cursor-default"
+                  className="grid min-h-9 place-items-center rounded-md border text-[12px] font-bold transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:cursor-default"
                   style={{
                     borderColor: selected ? STAGE_COLOR[kind] : "var(--color-line)",
                     background: reached ? STAGE_COLOR[kind] : "var(--color-line-2)",
@@ -364,7 +369,7 @@ export function EntryDetailView({
                 onClick={() => handleSelectOutcome(status)}
                 disabled={isPending || selected}
                 aria-pressed={selected}
-                className={`h-7 rounded-md border px-1 text-[9px] font-black transition-colors focus:outline-none focus:ring-2 focus:ring-sage/30 ${
+                className={`h-7 rounded-md border px-1 text-[12px] font-black transition-colors focus:outline-none focus:ring-2 focus:ring-sage/30 ${
                   selected
                     ? "border-sage bg-sage text-white"
                     : "border-line bg-cream text-ink-3 hover:border-sage hover:text-sage"
@@ -375,11 +380,11 @@ export function EntryDetailView({
             );
           })}
         </div>
-        <p className="mt-2 text-[10px] font-bold text-sage">
+        <p className="mt-2 text-[12px] font-bold text-sage">
           現在: <span data-testid="current-stage">{e.stageLabel}</span>
         </p>
         {entryError && (
-          <p role="alert" className="mt-2 rounded-md bg-pink/40 px-2.5 py-1.5 text-[10px] font-semibold text-ink">
+          <p role="alert" className="mt-2 rounded-md bg-pink/40 px-2.5 py-1.5 text-[12px] font-semibold text-ink">
             {entryError}
           </p>
         )}
@@ -388,8 +393,8 @@ export function EntryDetailView({
       {/* Memo */}
       {e.memo && (
         <section className="mb-3 rounded-xl border border-line bg-cream-2 p-3">
-          <p className="mb-1 text-[11px] font-bold text-sage">メモ</p>
-          <p className="text-[11px] leading-relaxed text-ink-2">{e.memo}</p>
+          <p className="mb-1 text-[12px] font-bold text-sage">メモ</p>
+          <p className="text-[12px] leading-relaxed text-ink-2">{e.memo}</p>
         </section>
       )}
 
@@ -398,11 +403,11 @@ export function EntryDetailView({
         <div className="mb-2 flex items-start justify-between gap-2">
           <div>
             <p className="text-[12px] font-bold">タスク</p>
-            <p className="mt-0.5 text-[10px] text-ink-3">
-              このEntryに必要な締切・予定を追加できます。
+            <p className="mt-0.5 text-[12px] text-ink-3">
+              この応募先に必要な締切・予定を追加できます。
             </p>
           </div>
-          <span className="rounded-md bg-sage-wash px-2 py-0.5 font-mono text-[10px] font-bold text-sage">
+          <span className="rounded-md bg-sage-wash px-2 py-0.5 font-mono text-[12px] font-bold text-sage">
             {tasks.filter((task) => (optimisticTaskStatus[task.id] ?? task.status) === "todo").length}
           </span>
         </div>
@@ -411,20 +416,25 @@ export function EntryDetailView({
           onSubmit={handleCreateTask}
           className="mb-3 rounded-lg border border-line bg-cream p-2.5"
         >
+          <div className="mb-2">
+            <span className="mb-1 block text-[12px] font-bold text-ink-2">よく使うタスク</span>
+            <TaskTemplateChips onSelect={applyTaskTemplate} />
+          </div>
+
           <div className="grid gap-2 md:grid-cols-[1fr_auto]">
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold text-ink-2">タスク名</span>
+              <span className="mb-1 block text-[12px] font-bold text-ink-2">タスク名</span>
               <input
                 value={taskForm.title}
                 onChange={(event) =>
                   setTaskForm((prev) => ({ ...prev, title: event.target.value }))
                 }
-                placeholder="ES提出、面接準備、SPI受験"
-                className="h-8 w-full rounded-md border border-line bg-surface px-2 text-[11px] font-semibold outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
+                placeholder="例: ES提出"
+                className="h-8 w-full rounded-md border border-line bg-surface px-2 text-[12px] font-semibold outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
               />
             </label>
             <fieldset>
-              <legend className="mb-1 block text-[10px] font-bold text-ink-2">種類</legend>
+              <legend className="mb-1 block text-[12px] font-bold text-ink-2">種類</legend>
               <div className="flex h-8 gap-1">
                 {[
                   ["deadline", "締切"],
@@ -432,7 +442,7 @@ export function EntryDetailView({
                 ].map(([value, label]) => (
                   <label
                     key={value}
-                    className="grid cursor-pointer place-items-center rounded-md border border-line bg-surface px-2 text-[10px] font-bold text-ink-2 transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage has-[:checked]:text-white"
+                    className="grid cursor-pointer place-items-center rounded-md border border-line bg-surface px-2 text-[12px] font-bold text-ink-2 transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage has-[:checked]:text-white"
                   >
                     <input
                       type="radio"
@@ -455,31 +465,31 @@ export function EntryDetailView({
           </div>
           <div className="mt-2 grid gap-2 md:grid-cols-[1fr_1.5fr_auto]">
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold text-ink-2">期日</span>
+              <span className="mb-1 block text-[12px] font-bold text-ink-2">期日</span>
               <input
                 type="date"
                 value={taskForm.dueDate}
                 onChange={(event) =>
                   setTaskForm((prev) => ({ ...prev, dueDate: event.target.value }))
                 }
-                className="h-8 w-full rounded-md border border-line bg-surface px-2 font-mono text-[11px] outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
+                className="h-8 w-full rounded-md border border-line bg-surface px-2 font-mono text-[12px] outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold text-ink-2">メモ</span>
+              <span className="mb-1 block text-[12px] font-bold text-ink-2">メモ</span>
               <input
                 value={taskForm.memo}
                 onChange={(event) =>
                   setTaskForm((prev) => ({ ...prev, memo: event.target.value }))
                 }
                 placeholder="URL、持ち物、準備内容など"
-                className="h-8 w-full rounded-md border border-line bg-surface px-2 text-[11px] outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
+                className="h-8 w-full rounded-md border border-line bg-surface px-2 text-[12px] outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
               />
             </label>
             <button
               type="submit"
               disabled={isPending}
-              className="self-end inline-flex h-8 items-center justify-center gap-1 rounded-md bg-sage px-2.5 text-[10px] font-bold text-white transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-60"
+              className="self-end inline-flex h-8 items-center justify-center gap-1 rounded-md bg-sage px-2.5 text-[12px] font-bold text-white transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-60"
             >
               <Plus size={12} aria-hidden />
               追加
@@ -488,12 +498,12 @@ export function EntryDetailView({
         </form>
 
         {taskError && (
-          <p role="alert" className="mb-2 rounded-md bg-pink/40 px-2.5 py-1.5 text-[10px] font-semibold text-ink">
+          <p role="alert" className="mb-2 rounded-md bg-pink/40 px-2.5 py-1.5 text-[12px] font-semibold text-ink">
             {taskError}
           </p>
         )}
         {tasks.length === 0 && (
-          <p className="rounded-lg border border-dashed border-line bg-cream px-3 py-4 text-center text-[11px] text-ink-3">
+          <p className="rounded-lg border border-dashed border-line bg-cream px-3 py-4 text-center text-[12px] text-ink-3">
             まだタスクがありません。上のフォームから締切や予定を追加できます。
           </p>
         )}
@@ -505,7 +515,7 @@ export function EntryDetailView({
               return (
                 <li
                   key={task.id}
-                  className={`flex items-center gap-2 rounded-md border border-line bg-cream px-2 py-1.5 text-[11px] ${
+                  className={`flex items-center gap-2 rounded-md border border-line bg-cream px-2 py-1.5 text-[12px] ${
                     done ? "text-ink-3" : ""
                   }`}
                 >
@@ -515,7 +525,7 @@ export function EntryDetailView({
                     disabled={isPending}
                     aria-pressed={done}
                     aria-label={done ? "タスク未完了に戻す" : "タスク完了にする"}
-                    className={`grid h-4 w-4 shrink-0 place-items-center rounded-full border-[1.5px] text-[9px] text-white ${
+                    className={`grid h-4 w-4 shrink-0 place-items-center rounded-full border-[1.5px] text-[12px] text-white ${
                       done ? "border-sage bg-sage" : "border-line bg-transparent"
                     }`}
                   >
@@ -525,7 +535,7 @@ export function EntryDetailView({
                     {task.title}
                   </span>
                   {task.dueDate && (
-                    <span className="shrink-0 font-mono text-[9px] text-ink-3">
+                    <span className="shrink-0 font-mono text-[12px] text-ink-3">
                       {formatTaskDue(task.dueDate)}
                     </span>
                   )}

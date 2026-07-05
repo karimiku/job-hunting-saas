@@ -30,8 +30,8 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { k: "home", l: "ホーム", icon: Home, href: "/dashboard" },
-  { k: "entry", l: "Entry", icon: ClipboardList, href: "/entry", countKey: "entry" },
-  { k: "kanban", l: "カンバン", icon: Columns3, href: "/kanban" },
+  { k: "entry", l: "応募先", icon: ClipboardList, href: "/entry", countKey: "entry" },
+  { k: "kanban", l: "ボード", icon: Columns3, href: "/kanban" },
   { k: "task", l: "タスク", icon: PencilLine, href: "/task", countKey: "task" },
   { k: "inbox", l: "保存箱", icon: Inbox, href: "/inbox", countKey: "inbox" },
 ];
@@ -53,7 +53,7 @@ export function Sidebar({
       {/* Logo */}
       <div className="flex items-baseline gap-2 px-1.5">
         <span className="font-serif text-[22px] font-black italic tracking-tight">Entré</span>
-        <span className="rounded-sm bg-sage-soft px-1.5 py-0.5 font-mono text-[8px] font-bold tracking-widest text-sage">
+        <span className="rounded-sm bg-sage-soft px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-widest text-sage">
           BETA
         </span>
       </div>
@@ -84,7 +84,7 @@ export function Sidebar({
               {count !== undefined && (
                 <span
                   data-testid={`nav-count-${it.k}`}
-                  className={`rounded-md px-1.5 py-px text-[9px] font-bold ${
+                  className={`rounded-md px-1.5 py-px text-[12px] font-bold ${
                     active ? "bg-white/20 text-white" : "bg-sage-soft text-sage"
                   }`}
                 >
@@ -108,8 +108,8 @@ export function Sidebar({
           <UserCircle size={18} aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[11px] font-bold truncate">{userName}</div>
-          {userSubtitle && <div className="text-[9px] text-ink-3 truncate">{userSubtitle}</div>}
+          <div className="text-[12px] font-bold truncate">{userName}</div>
+          {userSubtitle && <div className="text-[12px] text-ink-3 truncate">{userSubtitle}</div>}
         </div>
       </Link>
     </aside>
@@ -121,7 +121,7 @@ export function MobileTabBar() {
   const pathname = usePathname();
   const tabs = [
     { k: "home", l: "ホーム", icon: Home, href: "/dashboard" },
-    { k: "entry", l: "Entry", icon: ClipboardList, href: "/entry" },
+    { k: "entry", l: "応募先", icon: ClipboardList, href: "/entry" },
     { k: "kanban", l: "ボード", icon: Columns3, href: "/kanban" },
     { k: "task", l: "タスク", icon: PencilLine, href: "/task" },
     { k: "inbox", l: "保存", icon: Inbox, href: "/inbox" },
@@ -145,7 +145,7 @@ export function MobileTabBar() {
             aria-current={active ? "page" : undefined}
           >
             <Icon size={19} aria-hidden />
-            <span className="text-[10px] font-bold">{t.l}</span>
+            <span className="text-[12px] font-bold">{t.l}</span>
             {active && <span className="mt-px h-1 w-1 rounded-full bg-sage" />}
           </Link>
         );

@@ -75,7 +75,7 @@ export function TaskDetailView({ task, entry }: Props) {
       <Link
         href="/task"
         prefetch={false}
-        className="mb-3 inline-flex items-center gap-1 text-[11px] font-semibold text-ink-3 hover:text-sage"
+        className="mb-3 inline-flex items-center gap-1 text-[12px] font-semibold text-ink-3 hover:text-sage"
       >
         <ArrowLeft size={13} aria-hidden />
         タスク一覧
@@ -85,11 +85,11 @@ export function TaskDetailView({ task, entry }: Props) {
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="mb-2 flex flex-wrap items-center gap-1.5">
-              <span className="rounded-md bg-cream px-2 py-0.5 text-[10px] font-black text-ink-3">
+              <span className="rounded-md bg-cream px-2 py-0.5 text-[12px] font-black text-ink-3">
                 {TYPE_LABEL[task.type] ?? task.type}
               </span>
               <span
-                className={`rounded-md px-2 py-0.5 text-[10px] font-black ${
+                className={`rounded-md px-2 py-0.5 text-[12px] font-black ${
                   done ? "bg-sage-wash text-sage" : "bg-pink/35 text-ink"
                 }`}
               >
@@ -105,7 +105,7 @@ export function TaskDetailView({ task, entry }: Props) {
             onClick={toggleStatus}
             disabled={isPending}
             aria-pressed={done}
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-bold text-white transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/40 disabled:opacity-60 ${
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-bold text-white transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/40 disabled:opacity-60 ${
               done ? "bg-ink-3" : "bg-sage"
             }`}
           >
@@ -117,7 +117,7 @@ export function TaskDetailView({ task, entry }: Props) {
         {error && (
           <p
             role="alert"
-            className="mb-3 rounded-md bg-pink/40 px-3 py-2 text-[11px] font-semibold text-ink"
+            className="mb-3 rounded-md bg-pink/40 px-3 py-2 text-[12px] font-semibold text-ink"
           >
             {error}
           </p>
@@ -138,7 +138,7 @@ export function TaskDetailView({ task, entry }: Props) {
         </div>
 
         <div className="mt-3 rounded-lg border border-line bg-cream p-3">
-          <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold text-ink-3">
+          <div className="mb-1.5 flex items-center gap-1.5 text-[12px] font-bold text-ink-3">
             <ClipboardList size={13} aria-hidden />
             メモ
           </div>
@@ -147,7 +147,7 @@ export function TaskDetailView({ task, entry }: Props) {
           </p>
         </div>
 
-        <dl className="mt-3 grid gap-2 rounded-lg border border-dashed border-line bg-cream px-3 py-2 text-[10px] text-ink-3 md:grid-cols-2">
+        <dl className="mt-3 grid gap-2 rounded-lg border border-dashed border-line bg-cream px-3 py-2 text-[12px] text-ink-3 md:grid-cols-2">
           <div>
             <dt className="font-bold">作成</dt>
             <dd className="mt-0.5 font-mono">{formatDateTime(task.createdAt)}</dd>
@@ -163,7 +163,7 @@ export function TaskDetailView({ task, entry }: Props) {
             type="button"
             onClick={deleteTask}
             disabled={isPending}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-[11px] font-bold text-ink-3 transition-colors hover:border-pink-deep hover:text-pink-deep focus:outline-none focus:ring-2 focus:ring-pink-deep/30 disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-[12px] font-bold text-ink-3 transition-colors hover:border-pink-deep hover:text-pink-deep focus:outline-none focus:ring-2 focus:ring-pink-deep/30 disabled:opacity-60"
           >
             <Trash2 size={13} aria-hidden />
             削除
@@ -187,7 +187,7 @@ function DetailCard({
 }) {
   const body = (
     <>
-      <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold text-ink-3">
+      <div className="mb-1.5 flex items-center gap-1.5 text-[12px] font-bold text-ink-3">
         {icon}
         {label}
       </div>

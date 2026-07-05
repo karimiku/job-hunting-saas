@@ -60,7 +60,7 @@ describe("buildDashboardEntries", () => {
 });
 
 describe("DashboardEntries", () => {
-  it("ホームにEntryと未完了タスク数を表示する", () => {
+  it("ホームに応募先と未完了タスク数を表示する", () => {
     render(
       <DashboardEntries
         entries={[entry({ companyName: "テスト商事", stageKind: "interview", stageLabel: "面接" })]}
@@ -68,9 +68,17 @@ describe("DashboardEntries", () => {
       />,
     );
 
-    expect(screen.getByText("進行中のEntry")).toBeInTheDocument();
+    expect(screen.getByText("進行中の応募先")).toBeInTheDocument();
     expect(screen.getByText("テスト商事")).toBeInTheDocument();
     expect(screen.getByText("面接")).toBeInTheDocument();
     expect(screen.getByText("未完了 1")).toBeInTheDocument();
+  });
+
+  it("応募先が無ければ登録を促す空状態を表示する", () => {
+    render(<DashboardEntries entries={[]} tasks={[]} />);
+
+    expect(screen.getByText("応募先はまだ登録されていません")).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: "応募先を追加" });
+    expect(link).toHaveAttribute("href", "/entry/new");
   });
 });

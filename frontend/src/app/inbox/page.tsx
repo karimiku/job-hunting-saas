@@ -18,13 +18,13 @@ export default async function InboxPage() {
         <header className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h1 className="font-serif text-2xl font-extrabold tracking-tight">保存箱</h1>
-            <p className="mt-0.5 text-[11px] text-ink-3">
-              保存した求人の一時置き場です。残す求人だけEntryに変換します。
+            <p className="mt-0.5 text-[12px] text-ink-3">
+              保存した求人の一時置き場です。残したい求人だけ応募先にします。いらないものは削除。
             </p>
           </div>
           <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-2">
-            <span className="font-mono text-[10px] font-bold text-sage">{clips.length}</span>
-            <span className="text-[10px] font-semibold text-ink-3">保存中</span>
+            <span className="font-mono text-[12px] font-bold text-sage">{clips.length}</span>
+            <span className="text-[12px] font-semibold text-ink-3">保存中</span>
           </div>
         </header>
 

@@ -19,15 +19,15 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
   if (entries.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-line bg-surface p-8 text-center">
-        <p className="font-serif text-base font-extrabold">まだ Entry がありません</p>
-        <p className="mx-auto mt-1 max-w-[420px] text-[11px] leading-relaxed text-ink-2">
-          保存した求人は保存箱から Entry にできます。直接追加することもできます。
+        <p className="font-serif text-base font-extrabold">まだ応募先がありません</p>
+        <p className="mx-auto mt-1 max-w-[420px] text-[12px] leading-relaxed text-ink-2">
+          保存した求人は保存箱から応募先にできます。直接追加もできます。
         </p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <Link
             href="/inbox"
             prefetch={false}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-sage bg-sage-wash px-3 py-1.5 text-[11px] font-bold text-sage transition-colors hover:bg-sage hover:text-white"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-sage bg-sage-wash px-3 py-1.5 text-[12px] font-bold text-sage transition-colors hover:bg-sage hover:text-white"
           >
             <Inbox size={13} aria-hidden />
             保存箱を見る
@@ -35,10 +35,10 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
           <Link
             href="/entry/new"
             prefetch={false}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-[12px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
           >
             <Plus size={13} aria-hidden />
-            Entryを追加
+            応募先を追加
           </Link>
         </div>
       </div>
@@ -63,13 +63,13 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex min-w-0 items-center gap-1.5">
                     <div className="truncate text-[12px] font-bold">{companyDisplayName(e)}</div>
-                    <span className="shrink-0 rounded-full bg-cream px-1.5 py-0.5 text-[8px] font-black text-ink-3">
+                    <span className="shrink-0 rounded-full bg-cream px-1.5 py-0.5 text-[11px] font-black text-ink-3">
                       {ENTRY_STATUS_LABEL[e.status] ?? e.status}
                     </span>
                   </div>
-                  <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[10px] text-ink-3">
+                  <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[12px] text-ink-3">
                     <span
-                      className="rounded-sm px-1.5 py-0.5 text-[8px] font-bold text-white"
+                      className="rounded-sm px-1.5 py-0.5 text-[11px] font-bold text-white"
                       style={{ background: STAGE_BG[e.stageKind] ?? "var(--color-ink-3)" }}
                     >
                       {e.stageLabel}
@@ -96,9 +96,9 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
                       );
                     })}
                   </div>
-                  {e.memo && <div className="mt-1 text-[10px] text-ink-2">{e.memo}</div>}
+                  {e.memo && <div className="mt-1 text-[12px] text-ink-2">{e.memo}</div>}
                 </div>
-                <span className="hidden shrink-0 items-center gap-1 rounded-md bg-cream px-2 py-1 text-[10px] font-bold text-ink-3 md:inline-flex">
+                <span className="hidden shrink-0 items-center gap-1 rounded-md bg-cream px-2 py-1 text-[12px] font-bold text-ink-3 md:inline-flex">
                   詳細を見る
                   <ArrowRight size={12} aria-hidden />
                 </span>
