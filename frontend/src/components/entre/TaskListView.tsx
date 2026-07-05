@@ -25,18 +25,33 @@ interface Props {
   entries: EntryResponse[];
 }
 
-// type ごとのバッジ色。deadline = 締切で目立つ色、schedule = 予定で落ち着いた色。
-const TYPE_BADGE: Record<string, string> = {
-  deadline: "bg-pink",
-  schedule: "bg-sky",
-};
-
-function formatDue(dueDate: string | null): string {
+// 期日バッジは type (締切/予定) ではなく緊急度で色分けする
+// (type の区別は sub テキストの「締切タスク」「予定」が担う)。
+// 超過: 1-2日=pink、3日以上=より濃いpink-deep。本日=最も強いink、明日=pink-deep。
+// それ以降=従来どおり (3日以内=amber、超=sky)。期日なし=sage。
+export function dueLabel(dueDate: string | null, now: Date = new Date()): string {
   if (!dueDate) return "期日なし";
-  // ISO 文字列 (YYYY-MM-DD...) を M/D に短縮表示。パースできなければ原文を返す。
   const d = new Date(dueDate);
+  // ISO 文字列 (YYYY-MM-DD...) を M/D に短縮表示。パースできなければ原文を返す。
   if (Number.isNaN(d.getTime())) return dueDate;
-  return `${d.getMonth() + 1}/${d.getDate()}`;
+  const base = `${d.getMonth() + 1}/${d.getDate()}`;
+  const days = Math.floor((d.getTime() - now.getTime()) / 86_400_000);
+  if (days < 0) return `${base} ・${Math.abs(days)}日超過`;
+  if (days === 0) return "本日締切";
+  if (days === 1) return "明日締切";
+  return base;
+}
+
+export function dueColor(dueDate: string | null, now: Date = new Date()): string {
+  if (!dueDate) return "bg-sage";
+  const d = new Date(dueDate);
+  if (Number.isNaN(d.getTime())) return "bg-sage";
+  const days = Math.floor((d.getTime() - now.getTime()) / 86_400_000);
+  if (days < 0) return Math.abs(days) >= 3 ? "bg-pink-deep" : "bg-pink";
+  if (days === 0) return "bg-ink";
+  if (days === 1) return "bg-pink-deep";
+  if (days <= 3) return "bg-amber";
+  return "bg-sky";
 }
 
 function taskSortValue(task: TaskWithEntry): number {
@@ -269,11 +284,9 @@ function TaskRow({
           </div>
         </div>
         <span
-          className={`shrink-0 rounded-md px-2 py-0.5 font-mono text-[12px] font-bold text-white ${
-            TYPE_BADGE[task.type] ?? "bg-sage"
-          }`}
+          className={`shrink-0 rounded-md px-2 py-0.5 font-mono text-[12px] font-bold text-white ${dueColor(task.dueDate)}`}
         >
-          {formatDue(task.dueDate)}
+          {dueLabel(task.dueDate)}
         </span>
       </Link>
       <button

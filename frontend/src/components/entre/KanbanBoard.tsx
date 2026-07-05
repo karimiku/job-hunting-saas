@@ -202,7 +202,7 @@ function MobileKanbanSection({
       </div>
       {cards.length === 0 ? (
         <p className="rounded-md border border-dashed border-line bg-cream px-3 py-3 text-center text-[12px] text-ink-3">
-          このフェーズは0件
+          まだこの段階の応募先はありません
         </p>
       ) : (
         <ul className="flex flex-col gap-1.5">
@@ -256,7 +256,7 @@ function KanbanColumn({
         ))}
         {cards.length === 0 && (
           <li className="rounded-md border border-dashed border-line p-2 text-center text-[12px] text-ink-3">
-            このフェーズは0件
+            まだこの段階の応募先はありません
           </li>
         )}
       </ul>

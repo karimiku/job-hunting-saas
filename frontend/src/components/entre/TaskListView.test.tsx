@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { sortTasksForDisplay, TaskListView } from "./TaskListView";
+import { dueColor, dueLabel, sortTasksForDisplay, TaskListView } from "./TaskListView";
 import type { TaskWithEntry } from "@/lib/api/server-resources";
 import type { EntryResponse } from "@/lib/api/entries";
 
@@ -88,6 +88,16 @@ const entry = (overrides: Partial<EntryResponse> = {}): EntryResponse => ({
 });
 
 describe("TaskListView", () => {
+  beforeAll(() => {
+    // Date だけを固定し、userEvent が使う実タイマーには影響させない。
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-05-27T00:00:00Z"));
+  });
+
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
     setTaskStatusAction.mockClear();
     deleteTaskAction.mockClear();
@@ -233,6 +243,39 @@ describe("TaskListView", () => {
     await waitFor(() =>
       expect(screen.queryByRole("link", { name: /ES提出/ })).not.toBeInTheDocument(),
     );
+  });
+});
+
+describe("dueLabel / dueColor", () => {
+  const now = new Date("2026-05-29T00:00:00Z");
+
+  it("超過は「M/D ・n日超過」にし、1-2日はpink、3日以上はpink-deepにする", () => {
+    expect(dueLabel("2026-05-28", now)).toBe("5/28 ・1日超過");
+    expect(dueColor("2026-05-28", now)).toBe("bg-pink");
+    expect(dueColor("2026-05-27", now)).toBe("bg-pink");
+    expect(dueLabel("2026-05-26", now)).toBe("5/26 ・3日超過");
+    expect(dueColor("2026-05-26", now)).toBe("bg-pink-deep");
+  });
+
+  it("本日締切は専用ラベルと最も強い色(ink)にする", () => {
+    expect(dueLabel("2026-05-29", now)).toBe("本日締切");
+    expect(dueColor("2026-05-29", now)).toBe("bg-ink");
+  });
+
+  it("明日締切は専用ラベルと次に強い色(pink-deep)にする", () => {
+    expect(dueLabel("2026-05-30", now)).toBe("明日締切");
+    expect(dueColor("2026-05-30", now)).toBe("bg-pink-deep");
+  });
+
+  it("3日以内はamber、それより先はskyにする", () => {
+    expect(dueLabel("2026-05-31", now)).toBe("5/31");
+    expect(dueColor("2026-05-31", now)).toBe("bg-amber");
+    expect(dueColor("2026-06-02", now)).toBe("bg-sky");
+  });
+
+  it("期日なしはsage", () => {
+    expect(dueLabel(null, now)).toBe("期日なし");
+    expect(dueColor(null, now)).toBe("bg-sage");
   });
 });
 

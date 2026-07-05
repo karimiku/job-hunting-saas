@@ -1,6 +1,7 @@
 // Server Component。auth + entries + tasks + inbox を SSR 集約APIで取得し、
 // 集計済みデータを子コンポーネントに props で渡す。useEffect は使わない。
 
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { getAppPageDataServer } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
@@ -11,6 +12,10 @@ import { DashboardStats } from "@/components/entre/DashboardStats";
 import { GettingStartedGuide } from "@/components/entre/GettingStartedGuide";
 import { SignOutButton } from "@/components/entre/SignOutButton";
 
+// React.cache で 1 リクエスト内 memoize。Date.now() 自体は impure だが、cache() で
+// 包むことで「同一リクエストでは同じ値」を保証でき、components-and-hooks-must-be-pure 規則も満たす。
+const getRenderedAt = cache(() => Date.now());
+
 export default async function DashboardPage() {
   const pageData = await getAppPageDataServer();
   if (!pageData) redirect("/login");
@@ -18,6 +23,13 @@ export default async function DashboardPage() {
 
   const firstName = user.name.split(/[\s　]/)[0] || user.name;
   const openTasks = tasks.filter((t) => t.status === "todo").length;
+  const renderedAt = getRenderedAt();
+  const overdueTasks = tasks.filter(
+    (t) =>
+      t.status === "todo" &&
+      t.dueDate &&
+      Math.floor((new Date(t.dueDate).getTime() - renderedAt) / 86_400_000) < 0,
+  ).length;
   const hasEntries = entries.length > 0;
   const hasTasks = tasks.length > 0;
   const hasDoneTasks = tasks.some((t) => t.status === "done");
@@ -49,6 +61,7 @@ export default async function DashboardPage() {
               inboxCount={navCounts.inbox}
               entryCount={entries.length}
               openTaskCount={openTasks}
+              overdueTaskCount={overdueTasks}
             />
 
             <div className="mb-4 md:mb-5">

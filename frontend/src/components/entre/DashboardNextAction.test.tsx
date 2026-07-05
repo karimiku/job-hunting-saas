@@ -6,6 +6,33 @@ import {
 } from "./DashboardNextAction";
 
 describe("getDashboardNextAction", () => {
+  it("超過タスクがあればinbox/entryより優先して警告する", () => {
+    expect(
+      getDashboardNextAction({
+        inboxCount: 2,
+        entryCount: 4,
+        openTaskCount: 3,
+        overdueTaskCount: 2,
+      }),
+    ).toMatchObject({
+      activeStep: "task",
+      href: "/task",
+      title: "締切が過ぎたタスクが2件あります",
+      variant: "warning",
+    });
+  });
+
+  it("超過タスクが無ければ従来どおりの分岐にする", () => {
+    expect(
+      getDashboardNextAction({
+        inboxCount: 2,
+        entryCount: 4,
+        openTaskCount: 3,
+        overdueTaskCount: 0,
+      }),
+    ).toMatchObject({ activeStep: "inbox", variant: "default" });
+  });
+
   it("保存クリップがあれば最優先でEntry化へ案内する", () => {
     expect(
       getDashboardNextAction({ inboxCount: 2, entryCount: 4, openTaskCount: 3 }),
@@ -60,5 +87,23 @@ describe("DashboardNextAction", () => {
       "/inbox",
     );
     expect(screen.queryByText("1. 保存")).toBeNull();
+  });
+
+  it("超過タスクがあれば警告トーンの文言・見出しを表示する", () => {
+    render(
+      <DashboardNextAction
+        inboxCount={0}
+        entryCount={3}
+        openTaskCount={3}
+        overdueTaskCount={2}
+      />,
+    );
+
+    expect(screen.getByText("要注意")).toBeInTheDocument();
+    expect(screen.getByText("締切が過ぎたタスクが2件あります")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /タスクを確認/ })).toHaveAttribute(
+      "href",
+      "/task",
+    );
   });
 });

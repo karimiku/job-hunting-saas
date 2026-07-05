@@ -15,6 +15,7 @@ import {
 import {
   ENTRY_STATUS_LABEL,
   STAGE_COLOR,
+  STAGE_HINT,
   STAGE_LABEL,
   STAGE_ORDER,
   statusForStage,
@@ -303,86 +304,119 @@ export function EntryDetailView({
 
       {/* Stage selector */}
       <section className="mb-3 rounded-xl border border-line bg-surface p-3">
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-[12px] font-bold text-ink-2">選考ステータス</p>
-          <span className="rounded-full bg-cream px-2 py-0.5 text-[12px] font-black text-ink-3">
-            {ENTRY_STATUS_LABEL[e.status] ?? e.status}
-          </span>
+        {/* 選考フェーズ（進捗の軸） */}
+        <div>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[12px] font-black text-ink">選考フェーズ</p>
+            <p className="text-[12px] font-bold text-sage">
+              現在: <span data-testid="current-stage">{e.stageLabel}</span>
+            </p>
+          </div>
+          <p className="mt-0.5 text-[11px] text-ink-3">今どの段階かを選びます</p>
+
+          {selectionFlow ? (
+            <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-3">
+              {selectionFlow.stages.map((stage) => {
+                const reached = stage.position <= selectionFlow.currentStagePosition;
+                const selected = stage.position === selectionFlow.currentStagePosition;
+                const color = stageColor(stage.stageKind);
+                const hint = STAGE_HINT[stage.stageKind as StageKind];
+                return (
+                  <button
+                    type="button"
+                    key={stage.id}
+                    onClick={() => handleSelectFlowStage(stage)}
+                    disabled={isPending || selected}
+                    aria-pressed={selected}
+                    title={hint}
+                    className="relative grid min-h-11 place-items-center rounded-md border px-2 py-1.5 text-[12px] font-bold transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:cursor-default"
+                    style={{
+                      borderWidth: selected ? 2 : 1,
+                      borderColor: selected ? color : "var(--color-line)",
+                      background: reached ? color : "var(--color-line-2)",
+                      color: reached ? "#fff" : "var(--color-ink-3)",
+                      boxShadow: selected ? `0 0 0 3px ${color}40` : undefined,
+                    }}
+                  >
+                    {selected && (
+                      <span
+                        aria-hidden
+                        className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-ink px-1.5 py-0.5 text-[9px] font-black whitespace-nowrap text-white shadow-sm"
+                      >
+                        現在ここ
+                      </span>
+                    )}
+                    {stage.stageLabel}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="mt-2 grid grid-cols-3 gap-2 md:grid-cols-6">
+              {STAGE_ORDER.map((kind, i) => {
+                const reached = i <= currentIdx;
+                const selected = e.stageKind === kind;
+                const hint = STAGE_HINT[kind];
+                return (
+                  <button
+                    type="button"
+                    key={kind}
+                    onClick={() => handleSelectStage(kind)}
+                    disabled={isPending || selected}
+                    aria-pressed={selected}
+                    title={hint}
+                    className="relative grid min-h-11 place-items-center rounded-md border px-1.5 py-1.5 text-[12px] font-bold transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:cursor-default"
+                    style={{
+                      borderWidth: selected ? 2 : 1,
+                      borderColor: selected ? STAGE_COLOR[kind] : "var(--color-line)",
+                      background: reached ? STAGE_COLOR[kind] : "var(--color-line-2)",
+                      color: reached ? "#fff" : "var(--color-ink-3)",
+                      boxShadow: selected ? `0 0 0 3px ${STAGE_COLOR[kind]}40` : undefined,
+                    }}
+                  >
+                    {selected && (
+                      <span
+                        aria-hidden
+                        className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-ink px-1.5 py-0.5 text-[9px] font-black whitespace-nowrap text-white shadow-sm"
+                      >
+                        現在ここ
+                      </span>
+                    )}
+                    {STAGE_LABEL[kind]}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
-        {selectionFlow ? (
-          <div className="grid grid-cols-2 gap-1.5 md:grid-cols-3">
-            {selectionFlow.stages.map((stage) => {
-              const reached = stage.position <= selectionFlow.currentStagePosition;
-              const selected = stage.position === selectionFlow.currentStagePosition;
-              const color = stageColor(stage.stageKind);
+
+        {/* 結果（生死の軸） */}
+        <div className="mt-4 border-t border-dashed border-line pt-3">
+          <p className="text-[12px] font-black text-ink">結果（確定したら選ぶ）</p>
+          <p className="mt-0.5 text-[11px] text-ink-3">内定・お見送りなどが決まったら選びます</p>
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {OUTCOME_STATUS.map((status) => {
+              const selected = e.status === status;
               return (
                 <button
+                  key={status}
                   type="button"
-                  key={stage.id}
-                  onClick={() => handleSelectFlowStage(stage)}
+                  onClick={() => handleSelectOutcome(status)}
                   disabled={isPending || selected}
                   aria-pressed={selected}
-                  className="grid min-h-10 place-items-center rounded-md border px-2 text-[12px] font-bold transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:cursor-default"
-                  style={{
-                    borderColor: selected ? color : "var(--color-line)",
-                    background: reached ? color : "var(--color-line-2)",
-                    color: reached ? "#fff" : "var(--color-ink-3)",
-                  }}
+                  className={`min-h-11 rounded-md border px-1 text-[12px] font-black transition-colors focus:outline-none focus:ring-2 focus:ring-sage/30 ${
+                    selected
+                      ? "border-sage bg-sage text-white"
+                      : "border-line bg-cream text-ink-3 hover:border-sage hover:text-sage"
+                  }`}
                 >
-                  {stage.stageLabel}
+                  {ENTRY_STATUS_LABEL[status]}
                 </button>
               );
             })}
           </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-1.5 md:grid-cols-6">
-            {STAGE_ORDER.map((kind, i) => {
-              const reached = i <= currentIdx;
-              const selected = e.stageKind === kind;
-              return (
-                <button
-                  type="button"
-                  key={kind}
-                  onClick={() => handleSelectStage(kind)}
-                  disabled={isPending || selected}
-                  aria-pressed={selected}
-                  className="grid min-h-9 place-items-center rounded-md border text-[12px] font-bold transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:cursor-default"
-                  style={{
-                    borderColor: selected ? STAGE_COLOR[kind] : "var(--color-line)",
-                    background: reached ? STAGE_COLOR[kind] : "var(--color-line-2)",
-                    color: reached ? "#fff" : "var(--color-ink-3)",
-                  }}
-                >
-                  {STAGE_LABEL[kind]}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        <div className="mt-2 grid grid-cols-5 gap-1">
-          {OUTCOME_STATUS.map((status) => {
-            const selected = e.status === status;
-            return (
-              <button
-                key={status}
-                type="button"
-                onClick={() => handleSelectOutcome(status)}
-                disabled={isPending || selected}
-                aria-pressed={selected}
-                className={`h-7 rounded-md border px-1 text-[12px] font-black transition-colors focus:outline-none focus:ring-2 focus:ring-sage/30 ${
-                  selected
-                    ? "border-sage bg-sage text-white"
-                    : "border-line bg-cream text-ink-3 hover:border-sage hover:text-sage"
-                }`}
-              >
-                {ENTRY_STATUS_LABEL[status]}
-              </button>
-            );
-          })}
         </div>
-        <p className="mt-2 text-[12px] font-bold text-sage">
-          現在: <span data-testid="current-stage">{e.stageLabel}</span>
-        </p>
+
         {entryError && (
           <p role="alert" className="mt-2 rounded-md bg-pink/40 px-2.5 py-1.5 text-[12px] font-semibold text-ink">
             {entryError}
@@ -461,6 +495,9 @@ export function EntryDetailView({
                   </label>
                 ))}
               </div>
+              <p className="mt-1 text-[11px] text-ink-3">
+                締切＝提出物の期限 ／ 予定＝面接など日時
+              </p>
             </fieldset>
           </div>
           <div className="mt-2 grid gap-2 md:grid-cols-[1fr_1.5fr_auto]">

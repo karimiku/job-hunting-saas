@@ -235,6 +235,18 @@ describe("EntryDetailView", () => {
     await waitFor(() => expect(deleteEntryAction).toHaveBeenCalledWith("e1"));
   });
 
+  it("選考フェーズと結果が別セクションの見出しで分離されている", () => {
+    render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
+
+    expect(screen.getByText("選考フェーズ")).toBeInTheDocument();
+    expect(screen.getByText("今どの段階かを選びます")).toBeInTheDocument();
+    expect(screen.getByText("結果（確定したら選ぶ）")).toBeInTheDocument();
+    expect(screen.getByText("内定・お見送りなどが決まったら選びます")).toBeInTheDocument();
+    // フェーズの「内定」と結果の「内定獲得」が文言で区別できる
+    expect(screen.getByRole("button", { name: "内定" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "内定獲得" })).toBeInTheDocument();
+  });
+
   it("Entry削除に失敗したらエラーを表示する", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     deleteEntryAction.mockResolvedValue({ ok: false, error: "応募先の削除に失敗しました" });

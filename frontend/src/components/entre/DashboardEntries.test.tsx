@@ -74,6 +74,17 @@ describe("DashboardEntries", () => {
     expect(screen.getByText("未完了 1")).toBeInTheDocument();
   });
 
+  it("進捗バーの近くにステージ名と「Nステップ中M」を表示する", () => {
+    render(
+      <DashboardEntries
+        entries={[entry({ companyName: "テスト商事", stageKind: "interview", stageLabel: "面接" })]}
+        tasks={[task({ entryId: "e1" })]}
+      />,
+    );
+
+    expect(screen.getByText("面接 ・ 6ステップ中4")).toBeInTheDocument();
+  });
+
   it("応募先が無ければ登録を促す空状態を表示する", () => {
     render(<DashboardEntries entries={[]} tasks={[]} />);
 

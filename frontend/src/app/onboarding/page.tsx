@@ -91,7 +91,7 @@ export default function OnboardingPage() {
         <h1 className="mb-3 max-w-[320px] font-serif text-2xl font-extrabold leading-tight tracking-tight">
           {s.title}
         </h1>
-        <p className="max-w-[300px] text-[13px] leading-relaxed text-ink-2">{s.sub}</p>
+        <p className="max-w-[300px] text-[14px] font-medium leading-relaxed text-ink">{s.sub}</p>
       </div>
 
       {/* Footer controls */}

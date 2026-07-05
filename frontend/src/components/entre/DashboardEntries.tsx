@@ -163,6 +163,9 @@ export function DashboardEntries({
                     />
                   ))}
                 </div>
+                <p className="mt-1 text-[12px] font-bold text-ink-3">
+                  {item.stageLabel} ・ {STAGE_ORDER.length}ステップ中{stageIndexOf(item.stageKind) + 1}
+                </p>
               </Link>
             </li>
           ))}

@@ -46,6 +46,11 @@ describe("KanbanBoard", () => {
     expect(screen.getByTestId("column-count-document")).toHaveTextContent("0");
   });
 
+  it("0件の列は励ましトーンのコピーを表示する", () => {
+    render(<KanbanBoard initialEntries={[e("application", "リクナビ")]} />);
+    expect(screen.getAllByText("まだこの段階の応募先はありません").length).toBeGreaterThan(0);
+  });
+
   it("カードはキーボード操作可能な role=button として描画される", () => {
     render(<KanbanBoard initialEntries={[e("application", "リクナビ")]} />);
     const buttons = screen.getAllByRole("button");
