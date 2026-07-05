@@ -16,17 +16,17 @@ describe("getDashboardNextAction", () => {
     });
   });
 
-  it("保存クリップもEntryも無ければEntry追加へ案内する", () => {
+  it("保存クリップも応募先も無ければ応募先追加へ案内する", () => {
     expect(
       getDashboardNextAction({ inboxCount: 0, entryCount: 0, openTaskCount: 0 }),
     ).toMatchObject({
       activeStep: "entry",
       href: "/entry/new",
-      cta: "Entryを追加",
+      cta: "応募先を追加",
     });
   });
 
-  it("Entryはあるが未完了タスクが無ければタスク追加へ案内する", () => {
+  it("応募先はあるが未完了タスクが無ければタスク追加へ案内する", () => {
     expect(
       getDashboardNextAction({ inboxCount: 0, entryCount: 3, openTaskCount: 0 }),
     ).toMatchObject({
@@ -54,7 +54,7 @@ describe("DashboardNextAction", () => {
     );
 
     expect(screen.getByText("次にやること")).toBeInTheDocument();
-    expect(screen.getByText("保存クリップ 1件をEntryにする")).toBeInTheDocument();
+    expect(screen.getByText("保存箱の求人 1件を応募先にする")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /保存箱を開く/ })).toHaveAttribute(
       "href",
       "/inbox",
