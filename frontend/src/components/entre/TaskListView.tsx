@@ -7,10 +7,10 @@ import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import {
   ArrowRight,
-  CalendarClock,
   CalendarPlus,
   CheckCircle2,
   ClipboardList,
+  Clock,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -372,13 +372,13 @@ function TaskRow({
           className="group -my-1 flex min-w-0 flex-1 items-center gap-3 rounded-md py-1 pr-1 transition-colors hover:text-sage focus:outline-none focus:ring-2 focus:ring-sage/30"
         >
           <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 items-center gap-1.5">
-              <div className={`truncate text-[12px] font-semibold ${done ? "line-through" : ""}`}>
+            <div className="flex min-w-0 items-start gap-1.5">
+              <div className={`line-clamp-2 break-words text-[12px] font-semibold ${done ? "line-through" : ""}`}>
                 {task.title}
               </div>
               <ArrowRight
                 size={12}
-                className="shrink-0 text-ink-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus:opacity-100"
+                className="mt-0.5 shrink-0 text-ink-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus:opacity-100"
                 aria-hidden
               />
             </div>
@@ -387,7 +387,7 @@ function TaskRow({
             </div>
           </div>
           <span
-            className={`shrink-0 rounded-md px-2 py-0.5 font-mono text-[12px] font-bold text-white ${dueColor(task.dueDate)}`}
+            className={`shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[12px] font-bold text-white ${dueColor(task.dueDate)}`}
           >
             {dueLabel(task.dueDate)}
           </span>
@@ -399,10 +399,10 @@ function TaskRow({
             disabled={isPending}
             aria-expanded={rescheduleOpen}
             aria-label={`タスク「${task.title}」の期日を延期`}
-            className="flex shrink-0 items-center gap-1 rounded-md border border-line px-2 py-1 text-[12px] font-bold text-ink-3 transition-colors hover:border-sage hover:text-sage focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:opacity-60"
+            className="flex shrink-0 items-center gap-1 rounded-md border border-line px-1.5 py-1 text-[12px] font-bold text-ink-3 transition-colors hover:border-sage hover:text-sage focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:opacity-60 sm:px-2"
           >
-            <CalendarClock size={13} aria-hidden />
-            延期
+            <Clock size={13} aria-hidden />
+            <span className="hidden sm:inline">延期</span>
           </button>
         )}
         <button

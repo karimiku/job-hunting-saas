@@ -51,5 +51,10 @@ describe("DashboardStats", () => {
     await waitFor(() => expect(screen.getByTestId("stat-in-progress")).toHaveTextContent("3"));
     await waitFor(() => expect(screen.getByTestId("stat-offered")).toHaveTextContent("1"));
     await waitFor(() => expect(screen.getByTestId("stat-interviewing")).toHaveTextContent("2"));
+
+    expect(screen.getByTestId("stat-total")).toHaveTextContent(/^5$/);
+    expect(screen.getByTestId("stat-in-progress")).toHaveTextContent(/^3$/);
+    expect(screen.getByTestId("stat-offered")).toHaveTextContent(/^1$/);
+    expect(screen.getByTestId("stat-interviewing")).toHaveTextContent(/^2$/);
   });
 });

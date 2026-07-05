@@ -33,7 +33,7 @@ import { deleteTaskAction, setTaskStatusAction } from "@/app/task/actions";
 import { Confetti } from "./Confetti";
 import { TaskTemplateChips, type TaskTemplate } from "./TaskTemplateChips";
 
-const OUTCOME_STATUS = ["in_progress", "offered", "accepted", "rejected", "withdrawn"] as const;
+const CONFIRMED_OUTCOME_STATUS = ["offered", "accepted", "rejected", "withdrawn"] as const;
 
 interface Props {
   initialEntry: EntryResponse | null;
@@ -309,8 +309,8 @@ export function EntryDetailView({
         <div>
           <div className="flex items-center justify-between gap-2">
             <p className="text-[12px] font-black text-ink">選考フェーズ</p>
-            <p className="rounded-md border-[1.5px] border-sage bg-sage-wash px-2 py-0.5 text-[13px] font-black text-sage">
-              現在: <span data-testid="current-stage">{e.stageLabel}</span>
+            <p className="text-[11px] font-bold text-ink-3">
+              現在: <span data-testid="current-stage" className="text-ink-2">{e.stageLabel}</span>
             </p>
           </div>
           <p className="mt-0.5 text-[11px] text-ink-3">今どの段階かを選びます</p>
@@ -400,10 +400,11 @@ export function EntryDetailView({
           <p className="text-[12px] font-black text-ink">結果（確定したら選ぶ）</p>
           <p className="mt-0.5 text-[11px] text-ink-3">内定・お見送りなどが決まったら選びます</p>
           <p className="mt-0.5 text-[11px] text-ink-3">
-            ※内定・お見送りが確定したときだけ選びます。選考途中は上の「選考フェーズ」だけでOKです
+            ※内定・お見送りが確定したときだけ選びます。選考途中は上の「選考フェーズ」だけでOKです。
+            フェーズの「内定」は段階名、ここでの「内定獲得」は確定した結果を指します
           </p>
-          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
-            {OUTCOME_STATUS.map((status) => {
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {CONFIRMED_OUTCOME_STATUS.map((status) => {
               const selected = e.status === status;
               return (
                 <button
@@ -423,6 +424,16 @@ export function EntryDetailView({
               );
             })}
           </div>
+          {e.status !== "in_progress" && (
+            <button
+              type="button"
+              onClick={() => handleSelectOutcome("in_progress")}
+              disabled={isPending}
+              className="mt-2 inline-flex items-center gap-1 rounded-md px-1 text-[11px] font-bold text-ink-3 underline decoration-dotted underline-offset-2 transition-colors hover:text-sage disabled:opacity-60"
+            >
+              まだ選考中（結果を取り消す）
+            </button>
+          )}
         </div>
 
         {entryError && (

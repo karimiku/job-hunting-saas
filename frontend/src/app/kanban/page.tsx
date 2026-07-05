@@ -20,7 +20,7 @@ export default async function KanbanPage() {
           <div>
             <h1 className="font-serif text-2xl font-extrabold tracking-tight">ボード</h1>
             <p className="mt-0.5 text-[12px] text-ink-3">
-              選考が進んだら、カードを次のフェーズへドラッグして動かします。
+              選考が進んだら、カードを次のフェーズへ動かします。
             </p>
           </div>
           <Link

@@ -37,6 +37,13 @@ function dueLabel(value: string | null): string {
   return `${date.getMonth() + 1}/${date.getDate()}`;
 }
 
+// 選考中はステージバッジ側で自明なため表示しない。確定した結果（内定獲得/承諾/落選/辞退）のみ出す。
+// 未知の status 値は素で出さずフォールバックとして非表示にする。
+function statusLabel(status: string): string | null {
+  if (status === "in_progress") return null;
+  return ENTRY_STATUS_LABEL[status] ?? null;
+}
+
 export function buildDashboardEntries(
   entries: EntryResponse[],
   tasks: TaskWithEntry[],
@@ -130,14 +137,11 @@ export function DashboardEntries({
                   <div className="min-w-0">
                     <div className="truncate text-[12px] font-extrabold">{item.company}</div>
                     <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] font-bold text-ink-3">
-                      <span
-                        className="rounded-sm px-1.5 py-0.5 text-white"
-                        style={{ background: STAGE_BG[item.stageKind] ?? "var(--color-ink-3)" }}
-                      >
-                        {item.stageLabel}
-                      </span>
-                      <span>{ENTRY_STATUS_LABEL[item.status] ?? item.status}</span>
-                      <span aria-hidden>·</span>
+                      {statusLabel(item.status) && (
+                        <span className="rounded-sm bg-pink/40 px-1.5 py-0.5 text-ink">
+                          {statusLabel(item.status)}
+                        </span>
+                      )}
                       <span>未完了 {item.openTaskCount}件</span>
                       <span aria-hidden>·</span>
                       <span>
@@ -149,8 +153,19 @@ export function DashboardEntries({
                   </div>
                   <ArrowRight size={13} className="mt-0.5 shrink-0 text-ink-3" aria-hidden />
                 </div>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <span
+                    className="rounded-sm px-1.5 py-0.5 text-[12px] font-bold text-white"
+                    style={{ background: STAGE_BG[item.stageKind] ?? "var(--color-ink-3)" }}
+                  >
+                    {item.stageLabel}
+                  </span>
+                  <span className="shrink-0 text-[11px] font-bold text-ink-3">
+                    {STAGE_ORDER.length}ステップ中{stageIndexOf(item.stageKind) + 1}
+                  </span>
+                </div>
                 <div
-                  className="mt-2 grid gap-0.5"
+                  className="mt-1 grid gap-0.5"
                   style={{ gridTemplateColumns: `repeat(${STAGE_ORDER.length}, minmax(0, 1fr))` }}
                   aria-hidden
                 >
@@ -167,9 +182,6 @@ export function DashboardEntries({
                     />
                   ))}
                 </div>
-                <p className="mt-1 text-[12px] font-bold text-ink-3">
-                  {item.stageLabel} ・ {STAGE_ORDER.length}ステップ中{stageIndexOf(item.stageKind) + 1}
-                </p>
               </Link>
             </li>
           ))}

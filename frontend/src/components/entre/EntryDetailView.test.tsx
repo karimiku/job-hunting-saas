@@ -258,6 +258,30 @@ describe("EntryDetailView", () => {
     await waitFor(() => expect(deleteEntryAction).toHaveBeenCalledWith("e1"));
   });
 
+  it("選考中の間は「結果を取り消す」導線を表示しない", () => {
+    render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
+    expect(
+      screen.queryByRole("button", { name: /結果を取り消す/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("結果確定後は「結果を取り消す」導線から選考中に戻せる", async () => {
+    render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
+    await userEvent.click(screen.getByRole("button", { name: "落選" }));
+
+    const revertButton = await screen.findByRole("button", {
+      name: /結果を取り消す/,
+    });
+    await userEvent.click(revertButton);
+
+    await waitFor(() =>
+      expect(updateEntryAction).toHaveBeenLastCalledWith(
+        "e1",
+        expect.objectContaining({ status: "in_progress" }),
+      ),
+    );
+  });
+
   it("選考フェーズと結果が別セクションの見出しで分離されている", () => {
     render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
 
