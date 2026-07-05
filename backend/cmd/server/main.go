@@ -9,17 +9,22 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 	"github.com/karimiku/job-hunting-saas/internal/gen/openapi"
 	"github.com/karimiku/job-hunting-saas/internal/handler"
 	fbinfra "github.com/karimiku/job-hunting-saas/internal/infra/firebase"
 	"github.com/karimiku/job-hunting-saas/internal/infra/inmemory"
 	"github.com/karimiku/job-hunting-saas/internal/infra/postgres"
+	"github.com/karimiku/job-hunting-saas/internal/infra/supabaseauth"
 	"github.com/karimiku/job-hunting-saas/internal/middleware"
 	aiaccesstokenuc "github.com/karimiku/job-hunting-saas/internal/usecase/ai_access_token"
 	companyuc "github.com/karimiku/job-hunting-saas/internal/usecase/company"
@@ -47,8 +52,21 @@ func run() error {
 	if port == "" {
 		port = "8080"
 	}
+	devAuthEnabled := os.Getenv("DEV_AUTH_ENABLED") == "true"
+	if devAuthEnabled && isProductionRuntime() {
+		return errors.New("DEV_AUTH_ENABLED must not be true in production")
+	}
+	devSessionSecret := ""
+	if devAuthEnabled {
+		devSessionSecret = strings.TrimSpace(os.Getenv("DEV_AUTH_SECRET"))
+		if devSessionSecret == "" {
+			devSessionSecret = uuid.NewString()
+			log.Println("dev auth enabled with ephemeral session secret")
+		}
+	}
 
-	ctx := context.Background()
+	ctx, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignals()
 
 	var (
 		accountRepo          repository.AccountRepository
@@ -94,7 +112,7 @@ func run() error {
 			return errors.New("DATABASE_URL is not set, which disables authentication and " +
 				"causes all clips/entries to share a zero-value UserID; set " +
 				"ALLOW_INSECURE_NO_AUTH=true to proceed in dev mode, or configure DATABASE_URL " +
-				"and FIREBASE_PROJECT_ID for a real environment")
+				"and SUPABASE_AUTH_ISSUER for a real environment")
 		}
 		inMemoryCompanyRepo := inmemory.NewCompanyRepository()
 		inMemoryEntryRepo := inmemory.NewEntryRepository()
@@ -114,34 +132,16 @@ func run() error {
 		log.Println("using in-memory repositories (ALLOW_INSECURE_NO_AUTH=true) — auth endpoints disabled, all data shared across users")
 	}
 
-	// Firebase 初期化 / Auth 配線は DB 永続化できる場合のみ有効化する
+	// Auth 配線は DB 永続化できる場合のみ有効化する。
 	var (
-		authHandler    *handler.AuthHandler
-		authMiddleware func(http.Handler) http.Handler
-		authConfig     handler.AuthConfig
+		authHandler             *handler.AuthHandler
+		devAuthHandler          *handler.DevAuthHandler
+		authMiddleware          func(http.Handler) http.Handler
+		authConfig              handler.AuthConfig
+		firebaseLoginConfigured bool
 	)
 	if userRepo != nil && extIDRepo != nil {
-		projectID := os.Getenv("FIREBASE_PROJECT_ID")
-		if projectID == "" {
-			return errors.New("FIREBASE_PROJECT_ID must be set when DATABASE_URL is configured")
-		}
-		// GOOGLE_APPLICATION_CREDENTIALS を使うなら credentialsPath を空にして ADC に任せる
-		credentialsPath := os.Getenv("FIREBASE_CREDENTIALS_FILE")
-
-		fb, err := fbinfra.NewClient(ctx, credentialsPath, projectID)
-		if err != nil {
-			return fmt.Errorf("init firebase: %w", err)
-		}
-
 		authenticateUC := useruc.NewAuthenticate(userRepo, extIDRepo)
-		// Firebase SDK 型を handler / middleware に漏らさないため、adapter で DTO に変換する。
-		sessionCreator := fbinfra.NewSessionCreator(fb.Auth)
-		sessionVerifierCacheTTL, err := firebaseSessionVerifierCacheTTL(os.Getenv("FIREBASE_SESSION_VERIFY_CACHE_TTL"))
-		if err != nil {
-			return err
-		}
-		var sessionVerifier middleware.FirebaseSessionVerifier = fbinfra.NewSessionVerifier(fb.Auth)
-		sessionVerifier = middleware.NewCachedSessionVerifier(sessionVerifier, sessionVerifierCacheTTL)
 		cookieSameSite, err := parseCookieSameSite(os.Getenv("COOKIE_SAME_SITE"))
 		if err != nil {
 			return err
@@ -151,13 +151,81 @@ func run() error {
 			CookieSecure:   os.Getenv("COOKIE_SECURE") == "true",
 			CookieSameSite: cookieSameSite,
 		}
+
+		aiBearerVerifier := aiaccesstokenuc.NewVerify(aiTokenRepo)
+		bearerVerifier := middleware.NewChainedBearerTokenVerifier(aiBearerVerifier)
+
+		supabaseAuthConfigured := false
+		if supabaseIssuer := strings.TrimSpace(os.Getenv("SUPABASE_AUTH_ISSUER")); supabaseIssuer != "" {
+			supabaseVerifier, err := supabaseauth.NewVerifier(supabaseauth.Config{
+				Issuer:   supabaseIssuer,
+				Audience: os.Getenv("SUPABASE_JWT_AUDIENCE"),
+				JWKSURL:  os.Getenv("SUPABASE_JWKS_URL"),
+				UserSync: func(ctx context.Context, info supabaseauth.UserInfo) (entity.UserID, error) {
+					out, err := authenticateUC.Execute(ctx, useruc.AuthenticateInput{
+						Provider: "supabase",
+						Subject:  info.Subject,
+						Email:    info.Email,
+						Name:     info.Name,
+					})
+					if err != nil {
+						return entity.UserID{}, err
+					}
+					return out.User.ID(), nil
+				},
+			}, extIDRepo)
+			if err != nil {
+				return fmt.Errorf("init supabase auth verifier: %w", err)
+			}
+			bearerVerifier = middleware.NewChainedBearerTokenVerifier(aiBearerVerifier, supabaseVerifier)
+			supabaseAuthConfigured = true
+			log.Println("supabase auth bearer verifier wired")
+		}
+
+		projectID := os.Getenv("FIREBASE_PROJECT_ID")
+		var sessionVerifier middleware.FirebaseSessionVerifier
+		var sessionCreator handler.FirebaseSessionCreator
+		if projectID != "" {
+			// GOOGLE_APPLICATION_CREDENTIALS を使うなら credentialsPath を空にして ADC に任せる
+			credentialsPath := os.Getenv("FIREBASE_CREDENTIALS_FILE")
+
+			fb, err := fbinfra.NewClient(ctx, credentialsPath, projectID)
+			if err != nil {
+				return fmt.Errorf("init firebase: %w", err)
+			}
+
+			// Firebase SDK 型を handler / middleware に漏らさないため、adapter で DTO に変換する。
+			sessionCreator = fbinfra.NewSessionCreator(fb.Auth)
+			sessionVerifierCacheTTL, err := firebaseSessionVerifierCacheTTL(os.Getenv("FIREBASE_SESSION_VERIFY_CACHE_TTL"))
+			if err != nil {
+				return err
+			}
+			sessionVerifier = fbinfra.NewSessionVerifier(fb.Auth)
+			sessionVerifier = middleware.NewCachedSessionVerifier(sessionVerifier, sessionVerifierCacheTTL)
+			firebaseLoginConfigured = true
+			log.Println("firebase auth wired")
+		}
+		// authHandler は GET /auth/me・DELETE /auth/session（ログアウト）を提供し、
+		// どちらも firebaseAuth を必要としない。POST /auth/session（ログイン）だけが
+		// firebaseAuth を使うため、Firebase 未設定時は sessionCreator が nil のまま渡す。
+		// この場合でも main.go 側のルーティングで LoginRoute を登録しない限り
+		// CreateSession（nil interface 呼び出し）は到達しない。
 		authHandler = handler.NewAuthHandler(sessionCreator, authenticateUC, userRepo, authConfig)
-		authMiddleware = middleware.NewAuthWithBearer(
+
+		if projectID == "" && !supabaseAuthConfigured && !devAuthEnabled {
+			return errors.New("FIREBASE_PROJECT_ID or SUPABASE_AUTH_ISSUER must be set when DATABASE_URL is configured")
+		}
+
+		authMiddleware = middleware.NewAuthWithBearerAndDevSession(
 			sessionVerifier,
 			extIDRepo,
-			aiaccesstokenuc.NewVerify(aiTokenRepo),
+			bearerVerifier,
+			devSessionSecret,
 		)
-		log.Println("firebase auth wired")
+		if devAuthEnabled {
+			devAuthHandler = handler.NewDevAuthHandler(authenticateUC, authConfig, devSessionSecret)
+			log.Println("dev auth wired")
+		}
 	}
 
 	companyHandler := handler.NewCompanyHandler(
@@ -250,6 +318,7 @@ func run() error {
 	}
 
 	router := chi.NewRouter()
+	router.Use(stripPathPrefixMiddleware("/backend"))
 	// CORS_ALLOWED_ORIGINS (新): カンマ区切りで複数 origin を許可 (chrome 拡張等を追加するときに使う)。
 	// CORS_ALLOWED_ORIGIN (旧, 後方互換): 単一 origin。両方セットされていれば新の方を優先。
 	corsOriginsRaw := os.Getenv("CORS_ALLOWED_ORIGINS")
@@ -257,6 +326,7 @@ func run() error {
 		corsOriginsRaw = os.Getenv("CORS_ALLOWED_ORIGIN")
 	}
 	corsOrigins := allowedOrigins(corsOriginsRaw)
+	warnOnCredentialedWildcardCORS(corsOrigins, os.Getenv("COOKIE_SAME_SITE"))
 	globalRateLimit, err := requestsPerMinuteFromEnv("RATE_LIMIT_GLOBAL_REQUESTS_PER_MINUTE", 30)
 	if err != nil {
 		return err
@@ -282,11 +352,23 @@ func run() error {
 	})
 
 	// 認証不要ルート（ログイン / ログアウト）
+	// LogoutRoute は firebaseAuth 不要なので Firebase 未設定でも常に登録する。
+	// LoginRoute（Firebase ID Token 検証）は firebaseAuth が設定されている場合のみ登録する。
 	if authHandler != nil {
 		router.Group(func(r chi.Router) {
 			r.Use(middleware.NewIPRateLimiter(authRateLimit, time.Minute))
 			r.Use(middleware.NewOriginGuard(corsOrigins))
-			authHandler.PublicRoutes(r)
+			authHandler.LogoutRoute(r)
+			if firebaseLoginConfigured {
+				authHandler.LoginRoute(r)
+			}
+		})
+	}
+	if devAuthHandler != nil {
+		router.Group(func(r chi.Router) {
+			r.Use(middleware.NewIPRateLimiter(authRateLimit, time.Minute))
+			r.Use(middleware.NewOriginGuard(corsOrigins))
+			devAuthHandler.PublicRoutes(r)
 		})
 	}
 
@@ -316,10 +398,28 @@ func run() error {
 
 	// #nosec G706 -- port is deployment configuration, not user-controlled request data.
 	log.Printf("server listening on :%s", port)
-	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("listen: %w", err)
+	serverErr := make(chan error, 1)
+	go func() {
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErr <- fmt.Errorf("listen: %w", err)
+			return
+		}
+		serverErr <- nil
+	}()
+
+	select {
+	case err := <-serverErr:
+		return err
+	case <-ctx.Done():
+		stopSignals()
+		log.Println("server shutting down")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+		defer cancel()
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			return fmt.Errorf("shutdown: %w", err)
+		}
+		return <-serverErr
 	}
-	return nil
 }
 
 func requestsPerMinuteFromEnv(name string, defaultValue int) (int, error) {
@@ -335,6 +435,23 @@ func requestsPerMinuteFromEnv(name string, defaultValue int) (int, error) {
 		return 0, fmt.Errorf("invalid %s %q (must be non-negative)", name, raw)
 	}
 	return value, nil
+}
+
+// isProductionRuntime is a best-effort guard used only to hard-fail startup when
+// DEV_AUTH_ENABLED is left on in an environment that self-identifies as
+// production. It intentionally does NOT flip unset envs to "production": doing so
+// would block local dev (where these envs are commonly unset) and would trade a
+// startup failure for a false sense of safety. The real protection against dev
+// sessions in production is (a) never setting DEV_AUTH_ENABLED=true there, and
+// (b) isLocalDevRequest trusting only the server-observed r.Host, which is not a
+// loopback value on a public deployment. Keep both in place.
+func isProductionRuntime() bool {
+	for _, name := range []string{"APP_ENV", "GO_ENV", "ENV", "GIN_MODE"} {
+		if strings.EqualFold(strings.TrimSpace(os.Getenv(name)), "production") {
+			return true
+		}
+	}
+	return false
 }
 
 func parseCookieSameSite(raw string) (http.SameSite, error) {
@@ -386,18 +503,44 @@ func allowedOrigins(allowedOriginsRaw string) []string {
 	return origins
 }
 
-func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
-	allowed := make(map[string]struct{})
-	for _, o := range allowedOrigins {
-		o = strings.TrimSpace(o)
-		if o != "" {
-			allowed[o] = struct{}{}
+// warnOnCredentialedWildcardCORS logs a startup warning when the CORS config
+// combines wildcard origins (e.g. https://*.vercel.app) with credentialed
+// responses. corsMiddleware always returns Access-Control-Allow-Credentials:
+// true, so a wildcard host lets ANY matching subdomain (evil.vercel.app) make
+// credentialed cross-origin requests. That is only exploitable while an ambient
+// credential is in play — most dangerously a legacy `session` cookie with
+// COOKIE_SAME_SITE=none, which the browser attaches cross-site. The Supabase
+// Bearer path is not ambient and is unaffected.
+//
+// This is a non-breaking guardrail: preview deployments legitimately use
+// *.vercel.app, so we warn rather than reject. To eliminate the risk, list exact
+// preview origins in CORS_ALLOWED_ORIGINS instead of a wildcard, and avoid
+// COOKIE_SAME_SITE=none for session cookies.
+func warnOnCredentialedWildcardCORS(origins []string, cookieSameSite string) {
+	var wildcards []string
+	for _, o := range origins {
+		if strings.Contains(o, "*.") {
+			wildcards = append(wildcards, o)
 		}
 	}
+	if len(wildcards) == 0 {
+		return
+	}
+	log.Printf("security warning: credentialed CORS allows wildcard origin(s) %s; "+
+		"any matching subdomain can send cookie/credentialed requests. Prefer exact "+
+		"origins in CORS_ALLOWED_ORIGINS for credentialed paths.", strings.Join(wildcards, ", "))
+	if strings.EqualFold(strings.TrimSpace(cookieSameSite), "none") {
+		log.Printf("security warning: COOKIE_SAME_SITE=none combined with wildcard CORS " +
+			"origins exposes legacy session cookies to cross-site theft from any matching " +
+			"subdomain; use exact origins or SameSite=lax/strict for the session cookie.")
+	}
+}
+
+func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
-			if _, ok := allowed[origin]; ok && origin != "" {
+			if origin != "" && middleware.OriginAllowed(origin, allowedOrigins) {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
 				w.Header().Set("Vary", "Origin")
@@ -414,4 +557,26 @@ func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func stripPathPrefixMiddleware(prefix string) func(http.Handler) http.Handler {
+	prefix = "/" + strings.Trim(strings.TrimSpace(prefix), "/")
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			path := r.URL.Path
+			if path == prefix {
+				r = cloneRequestWithPath(r, "/")
+			} else if strings.HasPrefix(path, prefix+"/") {
+				r = cloneRequestWithPath(r, strings.TrimPrefix(path, prefix))
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func cloneRequestWithPath(r *http.Request, path string) *http.Request {
+	clone := r.Clone(r.Context())
+	clone.URL.Path = path
+	clone.URL.RawPath = ""
+	return clone
 }

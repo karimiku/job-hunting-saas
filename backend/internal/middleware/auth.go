@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/karimiku/job-hunting-saas/internal/devsession"
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
@@ -101,6 +102,17 @@ func NewAuthWithBearer(
 	extIDRepo repository.ExternalIdentityRepository,
 	bearerVerifier BearerTokenVerifier,
 ) func(http.Handler) http.Handler {
+	return NewAuthWithBearerAndDevSession(fbAuth, extIDRepo, bearerVerifier, "")
+}
+
+// NewAuthWithBearerAndDevSession は開発専用の署名付き session cookie も受け付ける。
+// devSessionSecret が空なら通常の Firebase Session Cookie 検証だけを行う。
+func NewAuthWithBearerAndDevSession(
+	fbAuth FirebaseSessionVerifier,
+	extIDRepo repository.ExternalIdentityRepository,
+	bearerVerifier BearerTokenVerifier,
+	devSessionSecret string,
+) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -110,7 +122,7 @@ func NewAuthWithBearer(
 				userID, ok, err := verifyBearer(ctx, header, bearerVerifier)
 				addServerTimingSince(ctx, "auth_bearer", startedAt)
 				if err != nil {
-					if errors.Is(err, value.ErrAIAccessTokenInvalid) {
+					if isInvalidBearerTokenError(err) {
 						http.Error(w, "unauthenticated", http.StatusUnauthorized)
 						return
 					}
@@ -129,6 +141,16 @@ func NewAuthWithBearer(
 
 			cookie, err := r.Cookie(SessionCookieName)
 			if err != nil || cookie.Value == "" {
+				http.Error(w, "unauthenticated", http.StatusUnauthorized)
+				return
+			}
+
+			if userID, ok := devsession.Verify(cookie.Value, devSessionSecret); ok {
+				ctx = SetAuthMethod(SetUserID(ctx, userID), AuthMethodSession)
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
+			}
+			if fbAuth == nil {
 				http.Error(w, "unauthenticated", http.StatusUnauthorized)
 				return
 			}
@@ -162,6 +184,35 @@ func NewAuthWithBearer(
 	}
 }
 
+// NewChainedBearerTokenVerifier は複数の Bearer verifier を順番に試す。
+func NewChainedBearerTokenVerifier(verifiers ...BearerTokenVerifier) BearerTokenVerifier {
+	filtered := make([]BearerTokenVerifier, 0, len(verifiers))
+	for _, verifier := range verifiers {
+		if verifier != nil {
+			filtered = append(filtered, verifier)
+		}
+	}
+	return chainedBearerTokenVerifier{verifiers: filtered}
+}
+
+type chainedBearerTokenVerifier struct {
+	verifiers []BearerTokenVerifier
+}
+
+func (v chainedBearerTokenVerifier) VerifyBearerToken(ctx context.Context, rawToken string) (entity.UserID, error) {
+	for _, verifier := range v.verifiers {
+		userID, err := verifier.VerifyBearerToken(ctx, rawToken)
+		if err == nil {
+			return userID, nil
+		}
+		if isInvalidBearerTokenError(err) {
+			continue
+		}
+		return entity.UserID{}, err
+	}
+	return entity.UserID{}, value.ErrAuthTokenInvalid
+}
+
 func verifyBearer(ctx context.Context, header string, verifier BearerTokenVerifier) (entity.UserID, bool, error) {
 	const bearerPrefix = "Bearer "
 	if !strings.HasPrefix(header, bearerPrefix) {
@@ -176,4 +227,8 @@ func verifyBearer(ctx context.Context, header string, verifier BearerTokenVerifi
 		return entity.UserID{}, false, err
 	}
 	return userID, true, nil
+}
+
+func isInvalidBearerTokenError(err error) bool {
+	return errors.Is(err, value.ErrAuthTokenInvalid) || errors.Is(err, value.ErrAIAccessTokenInvalid)
 }

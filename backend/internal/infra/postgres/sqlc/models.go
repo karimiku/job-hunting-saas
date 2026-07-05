@@ -15,7 +15,8 @@ import (
 type AuthProvider string
 
 const (
-	AuthProviderGoogle AuthProvider = "google"
+	AuthProviderGoogle   AuthProvider = "google"
+	AuthProviderSupabase AuthProvider = "supabase"
 )
 
 func (e *AuthProvider) Scan(src interface{}) error {

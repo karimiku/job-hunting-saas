@@ -3,6 +3,7 @@ package middleware
 import (
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -10,6 +11,37 @@ import (
 )
 
 const defaultRateLimitMaxKeys = 4096
+
+// trustedProxyCount is how many trusted reverse-proxy hops sit in front of the
+// app. It selects which entry of X-Forwarded-For is the real client IP for rate
+// limiting: the value N hops from the right (0-indexed), i.e. the address the
+// outermost trusted proxy observed.
+//
+// Because XFF is fully attacker-controlled, an untrusted value must never be
+// used as a limiter key (a fresh IP per request bypasses the limit). The count
+// is therefore explicit, not guessed from the header length:
+//   - 0 (default, safe): ignore XFF/X-Real-IP entirely and key on RemoteAddr,
+//     the immediate TCP peer. Correct when the app is exposed directly.
+//   - N>=1: trust exactly N proxies and take the (N-1)-th value from the right.
+//
+// OPERATIONAL NOTE: set TRUSTED_PROXY_COUNT to the exact number of hops that
+// prepend a *verified* client IP for this deployment (e.g. Cloud Run in front of
+// the app is 1; a Vercel/CDN edge plus Cloud Run may be 2). Setting it larger
+// than the real hop count re-opens the spoofing bypass; the default of 0 fails
+// closed.
+var trustedProxyCount = trustedProxyCountFromEnv()
+
+func trustedProxyCountFromEnv() int {
+	raw := strings.TrimSpace(os.Getenv("TRUSTED_PROXY_COUNT"))
+	if raw == "" {
+		return 0
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n < 0 {
+		return 0
+	}
+	return n
+}
 
 type rateLimitEntry struct {
 	windowStart time.Time
@@ -132,25 +164,46 @@ func retryAfterSeconds(d time.Duration) int {
 }
 
 func clientIPFromRequest(r *http.Request) string {
+	return clientIPWithTrustedProxies(r, trustedProxyCount)
+}
+
+// clientIPWithTrustedProxies resolves the rate-limiting client IP given how many
+// trusted reverse-proxy hops sit in front of the app. See trustedProxyCount for
+// why forwarded headers are only trusted when trustedHops >= 1.
+func clientIPWithTrustedProxies(r *http.Request, trustedHops int) string {
 	if r == nil {
 		return ""
 	}
 
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+	// When no proxy is trusted, forwarded headers are attacker-controlled and
+	// must be ignored; the immediate TCP peer is the only reliable key.
+	if trustedHops <= 0 {
+		return remoteAddrIP(r)
+	}
+
+	// XFF is "client, proxy1, proxy2, ...": the value trustedHops from the right
+	// is what the outermost trusted proxy observed as the client. A shorter list
+	// than expected means the request did not traverse the trusted chain, so we
+	// fail closed to the direct peer rather than trusting a client-supplied value.
+	if xff := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); xff != "" {
 		parts := strings.Split(xff, ",")
-		for i := len(parts) - 1; i >= 0; i-- {
-			if ip := net.ParseIP(strings.TrimSpace(parts[i])); ip != nil {
+		if idx := len(parts) - trustedHops; idx >= 0 {
+			if ip := net.ParseIP(strings.TrimSpace(parts[idx])); ip != nil {
 				return ip.String()
 			}
 		}
 	}
 
+	// X-Real-IP is a single value set by the nearest trusted proxy.
 	if ip := net.ParseIP(strings.TrimSpace(r.Header.Get("X-Real-IP"))); ip != nil {
 		return ip.String()
 	}
 
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err == nil {
+	return remoteAddrIP(r)
+}
+
+func remoteAddrIP(r *http.Request) string {
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
 		if ip := net.ParseIP(host); ip != nil {
 			return ip.String()
 		}

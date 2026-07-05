@@ -447,6 +447,35 @@ func TestProtectedRoutes_Registered(t *testing.T) {
 	}
 }
 
+// Firebase 未設定（firebaseAuth == nil）でも LogoutRoute だけは安全に登録・呼び出しできる
+// ことを確認する。main.go は Firebase 未設定時に LoginRoute を呼ばないので、
+// nil の firebaseAuth に対して CreateSession が呼ばれる経路は存在しない。
+func TestLogoutRoute_Registered_WithoutFirebase(t *testing.T) {
+	h, _ := setupAuthHandler() // firebaseAuth == nil
+	r := chi.NewRouter()
+	h.LogoutRoute(r)
+
+	if !routeExists(r, http.MethodDelete, "/auth/session") {
+		t.Error("DELETE /auth/session should be registered")
+	}
+	if routeExists(r, http.MethodPost, "/auth/session") {
+		t.Error("POST /auth/session should NOT be registered by LogoutRoute alone")
+	}
+}
+
+func TestLoginRoute_Registered(t *testing.T) {
+	h, _ := setupAuthHandler()
+	r := chi.NewRouter()
+	h.LoginRoute(r)
+
+	if !routeExists(r, http.MethodPost, "/auth/session") {
+		t.Error("POST /auth/session should be registered")
+	}
+	if routeExists(r, http.MethodDelete, "/auth/session") {
+		t.Error("DELETE /auth/session should NOT be registered by LoginRoute alone")
+	}
+}
+
 func routeExists(r chi.Router, method, path string) bool {
 	tctx := chi.NewRouteContext()
 	return r.Match(tctx, method, path)

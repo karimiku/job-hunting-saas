@@ -116,19 +116,31 @@ make mcp-server
 
 `append_es_memo` と `create_task` は `confirm: true` を渡したときだけDBへ保存する。`list_inbox_clips` と `list_es_memos` で保存箱・ESメモを参照できる。`capture_job_email` はメール本文をルールベースで構造化し、LLM APIは呼ばない。
 
-### 認証 / Chrome拡張向け Cookie 設定
+### 認証 / Chrome拡張向け API 設定
 
-認証ありで起動する場合は `DATABASE_URL` に加えて Firebase 設定が必要。`DATABASE_URL` を設定すると PostgreSQL、未設定だと InMemory リポジトリで起動する。
+認証ありで起動する場合は `DATABASE_URL` に加えて `SUPABASE_AUTH_ISSUER` または legacy rollback 用の `FIREBASE_PROJECT_ID` が必要。`DATABASE_URL` を設定すると PostgreSQL、未設定だと InMemory リポジトリで起動する。
 
 | 変数 | 用途 | 既定 / 例 |
 | --- | --- | --- |
 | `PORT` | API ポート | `8080` |
 | `DATABASE_URL` | 設定で PostgreSQL、未設定で InMemory | `postgres://postgres:postgres@localhost:15432/job_hunting_dev` |
-| `FIREBASE_PROJECT_ID` | Firebase プロジェクト ID（認証に必須） | `your-project-id` |
-| `FIREBASE_CREDENTIALS_FILE` | service account JSON のパス | `./secrets/service-account.json` |
-| `CORS_ALLOWED_ORIGINS` | カンマ区切りの許可 origin（Web + 拡張） | `http://localhost:3000,chrome-extension://<extension-id>` |
+| `SUPABASE_AUTH_ISSUER` | Supabase Auth issuer。Bearer JWT 検証に使用 | `https://<project-ref>.supabase.co/auth/v1` |
+| `SUPABASE_JWKS_URL` | Supabase JWKS URL。未設定なら issuer から導出 | `https://<project-ref>.supabase.co/auth/v1/.well-known/jwks.json` |
+| `SUPABASE_JWT_AUDIENCE` | Supabase access token audience | `authenticated` |
+| `PGPOOL_MAX_CONNS` | container 1台あたりの pgxpool 最大接続数。autoscale 前提では小さく保つ | `4` |
+| `PGPOOL_MIN_CONNS` | 起動時に維持する最小接続数 | `0` |
+| `PGPOOL_MAX_CONN_IDLE_TIME` | idle 接続を閉じるまでの時間 | `60s` |
+| `PGPOOL_MAX_CONN_LIFETIME` | 接続の最大寿命 | `30m` |
+| `PGPOOL_HEALTH_CHECK_PERIOD` | pgxpool health check 間隔 | `30s` |
+| `PGX_DEFAULT_QUERY_EXEC_MODE` | Supabase transaction pooler 用に statement cache を避ける | `exec` |
+| `PGAPPNAME` | Supabase 側の接続監視に出す application_name | `job-hunting-saas-api` |
+| `FIREBASE_PROJECT_ID` | rollback 期間だけ使う Firebase プロジェクト ID | 未設定 |
+| `FIREBASE_CREDENTIALS_FILE` | rollback 期間だけ使う service account JSON のパス | 未設定 |
+| `CORS_ALLOWED_ORIGINS` | カンマ区切りの許可 origin（Web + 拡張）。Vercel preview は `https://*.vercel.app` を使える | `http://localhost:3000,https://*.vercel.app,chrome-extension://<extension-id>` |
 | `COOKIE_SECURE` | 本番 HTTPS は `true`、localhost は `false` | `false` |
-| `COOKIE_SAME_SITE` | `lax` / `strict` / `none`。拡張から Cookie を送る本番は `none`。`none` は Origin/Referer CSRF 検証とセットで使う | `lax` |
+| `COOKIE_SAME_SITE` | legacy session cookie / dev auth cookie 用。`lax` / `strict` / `none` | `lax` |
+| `DEV_AUTH_ENABLED` | `true` で localhost 専用の `/dev/session` を有効化。Codex内ブラウザ等のローカルUI確認用 | 未設定 |
+| `DEV_AUTH_SECRET` | 開発用 session cookie 署名鍵。未設定なら起動ごとに自動生成 | 未設定 |
 | `RATE_LIMIT_GLOBAL_REQUESTS_PER_MINUTE` | IPごとの全体レート制限。`0` で無効 | `30` |
 | `RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE` | IPごとの `/auth/session` レート制限。`0` で無効 | `5` |
 | `RATE_LIMIT_AUTHENTICATED_REQUESTS_PER_MINUTE` | ログインユーザーごとのAPIレート制限。`0` で無効 | `60` |
@@ -136,10 +148,14 @@ make mcp-server
 
 > ⚠️ service account JSON と `.env` はコミットしない（`.gitignore` 済みであることを確認）。secret 値そのものを README に書かないこと。
 
-Chrome拡張から認証付きで API を呼ぶ本番 HTTPS 環境では、拡張の origin を `CORS_ALLOWED_ORIGINS` に追加し、Cookie を cross-site fetch に送れるようにする:
+Chrome拡張から認証付きで API を呼ぶ本番 HTTPS 環境では、拡張の origin を `CORS_ALLOWED_ORIGINS` に追加する。Web frontend は Supabase access token を `Authorization: Bearer` として送る。拡張側の Supabase token 対応は migration issue #228 で別途確認する。
 
 ```bash
-FIREBASE_PROJECT_ID=your-project-id
+SUPABASE_AUTH_ISSUER=https://<project-ref>.supabase.co/auth/v1
+SUPABASE_JWKS_URL=https://<project-ref>.supabase.co/auth/v1/.well-known/jwks.json
+DATABASE_URL=postgres://postgres.<project-ref>:<password>@aws-<region>.pooler.supabase.com:6543/postgres?sslmode=require
+PGPOOL_MAX_CONNS=4
+PGX_DEFAULT_QUERY_EXEC_MODE=exec
 CORS_ALLOWED_ORIGINS=https://your-web-app.example,chrome-extension://<extension-id>
 COOKIE_SECURE=true
 COOKIE_SAME_SITE=none
@@ -147,6 +163,8 @@ COOKIE_SAME_SITE=none
 
 - **local (HTTP)**: `COOKIE_SECURE=false` / `COOKIE_SAME_SITE=lax`
 - **本番 (HTTPS)**: `COOKIE_SECURE=true` / `COOKIE_SAME_SITE=none`。`CORS_ALLOWED_ORIGINS` は CORS と CSRF Origin/Referer 検証の allowlist を兼ねる。
+
+ローカルでGoogleログインやパスキーを使わずUI確認したい場合は、backendに `DEV_AUTH_ENABLED=true` を設定して起動し、frontendの `/dev/login` を開く。`DEV_AUTH_ENABLED=true` は production 系の環境変数 (`APP_ENV=production` 等) では起動時に拒否される。
 
 backend / frontend / 拡張をまたぐ通し手順と拡張 ID の確認方法は、ルート [README.md](../README.md) の「β環境セットアップ」を参照。
 
