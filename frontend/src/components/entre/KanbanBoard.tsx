@@ -417,18 +417,24 @@ function CardContent({
   const badge = nextTaskBadgeLabel(nextTask);
   return (
     <>
-      <div className="mb-1.5 truncate text-[12px] font-bold">{companyDisplayName(entry)}</div>
+      <div
+        className="mb-1.5 truncate text-[12px] font-bold"
+        title={companyDisplayName(entry)}
+      >
+        {companyDisplayName(entry)}
+      </div>
       <div className="mb-1.5 flex min-w-0">
         <span
-          className={`max-w-full truncate rounded border border-line bg-surface px-1.5 py-0.5 text-[12px] font-bold ${
+          title={badge ?? undefined}
+          className={`block w-full break-words rounded border border-line bg-surface px-1.5 py-0.5 text-[11px] font-bold leading-snug ${
             badge ? "text-ink-3" : "text-ink-3/60"
           }`}
         >
           {badge ?? "予定なし"}
         </span>
       </div>
-      <div className="flex justify-between gap-2 text-[12px] text-ink-3">
-        <span className="truncate">
+      <div className="flex justify-between gap-2 text-[11px] text-ink-3">
+        <span className="truncate" title={`${entry.route} · ${entry.source}`}>
           {entry.route} · {entry.source}
         </span>
         <span aria-hidden>⇆</span>
