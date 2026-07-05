@@ -3,7 +3,17 @@
 import { useMemo, useState } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { Check, Copy, EyeOff, HelpCircle, KeyRound, ShieldCheck, Trash2, X } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Copy,
+  EyeOff,
+  HelpCircle,
+  KeyRound,
+  ShieldCheck,
+  Trash2,
+  X,
+} from "lucide-react";
 import {
   createAiAccessTokenAction,
   revokeAiAccessTokenAction,
@@ -27,81 +37,110 @@ export function AiAccessTokenPanel({
     CREATE_INITIAL,
   );
   const [modalOpen, setModalOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const activeTokens = useMemo(
     () => tokens.filter((token) => !token.revokedAt),
     [tokens],
   );
 
   return (
-    <section className="min-w-0 overflow-hidden rounded-xl border border-line bg-surface p-5">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-center gap-2">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-sage-soft text-sage">
+    <section className="min-w-0 overflow-hidden rounded-xl border border-line bg-surface">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full min-w-0 items-center justify-between gap-3 p-5 text-left"
+      >
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-line-2 text-ink-3">
             <KeyRound size={17} aria-hidden />
           </span>
-          <div>
-            <h2 className="text-[13px] font-extrabold">AI連携トークン</h2>
-            <p className="mt-0.5 text-[11px] text-ink-3">
-              Claude / Codex / MCP
+          <div className="min-w-0">
+            <h2 className="text-[13px] font-extrabold text-ink-2">AI連携（上級者向け）</h2>
+            <p className="mt-0.5 text-[11px] text-ink-3">使わない場合は設定不要です</p>
+          </div>
+        </div>
+        <ChevronDown
+          size={16}
+          aria-hidden
+          className={`shrink-0 text-ink-3 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {open && (
+        <div className="min-w-0 border-t border-line p-5">
+          <p className="mb-4 text-[11px] leading-5 text-ink-3">
+            ※AIアシスタント（Claude等）と連携したい人向けの機能です。使わない場合はこのまま閉じて問題ありません。
+          </p>
+
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-center gap-2">
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-sage-soft text-sage">
+                <KeyRound size={17} aria-hidden />
+              </span>
+              <div>
+                <h3 className="text-[13px] font-extrabold">AI連携トークン</h3>
+                <p className="mt-0.5 text-[11px] text-ink-3">Claude / Codex / MCP</p>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="rounded-md bg-sage-wash px-2 py-1 font-mono text-[10px] font-bold text-sage">
+                {activeTokens.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => setModalOpen(true)}
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-line bg-white px-3 text-[11px] font-bold text-ink-2 transition-colors hover:bg-line-2"
+              >
+                <HelpCircle size={14} aria-hidden />
+                仕組み
+              </button>
+            </div>
+          </div>
+
+          {loadError ? (
+            <p className="mb-4 rounded-md bg-line-2 px-3 py-2 text-[11px] font-semibold text-ink-3">
+              {loadError}
             </p>
+          ) : (
+            <form action={createAction} className="mb-4 grid min-w-0 gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
+              <label className="min-w-0">
+                <span className="sr-only">トークン名（任意）</span>
+                <input
+                  name="name"
+                  defaultValue={createState.values?.name ?? ""}
+                  placeholder="名前なしでも作成できます"
+                  className="h-10 w-full rounded-lg border border-line bg-white px-3 text-[12px] font-semibold outline-none transition-colors focus:border-sage"
+                  maxLength={80}
+                />
+              </label>
+              <CreateButton />
+            </form>
+          )}
+
+          {createState.error && (
+            <p role="alert" className="mb-3 rounded-md bg-pink/40 px-3 py-2 text-[11px] font-semibold">
+              {createState.error}
+            </p>
+          )}
+
+          {createState.token && (
+            <IssuedToken token={createState.token} name={createState.accessToken?.name} />
+          )}
+
+          <div className="mt-4 min-w-0 divide-y divide-line rounded-lg border border-line bg-white">
+            {tokens.length === 0 ? (
+              <div className="px-3 py-4 text-[12px] font-semibold text-ink-3">
+                {loadError ? "いまは表示できません" : "まだ発行していません"}
+              </div>
+            ) : (
+              tokens.map((token) => <TokenRow key={token.id} token={token} />)
+            )}
           </div>
+
+          {modalOpen && <TokenHelpModal onClose={() => setModalOpen(false)} />}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <span className="rounded-md bg-sage-wash px-2 py-1 font-mono text-[10px] font-bold text-sage">
-            {activeTokens.length}
-          </span>
-          <button
-            type="button"
-            onClick={() => setModalOpen(true)}
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-line bg-white px-3 text-[11px] font-bold text-ink-2 transition-colors hover:bg-line-2"
-          >
-            <HelpCircle size={14} aria-hidden />
-            仕組み
-          </button>
-        </div>
-      </div>
-
-      {loadError ? (
-        <p role="alert" className="mb-4 rounded-md bg-pink/40 px-3 py-2 text-[11px] font-semibold text-pink-deep">
-          {loadError}
-        </p>
-      ) : (
-        <form action={createAction} className="mb-4 grid min-w-0 gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
-          <label className="min-w-0">
-            <span className="sr-only">トークン名（任意）</span>
-            <input
-              name="name"
-              defaultValue={createState.values?.name ?? ""}
-              placeholder="名前なしでも作成できます"
-              className="h-10 w-full rounded-lg border border-line bg-white px-3 text-[12px] font-semibold outline-none transition-colors focus:border-sage"
-              maxLength={80}
-            />
-          </label>
-          <CreateButton />
-        </form>
       )}
-
-      {createState.error && (
-        <p role="alert" className="mb-3 rounded-md bg-pink/40 px-3 py-2 text-[11px] font-semibold">
-          {createState.error}
-        </p>
-      )}
-
-      {createState.token && (
-        <IssuedToken token={createState.token} name={createState.accessToken?.name} />
-      )}
-
-      <div className="mt-4 min-w-0 divide-y divide-line rounded-lg border border-line bg-white">
-        {tokens.length === 0 ? (
-          <div className="px-3 py-4 text-[12px] font-semibold text-ink-3">
-            {loadError ? "読み込み待ちです" : "まだありません"}
-          </div>
-        ) : (
-          tokens.map((token) => <TokenRow key={token.id} token={token} />)
-        )}
-      </div>
-
-      {modalOpen && <TokenHelpModal onClose={() => setModalOpen(false)} />}
     </section>
   );
 }
