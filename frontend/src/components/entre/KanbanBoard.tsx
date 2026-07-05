@@ -20,6 +20,7 @@ import {
   entrySourceUrl,
   type EntryResponse,
 } from "@/lib/api/entries";
+import type { TaskWithEntry } from "@/lib/api/server-resources";
 import { updateEntryAction } from "@/app/entry/actions";
 import {
   KANBAN_STAGE_COLOR,
@@ -38,6 +39,44 @@ const COLUMNS = KANBAN_STAGE_ORDER.map((kind) => ({
 
 interface Props {
   initialEntries: EntryResponse[];
+  tasks: TaskWithEntry[];
+}
+
+export interface NextTaskInfo {
+  title: string;
+  dueDate: string | null;
+}
+
+/** entryId に紐づく未完了タスクのうち、dueDate が現在時刻に最も近いものを返す。
+ *  dueDate なし・完了済みは対象外。候補がなければ null。 */
+export function nextTaskFor(
+  entryId: string,
+  tasks: TaskWithEntry[],
+  now: Date = new Date(),
+): NextTaskInfo | null {
+  const nowMs = now.getTime();
+  let nearest: TaskWithEntry | null = null;
+  let nearestDiff = Number.POSITIVE_INFINITY;
+
+  for (const task of tasks) {
+    if (task.entryId !== entryId || task.status === "done" || !task.dueDate) continue;
+    const dueMs = new Date(task.dueDate).getTime();
+    if (Number.isNaN(dueMs)) continue;
+    const diff = Math.abs(dueMs - nowMs);
+    if (diff < nearestDiff) {
+      nearest = task;
+      nearestDiff = diff;
+    }
+  }
+
+  return nearest ? { title: nearest.title, dueDate: nearest.dueDate } : null;
+}
+
+function nextTaskBadgeLabel(nextTask: NextTaskInfo | null | undefined): string | null {
+  if (!nextTask?.dueDate) return null;
+  const d = new Date(nextTask.dueDate);
+  if (Number.isNaN(d.getTime())) return null;
+  return `締切 ${d.getMonth() + 1}/${d.getDate()}（${nextTask.title}）`;
 }
 
 type EntryOverride = Pick<EntryResponse, "stageKind" | "stageLabel" | "status">;
@@ -48,7 +87,7 @@ type EntryOverride = Pick<EntryResponse, "stageKind" | "stageLabel" | "status">;
  *  Action 内の revalidatePath("/kanban") がレスポンスに更新済み RSC ツリーを含めるため
  *  router.refresh() は不要 (overrides は成功時に clear)。
  *  API 失敗時は overrides を消してロールバック。 */
-export function KanbanBoard({ initialEntries }: Props) {
+export function KanbanBoard({ initialEntries, tasks }: Props) {
   // entryId → 楽観的に上書きされたステージ情報。API 成功で消し、失敗で消してロールバック。
   const [overrides, setOverrides] = useState<Record<string, EntryOverride>>({});
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -74,6 +113,11 @@ export function KanbanBoard({ initialEntries }: Props) {
     if (!byKind.has(key)) byKind.set(key, []);
     byKind.get(key)!.push(e);
   }
+
+  // entryId → 次の締切タスク。カード描画のたびに再計算しないよう1回だけ Map 化する。
+  const nextTaskByEntryId = new Map<string, NextTaskInfo | null>(
+    entries.map((e) => [e.id, nextTaskFor(e.id, tasks)]),
+  );
 
   const activeEntry = activeId ? entries.find((e) => e.id === activeId) ?? null : null;
 
@@ -162,7 +206,12 @@ export function KanbanBoard({ initialEntries }: Props) {
 
       <div data-testid="kanban-mobile-list" className="flex flex-col gap-2.5 md:hidden">
         {COLUMNS.map((col) => (
-          <MobileKanbanSection key={col.kind} col={col} cards={byKind.get(col.kind) ?? []} />
+          <MobileKanbanSection
+            key={col.kind}
+            col={col}
+            cards={byKind.get(col.kind) ?? []}
+            nextTaskByEntryId={nextTaskByEntryId}
+          />
         ))}
       </div>
 
@@ -172,13 +221,24 @@ export function KanbanBoard({ initialEntries }: Props) {
         style={{ gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(10rem, 1fr))` }}
       >
         {COLUMNS.map((col) => (
-          <KanbanColumn key={col.kind} col={col} cards={byKind.get(col.kind) ?? []} activeId={activeId} />
+          <KanbanColumn
+            key={col.kind}
+            col={col}
+            cards={byKind.get(col.kind) ?? []}
+            activeId={activeId}
+            nextTaskByEntryId={nextTaskByEntryId}
+          />
         ))}
       </div>
 
       {/* DragOverlay は親の transform / overflow に影響されない portal 的な場所で描画される。 */}
       <DragOverlay dropAnimation={null}>
-        {activeEntry ? <KanbanCardPreview entry={activeEntry} /> : null}
+        {activeEntry ? (
+          <KanbanCardPreview
+            entry={activeEntry}
+            nextTask={nextTaskByEntryId.get(activeEntry.id) ?? null}
+          />
+        ) : null}
       </DragOverlay>
     </DndContext>
   );
@@ -187,9 +247,11 @@ export function KanbanBoard({ initialEntries }: Props) {
 function MobileKanbanSection({
   col,
   cards,
+  nextTaskByEntryId,
 }: {
   col: (typeof COLUMNS)[number];
   cards: EntryResponse[];
+  nextTaskByEntryId: Map<string, NextTaskInfo | null>;
 }) {
   return (
     <section className="rounded-xl border border-line bg-surface p-3">
@@ -213,7 +275,11 @@ function MobileKanbanSection({
                 prefetch={false}
                 className="block rounded-lg border border-line bg-cream p-2.5 transition-colors hover:border-sage"
               >
-                <CardContent entry={entry} showSourceLink={false} />
+                <CardContent
+                  entry={entry}
+                  nextTask={nextTaskByEntryId.get(entry.id) ?? null}
+                  showSourceLink={false}
+                />
               </Link>
             </li>
           ))}
@@ -227,10 +293,12 @@ function KanbanColumn({
   col,
   cards,
   activeId,
+  nextTaskByEntryId,
 }: {
   col: (typeof COLUMNS)[number];
   cards: EntryResponse[];
   activeId: string | null;
+  nextTaskByEntryId: Map<string, NextTaskInfo | null>;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.kind });
   return (
@@ -252,7 +320,12 @@ function KanbanColumn({
       </div>
       <ul className="flex flex-col gap-1.5 min-h-[60px]">
         {cards.map((c) => (
-          <KanbanCard key={c.id} entry={c} dragging={c.id === activeId} />
+          <KanbanCard
+            key={c.id}
+            entry={c}
+            dragging={c.id === activeId}
+            nextTask={nextTaskByEntryId.get(c.id) ?? null}
+          />
         ))}
         {cards.length === 0 && (
           <li className="rounded-md border border-dashed border-line p-2 text-center text-[12px] text-ink-3">
@@ -264,7 +337,15 @@ function KanbanColumn({
   );
 }
 
-function KanbanCard({ entry, dragging }: { entry: EntryResponse; dragging: boolean }) {
+function KanbanCard({
+  entry,
+  dragging,
+  nextTask,
+}: {
+  entry: EntryResponse;
+  dragging: boolean;
+  nextTask: NextTaskInfo | null;
+}) {
   const router = useRouter();
   const { attributes, listeners, setNodeRef } = useDraggable({ id: entry.id });
 
@@ -292,43 +373,51 @@ function KanbanCard({ entry, dragging }: { entry: EntryResponse; dragging: boole
       }}
       className="rounded-[10px] border border-line bg-cream p-2.5 transition-shadow hover:shadow-[0_6px_14px_-4px_rgba(0,0,0,0.15)] focus:outline-none focus:ring-2 focus:ring-sage"
     >
-      <CardContent entry={entry} />
+      <CardContent entry={entry} nextTask={nextTask} />
     </li>
   );
 }
 
 /** DragOverlay 内に描画される、ポインタ追従のゴーストカード。
  *  親 transform に影響されないので、どこにドラッグしてもズレない。 */
-function KanbanCardPreview({ entry }: { entry: EntryResponse }) {
+function KanbanCardPreview({
+  entry,
+  nextTask,
+}: {
+  entry: EntryResponse;
+  nextTask: NextTaskInfo | null;
+}) {
   return (
     <div
       style={{ cursor: "grabbing" }}
       className="rounded-[10px] border-[1.5px] border-sage bg-cream p-2.5 shadow-[0_12px_24px_-8px_rgba(79,110,88,0.4)]"
     >
-      <CardContent entry={entry} />
+      <CardContent entry={entry} nextTask={nextTask} />
     </div>
   );
 }
 
 function CardContent({
   entry,
+  nextTask,
   showSourceLink = true,
 }: {
   entry: EntryResponse;
+  nextTask?: NextTaskInfo | null;
   showSourceLink?: boolean;
 }) {
   const sourceUrl = entrySourceUrl(entry);
-  const stageKind = normalizeKanbanStageKind(entry.stageKind);
-  const stageLabel = entry.stageLabel || KANBAN_STAGE_LABEL[stageKind];
+  const badge = nextTaskBadgeLabel(nextTask);
   return (
     <>
       <div className="mb-1.5 truncate text-[12px] font-bold">{companyDisplayName(entry)}</div>
       <div className="mb-1.5 flex min-w-0">
         <span
-          className="max-w-full truncate rounded border border-line bg-surface px-1.5 py-0.5 text-[12px] font-bold text-ink-3"
-          style={{ borderColor: KANBAN_STAGE_COLOR[stageKind] }}
+          className={`max-w-full truncate rounded border border-line bg-surface px-1.5 py-0.5 text-[12px] font-bold ${
+            badge ? "text-ink-3" : "text-ink-3/60"
+          }`}
         >
-          {stageLabel}
+          {badge ?? "予定なし"}
         </span>
       </div>
       <div className="flex justify-between gap-2 text-[12px] text-ink-3">
