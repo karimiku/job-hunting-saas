@@ -19,6 +19,7 @@ import {
 } from "@/lib/api/entries";
 import { Confetti } from "./Confetti";
 import { TaskTemplateChips, type TaskTemplate } from "./TaskTemplateChips";
+import { DueDateQuickPicker } from "./DueDateQuickPicker";
 
 interface Props {
   initialTasks: TaskWithEntry[];
@@ -69,10 +70,32 @@ export function sortTasksForDisplay(tasks: TaskWithEntry[]): TaskWithEntry[] {
   });
 }
 
+export type TaskStatusFilter = "all" | "todo" | "week";
+
+// 今日〜7日以内 (両端含む) を「今週締切」とする。期日なし・8日後以降・超過は含めない。
+export function isDueThisWeek(dueDate: string | null, now: Date = new Date()): boolean {
+  if (!dueDate) return false;
+  const d = new Date(dueDate);
+  if (Number.isNaN(d.getTime())) return false;
+  const days = Math.floor((d.getTime() - now.getTime()) / 86_400_000);
+  return days >= 0 && days <= 7;
+}
+
+export function filterTasksByStatusFilter(
+  tasks: TaskWithEntry[],
+  filter: TaskStatusFilter,
+  now: Date = new Date(),
+): TaskWithEntry[] {
+  if (filter === "todo") return tasks.filter((task) => task.status !== "done");
+  if (filter === "week") return tasks.filter((task) => isDueThisWeek(task.dueDate, now));
+  return tasks;
+}
+
 export function TaskListView({ initialTasks, entries }: Props) {
   const [confetti, setConfetti] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [selectedEntryId, setSelectedEntryId] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<TaskStatusFilter>("all");
   const [isPending, startTransition] = useTransition();
   const [deletingIds, setDeletingIds] = useState<Record<string, boolean>>({});
   // 楽観更新用に「いまトグル中の taskId → 目標 status」を保持する。
@@ -129,10 +152,11 @@ export function TaskListView({ initialTasks, entries }: Props) {
   const allVisibleTasks = sortTasksForDisplay(initialTasks).filter(
     (task) => !deletingIds[task.id],
   );
-  const tasks =
+  const entryFilteredTasks =
     selectedEntryId === "all"
       ? allVisibleTasks
       : allVisibleTasks.filter((task) => task.entryId === selectedEntryId);
+  const tasks = filterTasksByStatusFilter(entryFilteredTasks, statusFilter);
   const groupedTasks = groupTasksByEntry(tasks, entryById);
   const remainingCount = tasks.filter(
     (task) => (optimistic[task.id] ?? task.status) === "todo",
@@ -166,6 +190,12 @@ export function TaskListView({ initialTasks, entries }: Props) {
               {remainingCount}件残り
             </span>
           </div>
+
+          <TaskStatusFilterChips
+            tasks={allVisibleTasks}
+            selected={statusFilter}
+            onSelect={setStatusFilter}
+          />
 
           <EntryTaskFilter
             entries={entries}
@@ -302,6 +332,48 @@ function TaskRow({
   );
 }
 
+const STATUS_FILTER_OPTIONS: { value: TaskStatusFilter; label: string }[] = [
+  { value: "all", label: "すべて" },
+  { value: "todo", label: "未完了のみ" },
+  { value: "week", label: "今週締切" },
+];
+
+function TaskStatusFilterChips({
+  tasks,
+  selected,
+  onSelect,
+}: {
+  tasks: TaskWithEntry[];
+  selected: TaskStatusFilter;
+  onSelect: (filter: TaskStatusFilter) => void;
+}) {
+  return (
+    <div className="-mx-5 overflow-x-auto px-5 md:mx-0 md:px-0">
+      <div className="flex min-w-max gap-1.5 pb-1">
+        {STATUS_FILTER_OPTIONS.map((option) => {
+          const selectedOption = selected === option.value;
+          const count = filterTasksByStatusFilter(tasks, option.value).length;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onSelect(option.value)}
+              aria-pressed={selectedOption}
+              className={`h-8 rounded-full border px-3 text-[12px] font-black transition-colors ${
+                selectedOption
+                  ? "border-sage bg-sage text-white"
+                  : "border-line bg-surface text-ink-3 hover:border-sage hover:text-sage"
+              }`}
+            >
+              {option.label} {count}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function EntryTaskFilter({
   entries,
   tasks,
@@ -412,11 +484,13 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
   // (useEffect は使わず、レンダー中に前回値と比較して同期する)。
   const [title, setTitle] = useState(values.title);
   const [type, setType] = useState(values.type);
+  const [dueDate, setDueDate] = useState(values.dueDate);
   const [syncedState, setSyncedState] = useState(state);
   if (syncedState !== state) {
     setSyncedState(state);
     setTitle(values.title);
     setType(values.type);
+    setDueDate(values.dueDate);
   }
 
   const applyTemplate = (template: TaskTemplate) => {
@@ -524,9 +598,13 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
                 name="dueDate"
                 type="date"
                 aria-label="期日"
-                defaultValue={values.dueDate}
+                value={dueDate}
+                onChange={(event) => setDueDate(event.target.value)}
                 className="h-9 w-full rounded-md border border-line bg-cream px-2.5 font-mono text-[12px] font-semibold outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
               />
+              <div className="mt-1.5">
+                <DueDateQuickPicker onSelect={setDueDate} />
+              </div>
             </label>
           </div>
 

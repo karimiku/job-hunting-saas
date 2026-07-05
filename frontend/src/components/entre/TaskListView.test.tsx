@@ -1,7 +1,14 @@
 import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { dueColor, dueLabel, sortTasksForDisplay, TaskListView } from "./TaskListView";
+import {
+  dueColor,
+  dueLabel,
+  filterTasksByStatusFilter,
+  isDueThisWeek,
+  sortTasksForDisplay,
+  TaskListView,
+} from "./TaskListView";
 import type { TaskWithEntry } from "@/lib/api/server-resources";
 import type { EntryResponse } from "@/lib/api/entries";
 
@@ -216,6 +223,84 @@ describe("TaskListView", () => {
     expect(fd.get("title")).toBe("一次面接");
   });
 
+  it("期日クイックボタンを押すと期日欄に基準日+N日が反映される", async () => {
+    const user = userEvent.setup();
+    render(<TaskListView initialTasks={[]} entries={[entry()]} />);
+
+    await user.click(screen.getByRole("button", { name: "+3日" }));
+    expect(screen.getByLabelText("期日")).toHaveValue("2026-05-30");
+
+    await user.click(screen.getByRole("button", { name: "+1週間" }));
+    expect(screen.getByLabelText("期日")).toHaveValue("2026-06-03");
+
+    await user.click(screen.getByRole("button", { name: "今日" }));
+    expect(screen.getByLabelText("期日")).toHaveValue("2026-05-27");
+  });
+
+  it("状態フィルタ「未完了のみ」で完了タスクを隠す", async () => {
+    const user = userEvent.setup();
+    render(
+      <TaskListView
+        initialTasks={[
+          task({ id: "t1", title: "ES提出", status: "todo" }),
+          task({ id: "t2", title: "一次面接", status: "done" }),
+        ]}
+        entries={[entry()]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "未完了のみ 1" }));
+
+    expect(screen.getByRole("link", { name: /ES提出/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /一次面接/ })).not.toBeInTheDocument();
+  });
+
+  it("状態フィルタ「今週締切」で今日〜7日以内のタスクだけ表示する", async () => {
+    const user = userEvent.setup();
+    render(
+      <TaskListView
+        initialTasks={[
+          task({ id: "t1", title: "ES提出", dueDate: "2026-05-27" }),
+          task({ id: "t2", title: "一次面接", dueDate: "2026-06-03" }),
+          task({ id: "t3", title: "最終面接", dueDate: "2026-06-04" }),
+          task({ id: "t4", title: "説明会", dueDate: null }),
+        ]}
+        entries={[entry()]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "今週締切 2" }));
+
+    expect(screen.getByRole("link", { name: /ES提出/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /一次面接/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /最終面接/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /説明会/ })).not.toBeInTheDocument();
+  });
+
+  it("会社フィルタと状態フィルタを併用できる", async () => {
+    const user = userEvent.setup();
+    render(
+      <TaskListView
+        initialTasks={[
+          task({ id: "t1", entryId: "e1", title: "ES提出", companyName: "○○商事", status: "todo" }),
+          task({ id: "t2", entryId: "e1", title: "説明会", companyName: "○○商事", status: "done" }),
+          task({ id: "t3", entryId: "e2", title: "一次面接", companyName: "△△銀行", status: "todo" }),
+        ]}
+        entries={[
+          entry({ id: "e1", companyName: "○○商事" }),
+          entry({ id: "e2", companyName: "△△銀行" }),
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /○○商事 2/ }));
+    await user.click(screen.getByRole("button", { name: "未完了のみ 2" }));
+
+    expect(screen.getByRole("link", { name: /ES提出/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /説明会/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /一次面接/ })).not.toBeInTheDocument();
+  });
+
   it("定型チップをタップするとタスク名と種類欄に反映される", async () => {
     const user = userEvent.setup();
     render(<TaskListView initialTasks={[]} entries={[entry()]} />);
@@ -289,5 +374,51 @@ describe("sortTasksForDisplay", () => {
     ]);
 
     expect(sorted.map((t) => t.id)).toEqual(["soon", "late", "none", "done"]);
+  });
+});
+
+describe("isDueThisWeek / filterTasksByStatusFilter", () => {
+  const now = new Date("2026-05-27T00:00:00Z");
+
+  it("期日なしは含めない", () => {
+    expect(isDueThisWeek(null, now)).toBe(false);
+  });
+
+  it("今日 (0日後) は含める", () => {
+    expect(isDueThisWeek("2026-05-27", now)).toBe(true);
+  });
+
+  it("7日後は含める", () => {
+    expect(isDueThisWeek("2026-06-03", now)).toBe(true);
+  });
+
+  it("8日後は含めない", () => {
+    expect(isDueThisWeek("2026-06-04", now)).toBe(false);
+  });
+
+  it("超過 (過去日) は含めない", () => {
+    expect(isDueThisWeek("2026-05-26", now)).toBe(false);
+  });
+
+  it("filter=todo は status!==done のタスクだけ残す", () => {
+    const tasks = [
+      task({ id: "a", status: "todo" }),
+      task({ id: "b", status: "done" }),
+    ];
+    expect(filterTasksByStatusFilter(tasks, "todo", now).map((t) => t.id)).toEqual(["a"]);
+  });
+
+  it("filter=week は今週締切のタスクだけ残す", () => {
+    const tasks = [
+      task({ id: "a", dueDate: "2026-05-27" }),
+      task({ id: "b", dueDate: "2026-06-04" }),
+      task({ id: "c", dueDate: null }),
+    ];
+    expect(filterTasksByStatusFilter(tasks, "week", now).map((t) => t.id)).toEqual(["a"]);
+  });
+
+  it("filter=all はすべて残す", () => {
+    const tasks = [task({ id: "a" }), task({ id: "b" })];
+    expect(filterTasksByStatusFilter(tasks, "all", now)).toEqual(tasks);
   });
 });

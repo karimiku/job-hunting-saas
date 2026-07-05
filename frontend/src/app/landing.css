@@ -303,6 +303,24 @@
   border-radius: 8px;
 }
 
+.lp-simple-diff {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 8px 32px 0;
+  text-align: center;
+}
+
+.lp-simple-diff p {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(16px, 2.2vw, 20px);
+  line-height: 1.75;
+}
+
+.lp-simple-diff strong {
+  color: var(--sage-deep);
+}
+
 .lp-simple-section {
   max-width: 1120px;
   margin: 0 auto;
@@ -592,6 +610,10 @@
     padding: 54px 20px;
   }
 
+  .lp-simple-diff {
+    padding: 0 20px;
+  }
+
   .lp-simple-flow,
   .lp-simple-screen,
   .lp-simple-screen.is-reverse {
@@ -614,7 +636,7 @@
   .lp-simple-screen-mobile {
     right: 10px;
     bottom: -34px;
-    width: min(42%, 230px);
+    width: min(52%, 260px);
   }
 
   .lp-simple-final {
@@ -641,16 +663,16 @@
   }
 
   .lp-simple-hero-visual {
-    padding-bottom: 82px;
+    padding-bottom: 20px;
   }
 
   .lp-simple-mobile-float {
     position: relative;
     right: auto;
     bottom: auto;
-    width: min(58vw, 220px);
+    width: min(72vw, 300px);
     min-width: 0;
-    margin: -70px 16px 0 auto;
+    margin: 20px 0 0 auto;
   }
 
   .lp-simple-flow-item {
@@ -658,13 +680,11 @@
     padding: 20px;
   }
 
-  .lp-simple-screen-shot {
-    padding-bottom: 68px;
-  }
-
   .lp-simple-screen-mobile {
-    width: 50%;
-    bottom: 0;
+    position: static;
+    width: min(68%, 300px);
+    margin: 16px auto 0;
+    transform: none;
   }
 
   .lp-legal-shell {

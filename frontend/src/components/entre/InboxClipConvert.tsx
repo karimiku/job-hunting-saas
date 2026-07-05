@@ -190,7 +190,7 @@ export function InboxClipConvert({
                   }}
                   className="h-3 w-3 accent-sage"
                 />
-                <span className="min-w-0 flex-1 truncate font-bold text-ink-2">
+                <span className="min-w-0 flex-1 break-words font-bold text-ink-2">
                   {company.name}
                 </span>
                 <span className="shrink-0 text-[12px] font-semibold text-sage">
@@ -345,7 +345,7 @@ function PreviewPill({
         {icon}
         {label}
       </div>
-      <div className="truncate text-[12px] font-bold text-ink-2">{value}</div>
+      <div className="break-words text-[12px] font-bold text-ink-2">{value}</div>
     </div>
   );
 }

@@ -46,11 +46,13 @@ export function InboxList({
                 <span className="truncate">{c.url}</span>
                 <ExternalLink size={10} className="shrink-0" aria-hidden />
               </a>
-              <div className="mt-1 flex items-center gap-2 text-[12px] text-ink-2">
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-ink-2">
                 <span className="rounded-sm bg-cream-2 px-1.5 py-0.5 font-bold">{c.source}</span>
-                <span>{formatRelative(c.capturedAt, renderedAt)}</span>
+                <span title={new Date(c.capturedAt).toLocaleString("ja-JP")}>
+                  {formatRelative(c.capturedAt, renderedAt)}
+                </span>
                 {c.guess ? (
-                  <span className="truncate text-sage">会社候補: {c.guess}</span>
+                  <span className="break-words text-sage">会社候補: {c.guess}</span>
                 ) : (
                   <span className="text-amber-700">会社名未検出</span>
                 )}
@@ -75,7 +77,12 @@ function formatRelative(iso: string, now: number): string {
   if (diffMin < 1) return "たった今";
   if (diffMin < 60) return `${diffMin}分前`;
   if (diffMin < 60 * 24) return `${Math.floor(diffMin / 60)}時間前`;
-  return `${Math.floor(diffMin / (60 * 24))}日前`;
+  if (diffMin < 60 * 24 * 7) return `${Math.floor(diffMin / (60 * 24))}日前`;
+
+  const sameYear = date.getFullYear() === new Date(now).getFullYear();
+  return sameYear
+    ? `${date.getMonth() + 1}/${date.getDate()}`
+    : `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
 }
 
 function EmptyState() {

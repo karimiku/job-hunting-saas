@@ -3,6 +3,7 @@
 // ここでは useEffect/useState を使わない。
 
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getAppPageDataServer } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { InboxList } from "@/components/entre/InboxList";
@@ -27,6 +28,14 @@ export default async function InboxPage() {
             <span className="text-[12px] font-semibold text-ink-3">保存中</span>
           </div>
         </header>
+
+        <p className="mb-4 rounded-lg border border-line bg-cream-2/60 px-3 py-2 text-[12px] leading-relaxed text-ink-3">
+          求人はChrome拡張で閲覧中のページをワンクリック保存するとここに集まります。急ぐ場合は
+          <Link href="/entry/new" prefetch={false} className="mx-1 font-bold text-sage hover:underline">
+            応募先を追加
+          </Link>
+          からWebで直接登録してもOKです。
+        </p>
 
         <InboxList clips={clips} companies={companies} />
       </div>
