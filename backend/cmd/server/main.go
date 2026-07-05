@@ -282,6 +282,7 @@ func run() error {
 		corsOriginsRaw = os.Getenv("CORS_ALLOWED_ORIGIN")
 	}
 	corsOrigins := allowedOrigins(corsOriginsRaw)
+	warnOnCredentialedWildcardCORS(corsOrigins, os.Getenv("COOKIE_SAME_SITE"))
 	globalRateLimit, err := requestsPerMinuteFromEnv("RATE_LIMIT_GLOBAL_REQUESTS_PER_MINUTE", 30)
 	if err != nil {
 		return err
@@ -409,6 +410,31 @@ func allowedOrigins(allowedOriginsRaw string) []string {
 		}
 	}
 	return origins
+}
+
+// warnOnCredentialedWildcardCORS logs a startup warning when a wildcard origin is
+// configured for credentialed CORS. Any matching subdomain (e.g. evil.vercel.app)
+// could then send cookie/credentialed requests; combined with SameSite=none the
+// legacy session cookie becomes cross-site theftable. Behavior is unchanged — this
+// only surfaces a misconfiguration risk that must be resolved at the ops layer.
+func warnOnCredentialedWildcardCORS(origins []string, cookieSameSite string) {
+	var wildcards []string
+	for _, o := range origins {
+		if strings.Contains(o, "*.") {
+			wildcards = append(wildcards, o)
+		}
+	}
+	if len(wildcards) == 0 {
+		return
+	}
+	log.Printf("security warning: credentialed CORS allows wildcard origin(s) %s; "+
+		"any matching subdomain can send cookie/credentialed requests. Prefer exact "+
+		"origins in CORS_ALLOWED_ORIGINS for credentialed paths.", strings.Join(wildcards, ", "))
+	if strings.EqualFold(strings.TrimSpace(cookieSameSite), "none") {
+		log.Printf("security warning: COOKIE_SAME_SITE=none combined with wildcard CORS " +
+			"origins exposes legacy session cookies to cross-site theft from any matching " +
+			"subdomain; use exact origins or SameSite=lax/strict for the session cookie.")
+	}
 }
 
 func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
