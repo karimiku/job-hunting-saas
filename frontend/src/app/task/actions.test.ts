@@ -11,6 +11,7 @@ vi.mock("next/cache", () => ({ revalidatePath }));
 import {
   createTaskFromTaskPageAction,
   deleteTaskAction,
+  rescheduleTaskAction,
   setTaskStatusAction,
 } from "./actions";
 
@@ -88,6 +89,29 @@ describe("task actions", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/task");
     expect(revalidatePath).toHaveBeenCalledWith("/task/t1");
     expect(revalidatePath).toHaveBeenCalledWith("/entry/e1");
+  });
+
+  it("rescheduleTaskAction は dueDate を PATCH する", async () => {
+    serverFetch.mockResolvedValue({ dueDate: "2026-06-06T00:00:00.000Z" });
+
+    const result = await rescheduleTaskAction("t1", "2026-06-06", "e1");
+
+    expect(result).toEqual({ ok: true, dueDate: "2026-06-06T00:00:00.000Z" });
+    expect(serverFetch).toHaveBeenCalledWith("/api/v1/tasks/t1", {
+      method: "PATCH",
+      body: JSON.stringify({ dueDate: "2026-06-06T00:00:00.000Z" }),
+    });
+    expect(revalidatePath).toHaveBeenCalledWith("/task");
+    expect(revalidatePath).toHaveBeenCalledWith("/task/t1");
+    expect(revalidatePath).toHaveBeenCalledWith("/entry/e1");
+  });
+
+  it("rescheduleTaskAction は失敗時にエラーメッセージを返す", async () => {
+    serverFetch.mockRejectedValue(new Error("network"));
+
+    const result = await rescheduleTaskAction("t1", "2026-06-06", "e1");
+
+    expect(result).toEqual({ ok: false, error: "タスクの延期に失敗しました" });
   });
 
   it("deleteTaskAction は task を DELETE して関連画面を revalidate する", async () => {
