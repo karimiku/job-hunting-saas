@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import {
   KanbanBoard,
   kanbanStageUpdateInput,
@@ -65,6 +65,22 @@ describe("KanbanBoard", () => {
   it("0件の列は励ましトーンのコピーを表示する", () => {
     render(<KanbanBoard initialEntries={[e("application", "リクナビ")]} tasks={[]} />);
     expect(screen.getAllByText("まだこの段階の応募先はありません").length).toBeGreaterThan(0);
+  });
+
+  it("スマホの0件セクションは見出しと件数のみの1行表示に簡素化する", () => {
+    render(<KanbanBoard initialEntries={[e("application", "リクナビ")]} tasks={[]} />);
+    const mobileList = screen.getByTestId("kanban-mobile-list");
+    expect(
+      within(mobileList).queryByText("まだこの段階の応募先はありません"),
+    ).not.toBeInTheDocument();
+    expect(within(mobileList).getByText("面接")).toBeInTheDocument();
+  });
+
+  it("スマホのボード上部にタップでフェーズ変更できるヒントを表示する", () => {
+    render(<KanbanBoard initialEntries={[e("application", "リクナビ")]} tasks={[]} />);
+    expect(
+      screen.getByText("カードをタップすると詳細でフェーズを変更できます"),
+    ).toBeInTheDocument();
   });
 
   it("カードはキーボード操作可能な role=button として描画される", () => {

@@ -21,6 +21,19 @@ export interface RescheduleTaskResult {
   error?: string;
 }
 
+export interface UpdateTaskActionInput {
+  title?: string;
+  type?: TaskResponse["type"];
+  dueDate?: string | null;
+  memo?: string;
+}
+
+export interface UpdateTaskResult {
+  ok: boolean;
+  task?: TaskResponse;
+  error?: string;
+}
+
 export interface DeleteTaskResult {
   ok: boolean;
   error?: string;
@@ -97,6 +110,39 @@ export async function rescheduleTaskAction(
     return { ok: true, dueDate: updated.dueDate };
   } catch {
     return { ok: false, error: "タスクの延期に失敗しました" };
+  }
+}
+
+// 編集フォームからのまとめて更新。dueDate は "YYYY-MM-DD" または null (クリア) を受け取る。
+export async function updateTaskAction(
+  taskId: string,
+  input: UpdateTaskActionInput,
+  entryId?: string,
+): Promise<UpdateTaskResult> {
+  const body: {
+    title?: string;
+    type?: TaskResponse["type"];
+    dueDate?: string | null;
+    memo?: string;
+  } = {};
+  if (input.title !== undefined) body.title = input.title;
+  if (input.type !== undefined) body.type = input.type;
+  if (input.memo !== undefined) body.memo = input.memo;
+  if (input.dueDate !== undefined) {
+    body.dueDate = input.dueDate ? `${input.dueDate}T00:00:00.000Z` : null;
+  }
+
+  try {
+    const updated = await serverFetch<TaskResponse>(`/api/v1/tasks/${taskId}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+    revalidatePath("/task");
+    revalidatePath(`/task/${taskId}`);
+    if (entryId) revalidatePath(`/entry/${entryId}`);
+    return { ok: true, task: updated };
+  } catch {
+    return { ok: false, error: "タスクの更新に失敗しました" };
   }
 }
 

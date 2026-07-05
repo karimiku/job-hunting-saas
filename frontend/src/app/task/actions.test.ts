@@ -13,6 +13,7 @@ import {
   deleteTaskAction,
   rescheduleTaskAction,
   setTaskStatusAction,
+  updateTaskAction,
 } from "./actions";
 
 function form(fields: Record<string, string>): FormData {
@@ -112,6 +113,57 @@ describe("task actions", () => {
     const result = await rescheduleTaskAction("t1", "2026-06-06", "e1");
 
     expect(result).toEqual({ ok: false, error: "タスクの延期に失敗しました" });
+  });
+
+  it("updateTaskAction はタイトル・種類・期日・メモをまとめて PATCH する", async () => {
+    serverFetch.mockResolvedValue({ dueDate: "2026-06-10T00:00:00.000Z" });
+
+    const result = await updateTaskAction(
+      "t1",
+      {
+        title: "ES提出（修正）",
+        type: "schedule",
+        dueDate: "2026-06-10",
+        memo: "誤字を直した",
+      },
+      "e1",
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      task: { dueDate: "2026-06-10T00:00:00.000Z" },
+    });
+    expect(serverFetch).toHaveBeenCalledWith("/api/v1/tasks/t1", {
+      method: "PATCH",
+      body: JSON.stringify({
+        title: "ES提出（修正）",
+        type: "schedule",
+        memo: "誤字を直した",
+        dueDate: "2026-06-10T00:00:00.000Z",
+      }),
+    });
+    expect(revalidatePath).toHaveBeenCalledWith("/task");
+    expect(revalidatePath).toHaveBeenCalledWith("/task/t1");
+    expect(revalidatePath).toHaveBeenCalledWith("/entry/e1");
+  });
+
+  it("updateTaskAction は dueDate に null を渡すと期日をクリアする", async () => {
+    serverFetch.mockResolvedValue({ dueDate: null });
+
+    await updateTaskAction("t1", { dueDate: null });
+
+    expect(serverFetch).toHaveBeenCalledWith("/api/v1/tasks/t1", {
+      method: "PATCH",
+      body: JSON.stringify({ dueDate: null }),
+    });
+  });
+
+  it("updateTaskAction は失敗時にエラーメッセージを返す", async () => {
+    serverFetch.mockRejectedValue(new Error("network"));
+
+    const result = await updateTaskAction("t1", { title: "x" });
+
+    expect(result).toEqual({ ok: false, error: "タスクの更新に失敗しました" });
   });
 
   it("deleteTaskAction は task を DELETE して関連画面を revalidate する", async () => {

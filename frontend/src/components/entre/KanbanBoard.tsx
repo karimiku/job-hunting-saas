@@ -204,6 +204,9 @@ export function KanbanBoard({ initialEntries, tasks }: Props) {
         </p>
       )}
 
+      <p className="mb-2 text-[11px] text-ink-3/80 md:hidden">
+        カードをタップすると詳細でフェーズを変更できます
+      </p>
       <div data-testid="kanban-mobile-list" className="flex flex-col gap-2.5 md:hidden">
         {COLUMNS.map((col) => (
           <MobileKanbanSection
@@ -253,6 +256,16 @@ function MobileKanbanSection({
   cards: EntryResponse[];
   nextTaskByEntryId: Map<string, NextTaskInfo | null>;
 }) {
+  if (cards.length === 0) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg bg-cream/60 px-3 py-1.5">
+        <span className="block h-1.5 w-1.5 rounded-full" style={{ background: col.color }} />
+        <span className="text-[12px] font-bold text-ink-3">{col.label}</span>
+        <span className="ml-auto font-mono text-[11px] text-ink-3/70">{cards.length}</span>
+      </div>
+    );
+  }
+
   return (
     <section className="rounded-xl border border-line bg-surface p-3">
       <div className="mb-2 flex items-center gap-2">
@@ -262,29 +275,23 @@ function MobileKanbanSection({
           {cards.length}
         </span>
       </div>
-      {cards.length === 0 ? (
-        <p className="rounded-md border border-dashed border-line bg-cream px-3 py-3 text-center text-[12px] text-ink-3">
-          まだこの段階の応募先はありません
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-1.5">
-          {cards.map((entry) => (
-            <li key={entry.id}>
-              <Link
-                href={`/entry/${entry.id}`}
-                prefetch={false}
-                className="block rounded-lg border border-line bg-cream p-2.5 transition-colors hover:border-sage"
-              >
-                <CardContent
-                  entry={entry}
-                  nextTask={nextTaskByEntryId.get(entry.id) ?? null}
-                  showSourceLink={false}
-                />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul className="flex flex-col gap-1.5">
+        {cards.map((entry) => (
+          <li key={entry.id}>
+            <Link
+              href={`/entry/${entry.id}`}
+              prefetch={false}
+              className="block rounded-lg border border-line bg-cream p-2.5 transition-colors hover:border-sage"
+            >
+              <CardContent
+                entry={entry}
+                nextTask={nextTaskByEntryId.get(entry.id) ?? null}
+                showSourceLink={false}
+              />
+            </Link>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
