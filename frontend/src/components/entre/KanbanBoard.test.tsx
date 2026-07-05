@@ -77,7 +77,7 @@ describe("KanbanBoard", () => {
     expect(screen.getAllByText("テスト商事").length).toBeGreaterThan(0);
   });
 
-  it("カードに Entry の stageLabel を表示する", () => {
+  it("カードに応募先の stageLabel を表示する", () => {
     render(
       <KanbanBoard
         initialEntries={[

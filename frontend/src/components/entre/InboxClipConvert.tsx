@@ -85,17 +85,17 @@ export function InboxClipConvert({
     return (
       <div className="flex flex-col items-end gap-1.5">
         {!hasCompanyGuess && (
-          <p className="text-[10px] font-semibold text-amber-700">
+          <p className="text-[12px] font-semibold text-amber-700">
             会社名を確認してから登録
           </p>
         )}
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-sage bg-sage-wash px-3 py-1.5 text-[11px] font-bold text-sage transition-colors hover:bg-sage hover:text-white focus:outline-none focus:ring-2 focus:ring-sage/40"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-sage bg-sage-wash px-3 py-1.5 text-[12px] font-bold text-sage transition-colors hover:bg-sage hover:text-white focus:outline-none focus:ring-2 focus:ring-sage/40"
         >
           <FileText size={13} aria-hidden />
-          Entryとして管理
+          応募先にする
         </button>
       </div>
     );
@@ -119,16 +119,16 @@ export function InboxClipConvert({
       <div className="mb-3 rounded-md border border-line bg-surface p-2.5">
         <div className="mb-2 flex items-center justify-between gap-2">
           <div>
-            <p className="text-[10px] font-black text-sage">
-              保存クリップをEntryに変換
+            <p className="text-[12px] font-black text-sage">
+              保存クリップを応募先に変換
             </p>
-            <p className="mt-0.5 text-[10px] leading-relaxed text-ink-3">
-              会社名と応募経路を確認すると、カンバンとタスクで管理できるようになります。
+            <p className="mt-0.5 text-[12px] leading-relaxed text-ink-3">
+              会社名と応募経路を確認すると、ボードとタスクで管理できるようになります。
             </p>
           </div>
           <ArrowRight size={16} className="shrink-0 text-sage" aria-hidden />
         </div>
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-[10px]">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-[12px]">
           <PreviewPill
             icon={<Building2 size={12} aria-hidden />}
             label="会社"
@@ -137,7 +137,7 @@ export function InboxClipConvert({
           <span className="text-ink-3" aria-hidden>→</span>
           <PreviewPill
             icon={<FileText size={12} aria-hidden />}
-            label="Entry"
+            label="応募先"
             value={`${v.route}・${v.source || "ソース未入力"}`}
           />
         </div>
@@ -159,7 +159,7 @@ export function InboxClipConvert({
           aria-describedby={`${ids.companyName}-hint`}
           className="w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-[12px] font-semibold outline-none transition-colors focus:border-sage focus:ring-2 focus:ring-sage/20"
         />
-        <p id={`${ids.companyName}-hint`} className="mt-1 text-[10px] leading-relaxed text-ink-3">
+        <p id={`${ids.companyName}-hint`} className="mt-1 text-[12px] leading-relaxed text-ink-3">
           {hasCompanyGuess
             ? "求人ページから推定した候補です。正式名称に直してから作成できます。"
             : "自動検出できませんでした。求人ページの会社名を入力してください。"}
@@ -168,17 +168,17 @@ export function InboxClipConvert({
 
       {candidates.length > 0 && (
         <fieldset className="mb-2.5 rounded-md border border-line bg-surface p-2.5">
-          <legend className="px-1 text-[10px] font-bold text-ink-2">
+          <legend className="px-1 text-[12px] font-bold text-ink-2">
             既存会社の候補
           </legend>
-          <p className="mb-2 text-[10px] leading-relaxed text-ink-3">
+          <p className="mb-2 text-[12px] leading-relaxed text-ink-3">
             すでに登録済みの会社に紐づけると、Company の重複を防げます。
           </p>
           <div className="flex flex-col gap-1.5">
             {candidates.map((company) => (
               <label
                 key={company.id}
-                className="flex cursor-pointer items-center gap-2 rounded-md border border-line bg-cream px-2 py-1.5 text-[10px] transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage-wash has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-sage/30"
+                className="flex cursor-pointer items-center gap-2 rounded-md border border-line bg-cream px-2 py-1.5 text-[12px] transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage-wash has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-sage/30"
               >
                 <input
                   type="radio"
@@ -193,12 +193,12 @@ export function InboxClipConvert({
                 <span className="min-w-0 flex-1 truncate font-bold text-ink-2">
                   {company.name}
                 </span>
-                <span className="shrink-0 text-[9px] font-semibold text-sage">
+                <span className="shrink-0 text-[12px] font-semibold text-sage">
                   既存を使う
                 </span>
               </label>
             ))}
-            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-line bg-cream px-2 py-1.5 text-[10px] transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage-wash has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-sage/30">
+            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-line bg-cream px-2 py-1.5 text-[12px] transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage-wash has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-sage/30">
               <input
                 type="radio"
                 name={`company-choice-${clip.id}`}
@@ -213,14 +213,14 @@ export function InboxClipConvert({
       )}
 
       <fieldset className="mb-2.5">
-        <legend className="mb-1 block text-[10px] font-bold text-ink-2">
+        <legend className="mb-1 block text-[12px] font-bold text-ink-2">
           応募タイプ
         </legend>
         <div className="flex flex-wrap gap-1.5">
           {ROUTES.map((r) => (
             <label
               key={r}
-              className="cursor-pointer rounded-full border border-line bg-surface px-2.5 py-1 text-[10px] font-bold text-ink-2 transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-sage/40"
+              className="cursor-pointer rounded-full border border-line bg-surface px-2.5 py-1 text-[12px] font-bold text-ink-2 transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-sage/40"
             >
               <input
                 type="radio"
@@ -253,7 +253,7 @@ export function InboxClipConvert({
           name="memo"
           defaultValue={v.memo}
           rows={3}
-          className="w-full resize-none rounded-md border border-line bg-surface px-2.5 py-1.5 text-[11px] outline-none transition-colors focus:border-sage focus:ring-2 focus:ring-sage/20"
+          className="w-full resize-none rounded-md border border-line bg-surface px-2.5 py-1.5 text-[12px] outline-none transition-colors focus:border-sage focus:ring-2 focus:ring-sage/20"
         />
       </Field>
 
@@ -265,7 +265,7 @@ export function InboxClipConvert({
           ].map(([value, label]) => (
             <label
               key={value}
-              className="cursor-pointer rounded-full border border-line bg-surface px-2.5 py-1 text-[10px] font-bold text-ink-2 transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-sage/40"
+              className="cursor-pointer rounded-full border border-line bg-surface px-2.5 py-1 text-[12px] font-bold text-ink-2 transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-sage/40"
             >
               <input
                 type="radio"
@@ -283,14 +283,14 @@ export function InboxClipConvert({
           defaultValue={v.customFlowText}
           rows={2}
           placeholder="例: ES提出 → Webテスト → 一次面接 → 最終面接"
-          className="w-full resize-none rounded-md border border-line bg-surface px-2.5 py-1.5 text-[11px] outline-none transition-colors focus:border-sage focus:ring-2 focus:ring-sage/20"
+          className="w-full resize-none rounded-md border border-line bg-surface px-2.5 py-1.5 text-[12px] outline-none transition-colors focus:border-sage focus:ring-2 focus:ring-sage/20"
         />
       </Field>
 
       {state.error && (
         <p
           role="alert"
-          className="mb-2 rounded-md bg-pink/40 px-2.5 py-1.5 text-[10px] font-semibold text-ink"
+          className="mb-2 rounded-md bg-pink/40 px-2.5 py-1.5 text-[12px] font-semibold text-ink"
         >
           {state.error}
         </p>
@@ -300,7 +300,7 @@ export function InboxClipConvert({
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="flex-1 rounded-md border border-line bg-surface py-1.5 text-center text-[11px] font-bold text-ink-2 transition-colors hover:bg-line-2 focus:outline-none focus:ring-2 focus:ring-sage/30"
+          className="flex-1 rounded-md border border-line bg-surface py-1.5 text-center text-[12px] font-bold text-ink-2 transition-colors hover:bg-line-2 focus:outline-none focus:ring-2 focus:ring-sage/30"
         >
           キャンセル
         </button>
@@ -316,14 +316,14 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex flex-[2] items-center justify-center gap-1.5 rounded-md bg-sage py-1.5 text-[11px] font-bold text-white transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/40 disabled:opacity-60"
+      className="inline-flex flex-[2] items-center justify-center gap-1.5 rounded-md bg-sage py-1.5 text-[12px] font-bold text-white transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/40 disabled:opacity-60"
     >
       {pending ? (
         "作成中…"
       ) : (
         <>
           <CheckCircle2 size={13} aria-hidden />
-          Entryを作成して開く
+          応募先を登録して開く
         </>
       )}
     </button>
@@ -341,11 +341,11 @@ function PreviewPill({
 }) {
   return (
     <div className="min-w-0 rounded-md bg-sage-wash px-2 py-1.5">
-      <div className="mb-0.5 flex items-center gap-1 font-mono text-[8px] font-bold text-sage">
+      <div className="mb-0.5 flex items-center gap-1 font-mono text-[11px] font-bold text-sage">
         {icon}
         {label}
       </div>
-      <div className="truncate text-[10px] font-bold text-ink-2">{value}</div>
+      <div className="truncate text-[12px] font-bold text-ink-2">{value}</div>
     </div>
   );
 }
@@ -365,7 +365,7 @@ function Field({
     <div className="mb-2.5">
       <label
         htmlFor={htmlFor}
-        className="mb-1 block text-[10px] font-bold text-ink-2"
+        className="mb-1 block text-[12px] font-bold text-ink-2"
       >
         {label}
         {required && <span className="ml-1 text-pink-deep">*</span>}

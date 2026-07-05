@@ -18,6 +18,7 @@ import {
   type EntryResponse,
 } from "@/lib/api/entries";
 import { Confetti } from "./Confetti";
+import { TaskTemplateChips, type TaskTemplate } from "./TaskTemplateChips";
 
 interface Props {
   initialTasks: TaskWithEntry[];
@@ -129,7 +130,7 @@ export function TaskListView({ initialTasks, entries }: Props) {
       {error && (
         <p
           role="alert"
-          className="mb-2 rounded-lg bg-pink/40 px-3 py-2 text-[11px] font-semibold text-ink"
+          className="mb-2 rounded-lg bg-pink/40 px-3 py-2 text-[12px] font-semibold text-ink"
         >
           {error}
         </p>
@@ -141,12 +142,12 @@ export function TaskListView({ initialTasks, entries }: Props) {
         <div className="space-y-2">
           <div className="flex items-center justify-between rounded-xl border border-line bg-cream px-3 py-2">
             <div>
-              <p className="text-[11px] font-extrabold">未完了を上から片づける</p>
-              <p className="mt-0.5 text-[10px] text-ink-3">
+              <p className="text-[12px] font-extrabold">未完了を上から片づける</p>
+              <p className="mt-0.5 text-[12px] text-ink-3">
                 左の丸を押すと完了。期日が近い順に並びます。
               </p>
             </div>
-            <span className="rounded-md bg-sage-soft px-2 py-1 text-[10px] font-bold text-sage">
+            <span className="rounded-md bg-sage-soft px-2 py-1 text-[12px] font-bold text-sage">
               {remainingCount}件残り
             </span>
           </div>
@@ -161,10 +162,10 @@ export function TaskListView({ initialTasks, entries }: Props) {
           {tasks.length === 0 ? (
             <div className="rounded-xl border border-dashed border-line bg-surface px-4 py-6 text-center">
               <p className="text-[12px] font-bold text-ink-2">
-                このEntryにはタスクがありません
+                この応募先にはタスクがありません
               </p>
-              <p className="mt-1 text-[10px] text-ink-3">
-                上のフォームで応募先を選ぶと、このEntryに予定を追加できます。
+              <p className="mt-1 text-[12px] text-ink-3">
+                上のフォームで応募先を選ぶと、予定を追加できます。
               </p>
             </div>
           ) : (
@@ -178,11 +179,11 @@ export function TaskListView({ initialTasks, entries }: Props) {
                     <Link
                       href={group.entryId === "unknown" ? "/entry" : `/entry/${group.entryId}`}
                       prefetch={false}
-                      className="min-w-0 text-[11px] font-extrabold text-ink hover:text-sage"
+                      className="min-w-0 text-[12px] font-extrabold text-ink hover:text-sage"
                     >
                       <span className="truncate">{group.companyName}</span>
                     </Link>
-                    <span className="shrink-0 rounded-md bg-cream px-2 py-0.5 text-[9px] font-black text-ink-3">
+                    <span className="shrink-0 rounded-md bg-cream px-2 py-0.5 text-[12px] font-black text-ink-3">
                       未完了 {group.openCount}
                     </span>
                   </div>
@@ -239,7 +240,7 @@ function TaskRow({
         disabled={isPending}
         aria-pressed={done}
         aria-label={done ? "タスク未完了に戻す" : "タスク完了にする"}
-        className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] text-white transition-colors focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:opacity-60 ${
+        className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] text-white transition-colors focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:opacity-60 ${
           done
             ? "border-[1.5px] border-sage bg-sage"
             : "border-[1.5px] border-line bg-transparent"
@@ -263,12 +264,12 @@ function TaskRow({
               aria-hidden
             />
           </div>
-          <div className="mt-0.5 truncate text-[10px] text-ink-3">
+          <div className="mt-0.5 truncate text-[12px] text-ink-3">
             {task.memo ? task.memo : task.type === "deadline" ? "締切タスク" : "予定"}
           </div>
         </div>
         <span
-          className={`shrink-0 rounded-md px-2 py-0.5 font-mono text-[10px] font-bold text-white ${
+          className={`shrink-0 rounded-md px-2 py-0.5 font-mono text-[12px] font-bold text-white ${
             TYPE_BADGE[task.type] ?? "bg-sage"
           }`}
         >
@@ -313,7 +314,7 @@ function EntryTaskFilter({
           type="button"
           onClick={() => onSelect("all")}
           aria-pressed={selectedEntryId === "all"}
-          className={`h-8 rounded-full border px-3 text-[10px] font-black transition-colors ${
+          className={`h-8 rounded-full border px-3 text-[12px] font-black transition-colors ${
             selectedEntryId === "all"
               ? "border-sage bg-sage text-white"
               : "border-line bg-surface text-ink-3 hover:border-sage hover:text-sage"
@@ -330,7 +331,7 @@ function EntryTaskFilter({
               type="button"
               onClick={() => onSelect(entry.id)}
               aria-pressed={selected}
-              className={`h-8 max-w-[180px] rounded-full border px-3 text-[10px] font-black transition-colors ${
+              className={`h-8 max-w-[180px] rounded-full border px-3 text-[12px] font-black transition-colors ${
                 selected
                   ? "border-sage bg-sage text-white"
                   : "border-line bg-surface text-ink-3 hover:border-sage hover:text-sage"
@@ -394,6 +395,22 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
   );
   const values = state.values ?? initial.values!;
 
+  // action 完了で state 参照が変わったときだけ、controlled な title/type を追従させる
+  // (useEffect は使わず、レンダー中に前回値と比較して同期する)。
+  const [title, setTitle] = useState(values.title);
+  const [type, setType] = useState(values.type);
+  const [syncedState, setSyncedState] = useState(state);
+  if (syncedState !== state) {
+    setSyncedState(state);
+    setTitle(values.title);
+    setType(values.type);
+  }
+
+  const applyTemplate = (template: TaskTemplate) => {
+    setTitle(template.title);
+    setType(template.type);
+  };
+
   return (
     <form
       action={formAction}
@@ -405,7 +422,7 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
         </div>
         <div>
           <p className="text-[12px] font-extrabold">タスクを追加</p>
-          <p className="mt-0.5 text-[10px] leading-relaxed text-ink-3">
+          <p className="mt-0.5 text-[12px] leading-relaxed text-ink-3">
             応募先、内容、期日だけ入れます。
           </p>
         </div>
@@ -413,24 +430,29 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
 
       {entries.length === 0 ? (
         <div className="rounded-lg border border-dashed border-line bg-cream px-3 py-3 text-center">
-          <p className="text-[11px] font-bold text-ink-2">先にEntryを追加してください</p>
-          <p className="mt-1 text-[10px] leading-relaxed text-ink-3">
+          <p className="text-[12px] font-bold text-ink-2">先に応募先を登録してください</p>
+          <p className="mt-1 text-[12px] leading-relaxed text-ink-3">
             タスクはどの企業の予定かを紐づけて管理します。
           </p>
           <Link
             href="/entry/new"
             prefetch={false}
-            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-sage px-3 py-1.5 text-[11px] font-bold text-white transition-transform hover:-translate-y-0.5"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-sage px-3 py-1.5 text-[12px] font-bold text-white transition-transform hover:-translate-y-0.5"
           >
             <Plus size={13} aria-hidden />
-            Entryを追加
+            応募先を追加
           </Link>
         </div>
       ) : (
         <>
+          <div className="mb-2">
+            <span className="mb-1 block text-[12px] font-bold text-ink-2">よく使うタスク</span>
+            <TaskTemplateChips onSelect={applyTemplate} />
+          </div>
+
           <div className="grid gap-2 md:grid-cols-[1.2fr_1.3fr]">
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold text-ink-2">応募先</span>
+              <span className="mb-1 block text-[12px] font-bold text-ink-2">応募先</span>
               <select
                 name="entryId"
                 aria-label="Entry"
@@ -445,13 +467,14 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
               </select>
             </label>
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold text-ink-2">内容</span>
+              <span className="mb-1 block text-[12px] font-bold text-ink-2">内容</span>
               <input
                 name="title"
                 aria-label="タスク名"
-                defaultValue={values.title}
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
                 required
-                placeholder="ES提出、一次面接、SPI受験"
+                placeholder="例: ES提出"
                 className="h-9 w-full rounded-md border border-line bg-cream px-2.5 text-[12px] font-semibold outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
               />
             </label>
@@ -459,7 +482,7 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
 
           <div className="mt-2 grid gap-2 md:grid-cols-[1fr_1fr]">
             <fieldset>
-              <legend className="mb-1 block text-[10px] font-bold text-ink-2">種類</legend>
+              <legend className="mb-1 block text-[12px] font-bold text-ink-2">種類</legend>
               <div className="flex gap-1.5">
                 {[
                   ["deadline", "締切"],
@@ -467,13 +490,14 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
                 ].map(([value, label]) => (
                   <label
                     key={value}
-                    className="flex-1 cursor-pointer rounded-md border border-line bg-cream px-2 py-1.5 text-center text-[10px] font-bold text-ink-2 transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage has-[:checked]:text-white"
+                    className="flex-1 cursor-pointer rounded-md border border-line bg-cream px-2 py-1.5 text-center text-[12px] font-bold text-ink-2 transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage has-[:checked]:text-white"
                   >
                     <input
                       type="radio"
                       name="type"
                       value={value}
-                      defaultChecked={values.type === value}
+                      checked={type === value}
+                      onChange={() => setType(value as "deadline" | "schedule")}
                       className="sr-only"
                     />
                     {label}
@@ -482,7 +506,7 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
               </div>
             </fieldset>
             <label className="block">
-              <span className="mb-1 block text-[10px] font-bold text-ink-2">期日</span>
+              <span className="mb-1 block text-[12px] font-bold text-ink-2">期日</span>
               <input
                 name="dueDate"
                 type="date"
@@ -494,7 +518,7 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
           </div>
 
           <label className="mt-2 block">
-            <span className="mb-1 block text-[10px] font-bold text-ink-2">メモ</span>
+            <span className="mb-1 block text-[12px] font-bold text-ink-2">メモ</span>
             <input
               name="memo"
               defaultValue={values.memo}
@@ -506,13 +530,13 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
           {state.error && (
             <p
               role="alert"
-              className="mt-2 rounded-md bg-pink/40 px-2.5 py-1.5 text-[10px] font-semibold text-ink"
+              className="mt-2 rounded-md bg-pink/40 px-2.5 py-1.5 text-[12px] font-semibold text-ink"
             >
               {state.error}
             </p>
           )}
           {state.ok && (
-            <p className="mt-2 rounded-md bg-sage-wash px-2.5 py-1.5 text-[10px] font-bold text-sage">
+            <p className="mt-2 rounded-md bg-sage-wash px-2.5 py-1.5 text-[12px] font-bold text-sage">
               タスクを追加しました。
             </p>
           )}
@@ -532,7 +556,7 @@ function TaskCreateSubmit() {
     <button
       type="submit"
       disabled={pending}
-      className="inline-flex items-center gap-1.5 rounded-lg bg-sage px-3.5 py-2 text-[11px] font-bold text-white transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/40 disabled:opacity-60"
+      className="inline-flex items-center gap-1.5 rounded-lg bg-sage px-3.5 py-2 text-[12px] font-bold text-white transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/40 disabled:opacity-60"
     >
       <Plus size={13} aria-hidden />
       {pending ? "追加中…" : "タスクを追加"}
@@ -544,20 +568,20 @@ function TaskEmptyState({ hasEntries }: { hasEntries: boolean }) {
   return (
     <div className="rounded-xl border border-dashed border-line bg-surface px-4 py-8 text-center">
       <p className="font-serif text-base font-extrabold">タスクはまだありません</p>
-      <p className="mx-auto mt-1 max-w-[420px] text-[11px] leading-relaxed text-ink-2">
+      <p className="mx-auto mt-1 max-w-[420px] text-[12px] leading-relaxed text-ink-2">
         {hasEntries
           ? "上のフォームから締切や面接予定を追加できます。"
-          : "Entry を作ると、その企業に紐づく締切や面接予定を追加できます。"}
+          : "応募先を登録すると、その企業に紐づく締切や面接予定を追加できます。"}
       </p>
       {!hasEntries && (
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <Link
             href="/entry/new"
             prefetch={false}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-[12px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
           >
             <ClipboardList size={13} aria-hidden />
-            Entryを追加
+            応募先を追加
           </Link>
         </div>
       )}

@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+:root {
+  --font-noto-sans-jp: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --font-noto-serif-jp: "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --font-jetbrains-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-caveat: "Caveat", "Segoe Print", cursive;
+}
+
 /* ════════════════════════════════════════════════════════════════
    Entré — Variant A design tokens
    クリーム × セージグリーン × Noto Serif JP × 封筒くんマスコット

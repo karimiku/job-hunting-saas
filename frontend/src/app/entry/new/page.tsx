@@ -21,9 +21,9 @@ export default async function NewEntryPage() {
         <Link
           href="/entry"
           prefetch={false}
-          className="mb-3 inline-flex items-center gap-1 text-[11px] font-semibold text-ink-3 hover:text-sage"
+          className="mb-3 inline-flex items-center gap-1 text-[12px] font-semibold text-ink-3 hover:text-sage"
         >
-          ‹ Entry 一覧
+          ‹ 応募先一覧
         </Link>
 
         <NewEntryForm />

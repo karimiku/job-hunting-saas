@@ -108,7 +108,7 @@ describe("TaskListView", () => {
 
   it("タスクのタイトル・会社名・期日を表示する", () => {
     render(<TaskListView initialTasks={[task()]} entries={[entry()]} />);
-    expect(screen.getByText("ES提出")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /ES提出/ })).toBeInTheDocument();
     expect(screen.getAllByText(/○○商事/).length).toBeGreaterThan(0);
     expect(screen.getByText("5/30")).toBeInTheDocument();
   });
@@ -138,8 +138,8 @@ describe("TaskListView", () => {
 
     await user.click(screen.getByRole("button", { name: /△△銀行 1/ }));
 
-    expect(screen.queryByText("ES提出")).not.toBeInTheDocument();
-    expect(screen.getByText("一次面接")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /ES提出/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /一次面接/ })).toBeInTheDocument();
     expect(screen.getByText("未完了 1")).toBeInTheDocument();
   });
 
@@ -206,9 +206,19 @@ describe("TaskListView", () => {
     expect(fd.get("title")).toBe("一次面接");
   });
 
-  it("Entry が無いと追加フォームではなく Entry 作成導線を表示する", () => {
+  it("定型チップをタップするとタスク名と種類欄に反映される", async () => {
+    const user = userEvent.setup();
+    render(<TaskListView initialTasks={[]} entries={[entry()]} />);
+
+    await user.click(screen.getByRole("button", { name: "一次面接" }));
+
+    expect(screen.getByLabelText("タスク名")).toHaveValue("一次面接");
+    expect(screen.getByRole("radio", { name: "予定" })).toBeChecked();
+  });
+
+  it("Entry が無いと追加フォームではなく応募先登録の導線を表示する", () => {
     render(<TaskListView initialTasks={[]} entries={[]} />);
-    expect(screen.getByText("先にEntryを追加してください")).toBeInTheDocument();
+    expect(screen.getByText("先に応募先を登録してください")).toBeInTheDocument();
     expect(screen.queryByLabelText("タスク名")).not.toBeInTheDocument();
   });
 
@@ -220,7 +230,9 @@ describe("TaskListView", () => {
     await user.click(screen.getByRole("button", { name: /タスク「ES提出」を削除/ }));
 
     await waitFor(() => expect(deleteTaskAction).toHaveBeenCalledWith("t1", "e1"));
-    await waitFor(() => expect(screen.queryByText("ES提出")).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole("link", { name: /ES提出/ })).not.toBeInTheDocument(),
+    );
   });
 });
 

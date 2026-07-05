@@ -32,7 +32,7 @@ const companies: CompanyResponse[] = [
 describe("InboxClipConvert", () => {
   it("初期状態では管理開始ボタンだけ表示しフォームは閉じている", () => {
     render(<InboxClipConvert clip={clip} companies={[]} />);
-    expect(screen.getByRole("button", { name: /Entryとして管理/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /応募先にする/ })).toBeInTheDocument();
     expect(screen.queryByLabelText(/会社名/)).not.toBeInTheDocument();
   });
 
@@ -40,7 +40,7 @@ describe("InboxClipConvert", () => {
     const user = userEvent.setup();
     render(<InboxClipConvert clip={clip} companies={[]} />);
 
-    await user.click(screen.getByRole("button", { name: /Entryとして管理/ }));
+    await user.click(screen.getByRole("button", { name: /応募先にする/ }));
 
     expect(screen.getByLabelText(/会社名/)).toHaveValue("○○商事");
     expect(screen.getByLabelText(/ソース/)).toHaveValue("マイナビ");
@@ -60,7 +60,7 @@ describe("InboxClipConvert", () => {
   it("guess が空でも開ける（会社名は空初期値）", async () => {
     const user = userEvent.setup();
     render(<InboxClipConvert clip={{ ...clip, guess: "" }} companies={[]} />);
-    await user.click(screen.getByRole("button", { name: /Entryとして管理/ }));
+    await user.click(screen.getByRole("button", { name: /応募先にする/ }));
     expect(screen.getByLabelText(/会社名/)).toHaveValue("");
   });
 
@@ -68,7 +68,7 @@ describe("InboxClipConvert", () => {
     const user = userEvent.setup();
     render(<InboxClipConvert clip={clip} companies={companies} />);
 
-    await user.click(screen.getByRole("button", { name: /Entryとして管理/ }));
+    await user.click(screen.getByRole("button", { name: /応募先にする/ }));
 
     expect(screen.getByText("既存会社の候補")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: /株式会社○○商事/ })).toBeChecked();

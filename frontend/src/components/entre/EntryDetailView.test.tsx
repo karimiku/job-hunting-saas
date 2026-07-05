@@ -85,7 +85,7 @@ describe("EntryDetailView", () => {
 
   it("initialEntry を表示する", () => {
     render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
-    expect(screen.getByText("一次面接")).toBeInTheDocument();
+    expect(screen.getByTestId("current-stage")).toHaveTextContent("一次面接");
     expect(screen.getByText("テストメモ")).toBeInTheDocument();
   });
 
@@ -188,6 +188,15 @@ describe("EntryDetailView", () => {
     expect(await screen.findByText("一次面接準備")).toBeInTheDocument();
   });
 
+  it("定型チップをタップするとタスク名と種類欄に反映される", async () => {
+    render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "一次面接" }));
+
+    expect(screen.getByLabelText("タスク名")).toHaveValue("一次面接");
+    expect(screen.getByRole("radio", { name: "予定" })).toBeChecked();
+  });
+
   it("Entry詳細でタスクの完了状態を切り替えられる", async () => {
     render(<EntryDetailView initialEntry={sample()} initialTasks={[task()]} />);
 
@@ -204,7 +213,11 @@ describe("EntryDetailView", () => {
     await userEvent.click(screen.getByRole("button", { name: /タスク「ES提出」を削除/ }));
 
     await waitFor(() => expect(deleteTaskAction).toHaveBeenCalledWith("t1", "e1"));
-    await waitFor(() => expect(screen.queryByText("ES提出")).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: /タスク「ES提出」を削除/ }),
+      ).not.toBeInTheDocument(),
+    );
   });
 
   it("Entry詳細からEntryを削除できる", async () => {
@@ -217,19 +230,19 @@ describe("EntryDetailView", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "テスト商事 のEntryを削除" }));
+    await userEvent.click(screen.getByRole("button", { name: "テスト商事 の応募先を削除" }));
 
     await waitFor(() => expect(deleteEntryAction).toHaveBeenCalledWith("e1"));
   });
 
   it("Entry削除に失敗したらエラーを表示する", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    deleteEntryAction.mockResolvedValue({ ok: false, error: "Entryの削除に失敗しました" });
+    deleteEntryAction.mockResolvedValue({ ok: false, error: "応募先の削除に失敗しました" });
 
     render(<EntryDetailView initialEntry={sample({ companyName: "テスト商事" })} initialTasks={[]} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "テスト商事 のEntryを削除" }));
+    await userEvent.click(screen.getByRole("button", { name: "テスト商事 の応募先を削除" }));
 
-    expect(await screen.findByText("Entryの削除に失敗しました")).toBeInTheDocument();
+    expect(await screen.findByText("応募先の削除に失敗しました")).toBeInTheDocument();
   });
 });

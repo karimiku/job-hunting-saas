@@ -126,25 +126,25 @@ export function KanbanBoard({ initialEntries }: Props) {
     >
       {initialEntries.length === 0 && (
         <div className="mb-3 rounded-xl border border-dashed border-line bg-surface p-6 text-center">
-          <p className="font-serif text-base font-extrabold">カンバンに表示する Entry がありません</p>
-          <p className="mx-auto mt-1 max-w-[460px] text-[11px] leading-relaxed text-ink-2">
-            Inbox の保存クリップを Entry にするか、手動で Entry を追加すると選考フェーズごとに並びます。
+          <p className="font-serif text-base font-extrabold">ボードに表示する応募先がありません</p>
+          <p className="mx-auto mt-1 max-w-[460px] text-[12px] leading-relaxed text-ink-2">
+            保存箱のクリップを応募先にするか、手動で応募先を追加すると選考フェーズごとに並びます。
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <Link
               href="/inbox"
               prefetch={false}
-              className="rounded-lg border border-sage bg-sage-wash px-3 py-1.5 text-[11px] font-bold text-sage transition-colors hover:bg-sage hover:text-white"
+              className="rounded-lg border border-sage bg-sage-wash px-3 py-1.5 text-[12px] font-bold text-sage transition-colors hover:bg-sage hover:text-white"
             >
-              Inboxを見る
+              保存箱を見る
             </Link>
             <Link
               href="/entry/new"
               prefetch={false}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-[12px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
             >
               <Plus size={13} aria-hidden />
-              Entryを追加
+              応募先を追加
             </Link>
           </div>
         </div>
@@ -153,7 +153,7 @@ export function KanbanBoard({ initialEntries }: Props) {
       {error && (
         <p
           role="alert"
-          className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-pink/40 px-3 py-2 text-[11px] font-semibold text-ink"
+          className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-pink/40 px-3 py-2 text-[12px] font-semibold text-ink"
         >
           <AlertCircle size={13} aria-hidden />
           {error}
@@ -196,12 +196,12 @@ function MobileKanbanSection({
       <div className="mb-2 flex items-center gap-2">
         <span className="block h-2 w-2 rounded-full" style={{ background: col.color }} />
         <h2 className="text-[12px] font-extrabold">{col.label}</h2>
-        <span className="ml-auto rounded-md bg-cream px-2 py-0.5 font-mono text-[10px] font-bold text-ink-3">
+        <span className="ml-auto rounded-md bg-cream px-2 py-0.5 font-mono text-[12px] font-bold text-ink-3">
           {cards.length}
         </span>
       </div>
       {cards.length === 0 ? (
-        <p className="rounded-md border border-dashed border-line bg-cream px-3 py-3 text-center text-[10px] text-ink-3">
+        <p className="rounded-md border border-dashed border-line bg-cream px-3 py-3 text-center text-[12px] text-ink-3">
           このフェーズは0件
         </p>
       ) : (
@@ -242,10 +242,10 @@ function KanbanColumn({
     >
       <div className="flex items-center gap-2 border-b border-dashed border-line px-1 pb-2">
         <span className="block h-2 w-2 rounded-full" style={{ background: col.color }} />
-        <span className="text-[11px] font-extrabold">{col.label}</span>
+        <span className="text-[12px] font-extrabold">{col.label}</span>
         <span
           data-testid={`column-count-${col.kind}`}
-          className="ml-auto font-mono text-[10px] text-ink-3"
+          className="ml-auto font-mono text-[12px] text-ink-3"
         >
           {cards.length}
         </span>
@@ -255,7 +255,7 @@ function KanbanColumn({
           <KanbanCard key={c.id} entry={c} dragging={c.id === activeId} />
         ))}
         {cards.length === 0 && (
-          <li className="rounded-md border border-dashed border-line p-2 text-center text-[9px] text-ink-3">
+          <li className="rounded-md border border-dashed border-line p-2 text-center text-[12px] text-ink-3">
             このフェーズは0件
           </li>
         )}
@@ -322,16 +322,16 @@ function CardContent({
   const stageLabel = entry.stageLabel || KANBAN_STAGE_LABEL[stageKind];
   return (
     <>
-      <div className="mb-1.5 truncate text-[10px] font-bold">{companyDisplayName(entry)}</div>
+      <div className="mb-1.5 truncate text-[12px] font-bold">{companyDisplayName(entry)}</div>
       <div className="mb-1.5 flex min-w-0">
         <span
-          className="max-w-full truncate rounded border border-line bg-surface px-1.5 py-0.5 text-[9px] font-bold text-ink-3"
+          className="max-w-full truncate rounded border border-line bg-surface px-1.5 py-0.5 text-[12px] font-bold text-ink-3"
           style={{ borderColor: KANBAN_STAGE_COLOR[stageKind] }}
         >
           {stageLabel}
         </span>
       </div>
-      <div className="flex justify-between gap-2 text-[9px] text-ink-3">
+      <div className="flex justify-between gap-2 text-[12px] text-ink-3">
         <span className="truncate">
           {entry.route} · {entry.source}
         </span>
@@ -344,7 +344,7 @@ function CardContent({
           rel="noreferrer"
           onClick={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
-          className="mt-1.5 inline-flex max-w-full items-center gap-1 rounded border border-line bg-surface px-1.5 py-0.5 text-[9px] font-bold text-ink-3 transition-colors hover:border-sage hover:text-sage"
+          className="mt-1.5 inline-flex max-w-full items-center gap-1 rounded border border-line bg-surface px-1.5 py-0.5 text-[12px] font-bold text-ink-3 transition-colors hover:border-sage hover:text-sage"
         >
           <span className="truncate">応募元</span>
           <ExternalLink size={10} className="shrink-0" aria-hidden />
