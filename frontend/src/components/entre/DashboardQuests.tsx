@@ -21,6 +21,15 @@ export interface QuestItem {
 
 const MAX_QUESTS = 5;
 
+// 期日までの残り日数をカレンダー日で数える（双方をローカル0時に丸めた日付差）。
+// 単純な時刻差の floor だと、夕方に「明日(翌0時UTC)」の締切を登録したとき差が
+// 24時間未満になり本日扱いになってしまうため。
+function daysUntilDue(d: Date, now: Date): number {
+  const due = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((due.getTime() - today.getTime()) / 86_400_000);
+}
+
 // 期限切れ（dueDate < 今日）は「M/D ・n日超過」にして超過を明示する。
 // 本日・明日は専用ラベルにして緊急度を最優先で伝える。
 function dueLabel(dueDate: string | null, now: Date): string {
@@ -28,7 +37,7 @@ function dueLabel(dueDate: string | null, now: Date): string {
   const d = new Date(dueDate);
   if (Number.isNaN(d.getTime())) return "期限なし";
   const base = `${d.getMonth() + 1}/${d.getDate()}`;
-  const days = Math.floor((d.getTime() - now.getTime()) / 86_400_000);
+  const days = daysUntilDue(d, now);
   if (days < 0) return `${base} ・${Math.abs(days)}日超過`;
   if (days === 0) return "本日締切";
   if (days === 1) return "明日締切";
@@ -42,7 +51,7 @@ function dueColor(dueDate: string | null, now: Date): string {
   if (!dueDate) return "bg-sage";
   const d = new Date(dueDate);
   if (Number.isNaN(d.getTime())) return "bg-sage";
-  const days = Math.floor((d.getTime() - now.getTime()) / 86_400_000);
+  const days = daysUntilDue(d, now);
   if (days < 0) return Math.abs(days) >= 3 ? "bg-pink-deep" : "bg-pink";
   if (days === 0) return "bg-ink";
   if (days === 1) return "bg-pink-deep";

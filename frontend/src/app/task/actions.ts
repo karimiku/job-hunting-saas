@@ -15,6 +15,12 @@ export interface SetTaskStatusResult {
   error?: string;
 }
 
+export interface RescheduleTaskResult {
+  ok: boolean;
+  dueDate?: TaskResponse["dueDate"];
+  error?: string;
+}
+
 export interface DeleteTaskResult {
   ok: boolean;
   error?: string;
@@ -71,6 +77,26 @@ export async function setTaskStatusAction(
     return { ok: true, status: updated.status };
   } catch {
     return { ok: false, error: "タスクの更新に失敗しました" };
+  }
+}
+
+// dueDate は "YYYY-MM-DD" を受け取り、他アクションと同じ 00:00:00.000Z 起点の ISO に変換して PATCH する。
+export async function rescheduleTaskAction(
+  taskId: string,
+  dueDate: string,
+  entryId?: string,
+): Promise<RescheduleTaskResult> {
+  try {
+    const updated = await serverFetch<TaskResponse>(`/api/v1/tasks/${taskId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ dueDate: `${dueDate}T00:00:00.000Z` }),
+    });
+    revalidatePath("/task");
+    revalidatePath(`/task/${taskId}`);
+    if (entryId) revalidatePath(`/entry/${entryId}`);
+    return { ok: true, dueDate: updated.dueDate };
+  } catch {
+    return { ok: false, error: "タスクの延期に失敗しました" };
   }
 }
 

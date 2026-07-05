@@ -89,6 +89,27 @@ describe("EntryDetailView", () => {
     expect(screen.getByText("テストメモ")).toBeInTheDocument();
   });
 
+  it("タスク追加フォームは既定で折りたたまれており、ボタンで開閉できる", async () => {
+    render(<EntryDetailView initialEntry={sample()} initialTasks={[task()]} />);
+
+    expect(screen.queryByLabelText("タスク名")).not.toBeInTheDocument();
+    expect(screen.getByText("ES提出")).toBeInTheDocument();
+
+    const toggle = screen.getByRole("button", { name: "タスクを追加" });
+    await userEvent.click(toggle);
+    expect(screen.getByLabelText("タスク名")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "閉じる" }));
+    expect(screen.queryByLabelText("タスク名")).not.toBeInTheDocument();
+  });
+
+  it("フェーズと結果の関係を説明する注記を表示する", () => {
+    render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
+    expect(
+      screen.getByText(/選考途中は上の「選考フェーズ」だけでOKです/),
+    ).toBeInTheDocument();
+  });
+
   it("ステージボタンの選択で更新 action が走り stageKind を任意更新できる", async () => {
     render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
     await userEvent.click(screen.getByRole("button", { name: "GD" }));
@@ -174,6 +195,7 @@ describe("EntryDetailView", () => {
 
     render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
 
+    await userEvent.click(screen.getByRole("button", { name: "タスクを追加" }));
     await userEvent.type(screen.getByLabelText("タスク名"), "一次面接準備");
     await userEvent.click(screen.getByRole("button", { name: "追加" }));
 
@@ -191,6 +213,7 @@ describe("EntryDetailView", () => {
   it("定型チップをタップするとタスク名と種類欄に反映される", async () => {
     render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
 
+    await userEvent.click(screen.getByRole("button", { name: "タスクを追加" }));
     await userEvent.click(screen.getByRole("button", { name: "一次面接" }));
 
     expect(screen.getByLabelText("タスク名")).toHaveValue("一次面接");

@@ -18,11 +18,21 @@ describe("addDays", () => {
 });
 
 describe("DueDateQuickPicker", () => {
-  it("今日／+3日／+1週間 のボタンを表示する", () => {
+  it("今日／明日／+3日／+1週間 のボタンを表示する", () => {
     render(<DueDateQuickPicker onSelect={vi.fn()} now={new Date("2026-07-05T00:00:00")} />);
     expect(screen.getByRole("button", { name: "今日" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "明日" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "+3日" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "+1週間" })).toBeInTheDocument();
+  });
+
+  it("明日を押すと基準日+1日を onSelect に渡す", async () => {
+    const onSelect = vi.fn();
+    render(<DueDateQuickPicker onSelect={onSelect} now={new Date("2026-07-05T00:00:00")} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "明日" }));
+
+    expect(onSelect).toHaveBeenCalledWith("2026-07-06");
   });
 
   it("+3日を押すと基準日+3日を onSelect に渡す", async () => {

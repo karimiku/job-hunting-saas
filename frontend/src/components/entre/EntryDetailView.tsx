@@ -71,6 +71,7 @@ export function EntryDetailView({
     dueDate: "",
     memo: "",
   });
+  const [isTaskFormOpen, setIsTaskFormOpen] = useState(false);
 
   const applyTaskTemplate = (template: TaskTemplate) => {
     setTaskForm((prev) => ({ ...prev, title: template.title, type: template.type }));
@@ -308,7 +309,7 @@ export function EntryDetailView({
         <div>
           <div className="flex items-center justify-between gap-2">
             <p className="text-[12px] font-black text-ink">選考フェーズ</p>
-            <p className="text-[12px] font-bold text-sage">
+            <p className="rounded-md border-[1.5px] border-sage bg-sage-wash px-2 py-0.5 text-[13px] font-black text-sage">
               現在: <span data-testid="current-stage">{e.stageLabel}</span>
             </p>
           </div>
@@ -329,19 +330,21 @@ export function EntryDetailView({
                     disabled={isPending || selected}
                     aria-pressed={selected}
                     title={hint}
-                    className="relative grid min-h-11 place-items-center rounded-md border px-2 py-1.5 text-[12px] font-bold transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:cursor-default"
+                    className={`relative grid min-h-11 place-items-center rounded-md border px-2 py-1.5 text-[12px] font-bold transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:cursor-default ${
+                      selected ? "scale-[1.04]" : ""
+                    }`}
                     style={{
-                      borderWidth: selected ? 2 : 1,
+                      borderWidth: selected ? 3 : 1,
                       borderColor: selected ? color : "var(--color-line)",
                       background: reached ? color : "var(--color-line-2)",
                       color: reached ? "#fff" : "var(--color-ink-3)",
-                      boxShadow: selected ? `0 0 0 3px ${color}40` : undefined,
+                      boxShadow: selected ? `0 0 0 4px ${color}55` : undefined,
                     }}
                   >
                     {selected && (
                       <span
                         aria-hidden
-                        className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-ink px-1.5 py-0.5 text-[9px] font-black whitespace-nowrap text-white shadow-sm"
+                        className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-ink px-2 py-0.5 text-[10px] font-black whitespace-nowrap text-white shadow-md"
                       >
                         現在ここ
                       </span>
@@ -365,19 +368,21 @@ export function EntryDetailView({
                     disabled={isPending || selected}
                     aria-pressed={selected}
                     title={hint}
-                    className="relative grid min-h-11 place-items-center rounded-md border px-1.5 py-1.5 text-[12px] font-bold transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:cursor-default"
+                    className={`relative grid min-h-11 place-items-center rounded-md border px-1.5 py-1.5 text-[12px] font-bold transition-transform enabled:hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:cursor-default ${
+                      selected ? "scale-[1.04]" : ""
+                    }`}
                     style={{
-                      borderWidth: selected ? 2 : 1,
+                      borderWidth: selected ? 3 : 1,
                       borderColor: selected ? STAGE_COLOR[kind] : "var(--color-line)",
                       background: reached ? STAGE_COLOR[kind] : "var(--color-line-2)",
                       color: reached ? "#fff" : "var(--color-ink-3)",
-                      boxShadow: selected ? `0 0 0 3px ${STAGE_COLOR[kind]}40` : undefined,
+                      boxShadow: selected ? `0 0 0 4px ${STAGE_COLOR[kind]}55` : undefined,
                     }}
                   >
                     {selected && (
                       <span
                         aria-hidden
-                        className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-ink px-1.5 py-0.5 text-[9px] font-black whitespace-nowrap text-white shadow-sm"
+                        className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-ink px-2 py-0.5 text-[10px] font-black whitespace-nowrap text-white shadow-md"
                       >
                         現在ここ
                       </span>
@@ -394,6 +399,9 @@ export function EntryDetailView({
         <div className="mt-4 border-t border-dashed border-line pt-3">
           <p className="text-[12px] font-black text-ink">結果（確定したら選ぶ）</p>
           <p className="mt-0.5 text-[11px] text-ink-3">内定・お見送りなどが決まったら選びます</p>
+          <p className="mt-0.5 text-[11px] text-ink-3">
+            ※内定・お見送りが確定したときだけ選びます。選考途中は上の「選考フェーズ」だけでOKです
+          </p>
           <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
             {OUTCOME_STATUS.map((status) => {
               const selected = e.status === status;
@@ -446,106 +454,13 @@ export function EntryDetailView({
           </span>
         </div>
 
-        <form
-          onSubmit={handleCreateTask}
-          className="mb-3 rounded-lg border border-line bg-cream p-2.5"
-        >
-          <div className="mb-2">
-            <span className="mb-1 block text-[12px] font-bold text-ink-2">よく使うタスク</span>
-            <TaskTemplateChips onSelect={applyTaskTemplate} />
-          </div>
-
-          <div className="grid gap-2 md:grid-cols-[1fr_auto]">
-            <label className="block">
-              <span className="mb-1 block text-[12px] font-bold text-ink-2">タスク名</span>
-              <input
-                value={taskForm.title}
-                onChange={(event) =>
-                  setTaskForm((prev) => ({ ...prev, title: event.target.value }))
-                }
-                placeholder="例: ES提出"
-                className="h-8 w-full rounded-md border border-line bg-surface px-2 text-[12px] font-semibold outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
-              />
-            </label>
-            <fieldset>
-              <legend className="mb-1 block text-[12px] font-bold text-ink-2">種類</legend>
-              <div className="flex h-8 gap-1">
-                {[
-                  ["deadline", "締切"],
-                  ["schedule", "予定"],
-                ].map(([value, label]) => (
-                  <label
-                    key={value}
-                    className="grid cursor-pointer place-items-center rounded-md border border-line bg-surface px-2 text-[12px] font-bold text-ink-2 transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage has-[:checked]:text-white"
-                  >
-                    <input
-                      type="radio"
-                      name="entry-detail-task-type"
-                      value={value}
-                      checked={taskForm.type === value}
-                      onChange={() =>
-                        setTaskForm((prev) => ({
-                          ...prev,
-                          type: value as TaskResponse["type"],
-                        }))
-                      }
-                      className="sr-only"
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-              <p className="mt-1 text-[11px] text-ink-3">
-                締切＝提出物の期限 ／ 予定＝面接など日時
-              </p>
-            </fieldset>
-          </div>
-          <div className="mt-2 grid gap-2 md:grid-cols-[1fr_1.5fr_auto]">
-            <label className="block">
-              <span className="mb-1 block text-[12px] font-bold text-ink-2">期日</span>
-              <input
-                type="date"
-                value={taskForm.dueDate}
-                onChange={(event) =>
-                  setTaskForm((prev) => ({ ...prev, dueDate: event.target.value }))
-                }
-                className="h-8 w-full rounded-md border border-line bg-surface px-2 font-mono text-[12px] outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1 block text-[12px] font-bold text-ink-2">メモ</span>
-              <input
-                value={taskForm.memo}
-                onChange={(event) =>
-                  setTaskForm((prev) => ({ ...prev, memo: event.target.value }))
-                }
-                placeholder="URL、持ち物、準備内容など"
-                className="h-8 w-full rounded-md border border-line bg-surface px-2 text-[12px] outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
-              />
-            </label>
-            <button
-              type="submit"
-              disabled={isPending}
-              className="self-end inline-flex h-8 items-center justify-center gap-1 rounded-md bg-sage px-2.5 text-[12px] font-bold text-white transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-60"
-            >
-              <Plus size={12} aria-hidden />
-              追加
-            </button>
-          </div>
-        </form>
-
-        {taskError && (
-          <p role="alert" className="mb-2 rounded-md bg-pink/40 px-2.5 py-1.5 text-[12px] font-semibold text-ink">
-            {taskError}
-          </p>
-        )}
         {tasks.length === 0 && (
-          <p className="rounded-lg border border-dashed border-line bg-cream px-3 py-4 text-center text-[12px] text-ink-3">
-            まだタスクがありません。上のフォームから締切や予定を追加できます。
+          <p className="mb-3 rounded-lg border border-dashed border-line bg-cream px-3 py-4 text-center text-[12px] text-ink-3">
+            まだタスクがありません。下の「タスクを追加」から締切や予定を追加できます。
           </p>
         )}
         {tasks.length > 0 && (
-          <ul className="flex flex-col gap-1.5">
+          <ul className="mb-3 flex flex-col gap-1.5">
             {tasks.map((task) => {
               const status = optimisticTaskStatus[task.id] ?? task.status;
               const done = status === "done";
@@ -589,6 +504,116 @@ export function EntryDetailView({
               );
             })}
           </ul>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setIsTaskFormOpen((prev) => !prev)}
+          aria-expanded={isTaskFormOpen}
+          className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-line bg-cream px-2.5 py-2 text-[12px] font-bold text-sage transition-colors hover:border-sage"
+        >
+          <Plus
+            size={12}
+            aria-hidden
+            className={`transition-transform ${isTaskFormOpen ? "rotate-45" : ""}`}
+          />
+          {isTaskFormOpen ? "閉じる" : "タスクを追加"}
+        </button>
+
+        {isTaskFormOpen && (
+          <form
+            onSubmit={handleCreateTask}
+            className="mt-2 rounded-lg border border-line bg-cream p-2.5"
+          >
+            <div className="mb-2">
+              <span className="mb-1 block text-[12px] font-bold text-ink-2">よく使うタスク</span>
+              <TaskTemplateChips onSelect={applyTaskTemplate} />
+            </div>
+
+            <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+              <label className="block">
+                <span className="mb-1 block text-[12px] font-bold text-ink-2">タスク名</span>
+                <input
+                  value={taskForm.title}
+                  onChange={(event) =>
+                    setTaskForm((prev) => ({ ...prev, title: event.target.value }))
+                  }
+                  placeholder="例: ES提出"
+                  className="h-8 w-full rounded-md border border-line bg-surface px-2 text-[12px] font-semibold outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
+                />
+              </label>
+              <fieldset>
+                <legend className="mb-1 block text-[12px] font-bold text-ink-2">種類</legend>
+                <div className="flex h-8 gap-1">
+                  {[
+                    ["deadline", "締切"],
+                    ["schedule", "予定"],
+                  ].map(([value, label]) => (
+                    <label
+                      key={value}
+                      className="grid cursor-pointer place-items-center rounded-md border border-line bg-surface px-2 text-[12px] font-bold text-ink-2 transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage has-[:checked]:text-white"
+                    >
+                      <input
+                        type="radio"
+                        name="entry-detail-task-type"
+                        value={value}
+                        checked={taskForm.type === value}
+                        onChange={() =>
+                          setTaskForm((prev) => ({
+                            ...prev,
+                            type: value as TaskResponse["type"],
+                          }))
+                        }
+                        className="sr-only"
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                <p className="mt-1 text-[11px] text-ink-3">
+                  締切＝提出物の期限 ／ 予定＝面接など日時
+                </p>
+              </fieldset>
+            </div>
+            <div className="mt-2 grid gap-2 md:grid-cols-[1fr_1.5fr_auto]">
+              <label className="block">
+                <span className="mb-1 block text-[12px] font-bold text-ink-2">期日</span>
+                <input
+                  type="date"
+                  value={taskForm.dueDate}
+                  onChange={(event) =>
+                    setTaskForm((prev) => ({ ...prev, dueDate: event.target.value }))
+                  }
+                  className="h-8 w-full rounded-md border border-line bg-surface px-2 font-mono text-[12px] outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[12px] font-bold text-ink-2">メモ</span>
+                <input
+                  value={taskForm.memo}
+                  onChange={(event) =>
+                    setTaskForm((prev) => ({ ...prev, memo: event.target.value }))
+                  }
+                  placeholder="URL、持ち物、準備内容など"
+                  className="h-8 w-full rounded-md border border-line bg-surface px-2 text-[12px] outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={isPending}
+                className="self-end inline-flex h-8 items-center justify-center gap-1 rounded-md bg-sage px-2.5 text-[12px] font-bold text-white transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-60"
+              >
+                <Plus size={12} aria-hidden />
+                追加
+              </button>
+            </div>
+
+            {taskError && (
+              <p role="alert" className="mt-2 rounded-md bg-pink/40 px-2.5 py-1.5 text-[12px] font-semibold text-ink">
+                {taskError}
+              </p>
+            )}
+          </form>
         )}
       </section>
 

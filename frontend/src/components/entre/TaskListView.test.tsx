@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   dueColor,
   dueLabel,
   filterTasksByStatusFilter,
+  filterTasksByTypeFilter,
   isDueThisWeek,
   sortTasksForDisplay,
   TaskListView,
@@ -41,6 +42,22 @@ const createTaskFromTaskPageAction = vi.fn(
     return { ok: true };
   },
 );
+interface RescheduleResult {
+  ok: boolean;
+  dueDate?: string | null;
+  error?: string;
+}
+const rescheduleTaskAction = vi.fn(
+  async (
+    taskId: string,
+    dueDate: string,
+    entryId?: string,
+  ): Promise<RescheduleResult> => {
+    void taskId;
+    void entryId;
+    return { ok: true, dueDate };
+  },
+);
 vi.mock("@/app/task/actions", () => ({
   createTaskFromTaskPageAction: (_prev: unknown, formData: FormData) =>
     createTaskFromTaskPageAction(_prev, formData),
@@ -51,6 +68,8 @@ vi.mock("@/app/task/actions", () => ({
     status: "todo" | "done",
     entryId?: string,
   ) => setTaskStatusAction(taskId, status, entryId),
+  rescheduleTaskAction: (taskId: string, dueDate: string, entryId?: string) =>
+    rescheduleTaskAction(taskId, dueDate, entryId),
 }));
 
 // Confetti の trigger 値を記録し、発火有無を検証する。
@@ -109,11 +128,18 @@ describe("TaskListView", () => {
     setTaskStatusAction.mockClear();
     deleteTaskAction.mockClear();
     createTaskFromTaskPageAction.mockClear();
+    rescheduleTaskAction.mockClear();
     confettiSpy.mockClear();
     setTaskStatusAction.mockImplementation(
       async (_taskId: string, status: "todo" | "done", _entryId?: string) => {
         void _entryId;
         return { ok: true, status };
+      },
+    );
+    rescheduleTaskAction.mockImplementation(
+      async (_taskId: string, dueDate: string, _entryId?: string) => {
+        void _entryId;
+        return { ok: true, dueDate };
       },
     );
   });
@@ -329,6 +355,101 @@ describe("TaskListView", () => {
       expect(screen.queryByRole("link", { name: /ES提出/ })).not.toBeInTheDocument(),
     );
   });
+
+  it("延期ボタンから+3日を選ぶと基準日+3日で rescheduleTaskAction を呼び、楽観的に期日表示を更新する", async () => {
+    const user = userEvent.setup();
+    render(
+      <TaskListView
+        initialTasks={[task({ id: "t1", title: "ES提出", dueDate: "2026-05-26" })]}
+        entries={[entry()]}
+      />,
+    );
+    const row = screen.getAllByRole("listitem").find((el) => el.textContent?.includes("ES提出"))!;
+
+    await user.click(
+      within(row).getByRole("button", { name: "タスク「ES提出」の期日を延期" }),
+    );
+    await user.click(within(row).getByRole("button", { name: "+3日" }));
+
+    await waitFor(() =>
+      expect(rescheduleTaskAction).toHaveBeenCalledWith("t1", "2026-05-30", "e1"),
+    );
+    await waitFor(() => expect(within(row).getByText("5/30")).toBeInTheDocument());
+  });
+
+  it("延期メニューは完了タスクには表示しない", () => {
+    render(
+      <TaskListView
+        initialTasks={[task({ id: "t1", title: "ES提出", status: "done" })]}
+        entries={[entry()]}
+      />,
+    );
+    expect(
+      screen.queryByRole("button", { name: "タスク「ES提出」の期日を延期" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("延期が失敗したら楽観更新を巻き戻し、エラーを表示する", async () => {
+    rescheduleTaskAction.mockResolvedValue({
+      ok: false,
+      error: "タスクの延期に失敗しました",
+    });
+    const user = userEvent.setup();
+    render(
+      <TaskListView
+        initialTasks={[task({ id: "t1", title: "ES提出", dueDate: "2026-05-26" })]}
+        entries={[entry()]}
+      />,
+    );
+    const row = screen.getAllByRole("listitem").find((el) => el.textContent?.includes("ES提出"))!;
+
+    await user.click(
+      within(row).getByRole("button", { name: "タスク「ES提出」の期日を延期" }),
+    );
+    await user.click(within(row).getByRole("button", { name: "明日" }));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    expect(within(row).getByText(/超過/)).toBeInTheDocument();
+  });
+
+  it("種類フィルタ「締切」で予定タスクを隠す", async () => {
+    const user = userEvent.setup();
+    render(
+      <TaskListView
+        initialTasks={[
+          task({ id: "t1", title: "ES提出", type: "deadline" }),
+          task({ id: "t2", title: "一次面接", type: "schedule" }),
+        ]}
+        entries={[entry()]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "締切 1" }));
+
+    expect(screen.getByRole("link", { name: /ES提出/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /一次面接/ })).not.toBeInTheDocument();
+  });
+
+  it("種類フィルタ「予定」と状態フィルタを併用できる", async () => {
+    const user = userEvent.setup();
+    render(
+      <TaskListView
+        initialTasks={[
+          task({ id: "t1", title: "ES提出", type: "deadline", status: "todo" }),
+          task({ id: "t2", title: "一次面接", type: "schedule", status: "todo" }),
+          task({ id: "t3", title: "説明会", type: "schedule", status: "done" }),
+        ]}
+        entries={[entry()]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "予定 2" }));
+    await user.click(screen.getByRole("button", { name: "未完了のみ 2" }));
+
+    expect(screen.getByRole("link", { name: /一次面接/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /ES提出/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /説明会/ })).not.toBeInTheDocument();
+  });
 });
 
 describe("dueLabel / dueColor", () => {
@@ -356,6 +477,15 @@ describe("dueLabel / dueColor", () => {
     expect(dueLabel("2026-05-31", now)).toBe("5/31");
     expect(dueColor("2026-05-31", now)).toBe("bg-amber");
     expect(dueColor("2026-06-02", now)).toBe("bg-sky");
+  });
+
+  it("夕方に見ても暦日で判定する（翌0時UTCの明日を本日と誤らない）", () => {
+    // now が夕方でも、カレンダー日で数えるので翌日の締切は必ず「明日締切」。
+    const evening = new Date("2026-05-29T11:00:00Z");
+    expect(dueLabel("2026-05-30T00:00:00.000Z", evening)).toBe("明日締切");
+    expect(dueColor("2026-05-30T00:00:00.000Z", evening)).toBe("bg-pink-deep");
+    expect(dueLabel("2026-05-29T00:00:00.000Z", evening)).toBe("本日締切");
+    expect(dueLabel("2026-05-27T00:00:00.000Z", evening)).toBe("5/27 ・2日超過");
   });
 
   it("期日なしはsage", () => {
@@ -420,5 +550,28 @@ describe("isDueThisWeek / filterTasksByStatusFilter", () => {
   it("filter=all はすべて残す", () => {
     const tasks = [task({ id: "a" }), task({ id: "b" })];
     expect(filterTasksByStatusFilter(tasks, "all", now)).toEqual(tasks);
+  });
+});
+
+describe("filterTasksByTypeFilter", () => {
+  const tasks = [
+    task({ id: "a", type: "deadline" }),
+    task({ id: "b", type: "schedule" }),
+  ];
+
+  it("filter=all はすべて残す", () => {
+    expect(filterTasksByTypeFilter(tasks, "all")).toEqual(tasks);
+  });
+
+  it("filter=deadline は締切タスクだけ残す", () => {
+    expect(filterTasksByTypeFilter(tasks, "deadline").map((t) => t.id)).toEqual(["a"]);
+  });
+
+  it("filter=schedule は予定タスクだけ残す", () => {
+    expect(filterTasksByTypeFilter(tasks, "schedule").map((t) => t.id)).toEqual(["b"]);
+  });
+
+  it("該当タスクが無ければ空配列を返す", () => {
+    expect(filterTasksByTypeFilter([task({ id: "a", type: "deadline" })], "schedule")).toEqual([]);
   });
 });

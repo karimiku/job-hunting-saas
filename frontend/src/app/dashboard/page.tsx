@@ -24,12 +24,24 @@ export default async function DashboardPage() {
   const firstName = user.name.split(/[\s　]/)[0] || user.name;
   const openTasks = tasks.filter((t) => t.status === "todo").length;
   const renderedAt = getRenderedAt();
-  const overdueTasks = tasks.filter(
-    (t) =>
-      t.status === "todo" &&
-      t.dueDate &&
-      Math.floor((new Date(t.dueDate).getTime() - renderedAt) / 86_400_000) < 0,
-  ).length;
+  // 超過判定はカレンダー日で行う（時刻差の floor だと、本日締切(翌0時UTC)を夕方に
+  // 見たとき差が負になり本日ぶんまで超過に数えてしまうため、ローカル0時基準で比較）。
+  const today = new Date(renderedAt);
+  const startOfToday = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  ).getTime();
+  const overdueTasks = tasks.filter((t) => {
+    if (t.status !== "todo" || !t.dueDate) return false;
+    const d = new Date(t.dueDate);
+    const startOfDue = new Date(
+      d.getFullYear(),
+      d.getMonth(),
+      d.getDate(),
+    ).getTime();
+    return startOfDue < startOfToday;
+  }).length;
   const hasEntries = entries.length > 0;
   const hasTasks = tasks.length > 0;
   const hasDoneTasks = tasks.some((t) => t.status === "done");

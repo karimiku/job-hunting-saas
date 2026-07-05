@@ -18,6 +18,7 @@ interface QuickOption {
 
 const QUICK_OPTIONS: QuickOption[] = [
   { label: "今日", days: 0 },
+  { label: "明日", days: 1 },
   { label: "+3日", days: 3 },
   { label: "+1週間", days: 7 },
 ];

@@ -138,9 +138,13 @@ export function DashboardEntries({
                       </span>
                       <span>{ENTRY_STATUS_LABEL[item.status] ?? item.status}</span>
                       <span aria-hidden>·</span>
-                      <span>未完了 {item.openTaskCount}</span>
+                      <span>未完了 {item.openTaskCount}件</span>
                       <span aria-hidden>·</span>
-                      <span>{item.nearestDue}</span>
+                      <span>
+                        {item.nearestDue === "期日なし"
+                          ? "期日なし"
+                          : `締切 ${item.nearestDue}`}
+                      </span>
                     </div>
                   </div>
                   <ArrowRight size={13} className="mt-0.5 shrink-0 text-ink-3" aria-hidden />
