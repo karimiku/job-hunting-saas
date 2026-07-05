@@ -57,21 +57,104 @@ func TestRateLimiterResetsAfterWindow(t *testing.T) {
 	}
 }
 
-func TestClientIPFromRequestUsesRightmostForwardedForIP(t *testing.T) {
+func TestClientIPWithZeroTrustedProxiesIgnoresForwardedFor(t *testing.T) {
+	// Default (0 trusted proxies): X-Forwarded-For is attacker-controlled and
+	// must be ignored so a spoofed header cannot mint a fresh limiter key.
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set("X-Forwarded-For", "spoofed, 203.0.113.10, 2001:db8::1")
+	req.Header.Set("X-Forwarded-For", "1.2.3.4, 5.6.7.8")
+	req.Header.Set("X-Real-IP", "9.9.9.9")
 	req.RemoteAddr = "10.0.0.1:12345"
 
-	if got := clientIPFromRequest(req); got != "2001:db8::1" {
-		t.Fatalf("clientIPFromRequest = %q, want rightmost valid X-Forwarded-For IP", got)
+	if got := clientIPWithTrustedProxies(req, 0); got != "10.0.0.1" {
+		t.Fatalf("clientIPWithTrustedProxies(0) = %q, want RemoteAddr host 10.0.0.1", got)
 	}
 }
 
-func TestClientIPFromRequestFallsBackToRemoteAddr(t *testing.T) {
+func TestClientIPWithOneTrustedProxyUsesForwardedForClient(t *testing.T) {
+	// One trusted proxy prepends the real client. XFF = "client": the value one
+	// hop from the right is the client the proxy observed.
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("X-Forwarded-For", "203.0.113.10")
+	req.RemoteAddr = "10.0.0.1:12345"
+
+	if got := clientIPWithTrustedProxies(req, 1); got != "203.0.113.10" {
+		t.Fatalf("clientIPWithTrustedProxies(1) = %q, want 203.0.113.10", got)
+	}
+}
+
+func TestClientIPWithOneTrustedProxyIgnoresSpoofedLeftEntries(t *testing.T) {
+	// An attacker prepending fake entries to XFF cannot shift the trusted index:
+	// with 1 trusted proxy we always read the rightmost entry (what our proxy set).
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("X-Forwarded-For", "1.1.1.1, 2.2.2.2, 203.0.113.99")
+	req.RemoteAddr = "10.0.0.1:12345"
+
+	if got := clientIPWithTrustedProxies(req, 1); got != "203.0.113.99" {
+		t.Fatalf("clientIPWithTrustedProxies(1) = %q, want rightmost 203.0.113.99", got)
+	}
+}
+
+func TestClientIPWithTwoTrustedProxiesSelectsSecondFromRight(t *testing.T) {
+	// Two trusted proxies: XFF = "client, proxy1"; index len-2 is the client.
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("X-Forwarded-For", "198.51.100.7, 10.0.0.2")
+	req.RemoteAddr = "10.0.0.1:12345"
+
+	if got := clientIPWithTrustedProxies(req, 2); got != "198.51.100.7" {
+		t.Fatalf("clientIPWithTrustedProxies(2) = %q, want 198.51.100.7", got)
+	}
+}
+
+func TestClientIPFailsClosedWhenForwardedForShorterThanTrustedHops(t *testing.T) {
+	// Fewer XFF entries than trusted hops means the request did not traverse the
+	// expected chain; fail closed to the direct peer rather than trust the value.
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("X-Forwarded-For", "203.0.113.10")
+	req.RemoteAddr = "10.0.0.1:12345"
+
+	if got := clientIPWithTrustedProxies(req, 2); got != "10.0.0.1" {
+		t.Fatalf("clientIPWithTrustedProxies(2) with short XFF = %q, want RemoteAddr 10.0.0.1", got)
+	}
+}
+
+func TestClientIPShortForwardedForIgnoresSpoofedRealIP(t *testing.T) {
+	// When XFF is present but shorter than the trusted chain, we must not fall back
+	// to an attacker-supplied X-Real-IP; the request failed the trusted-chain check
+	// so the direct peer is the only reliable key.
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("X-Forwarded-For", "203.0.113.10")
+	req.Header.Set("X-Real-IP", "9.9.9.9")
+	req.RemoteAddr = "10.0.0.1:12345"
+
+	if got := clientIPWithTrustedProxies(req, 2); got != "10.0.0.1" {
+		t.Fatalf("clientIPWithTrustedProxies(2) short XFF + spoofed X-Real-IP = %q, want RemoteAddr 10.0.0.1", got)
+	}
+}
+
+func TestClientIPFallsBackToRemoteAddr(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.RemoteAddr = "203.0.113.20:12345"
 
-	if got := clientIPFromRequest(req); got != "203.0.113.20" {
-		t.Fatalf("clientIPFromRequest = %q, want RemoteAddr host", got)
+	if got := clientIPWithTrustedProxies(req, 1); got != "203.0.113.20" {
+		t.Fatalf("clientIPWithTrustedProxies = %q, want RemoteAddr host", got)
+	}
+}
+
+func TestTrustedProxyCountFromEnvDefaultsToZero(t *testing.T) {
+	t.Setenv("TRUSTED_PROXY_COUNT", "")
+	if got := trustedProxyCountFromEnv(); got != 0 {
+		t.Fatalf("trustedProxyCountFromEnv() unset = %d, want 0", got)
+	}
+	t.Setenv("TRUSTED_PROXY_COUNT", "-3")
+	if got := trustedProxyCountFromEnv(); got != 0 {
+		t.Fatalf("trustedProxyCountFromEnv() negative = %d, want 0", got)
+	}
+	t.Setenv("TRUSTED_PROXY_COUNT", "not-a-number")
+	if got := trustedProxyCountFromEnv(); got != 0 {
+		t.Fatalf("trustedProxyCountFromEnv() invalid = %d, want 0", got)
+	}
+	t.Setenv("TRUSTED_PROXY_COUNT", "2")
+	if got := trustedProxyCountFromEnv(); got != 2 {
+		t.Fatalf("trustedProxyCountFromEnv() = %d, want 2", got)
 	}
 }

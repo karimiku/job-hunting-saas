@@ -46,17 +46,23 @@ type Config struct {
 	HTTPClient   *http.Client
 }
 
+// jwksRefreshCooldown bounds how often a JWKS refresh may hit the network.
+// Unknown-kid tokens trigger refreshJWKS; without a cooldown an attacker
+// replaying random kids would amplify outbound fetches to the JWKS endpoint.
+const jwksRefreshCooldown = 30 * time.Second
+
 // Verifier resolves a valid Supabase access token to this app's UserID.
 type Verifier struct {
-	issuer       string
-	audience     string
-	jwksURL      string
-	cacheTTL     time.Duration
-	httpClient   *http.Client
-	extIDRepo    repository.ExternalIdentityRepository
-	mu           sync.RWMutex
-	cachedJWKS   jose.JSONWebKeySet
-	jwksExpireAt time.Time
+	issuer             string
+	audience           string
+	jwksURL            string
+	cacheTTL           time.Duration
+	httpClient         *http.Client
+	extIDRepo          repository.ExternalIdentityRepository
+	mu                 sync.RWMutex
+	cachedJWKS         jose.JSONWebKeySet
+	jwksExpireAt       time.Time
+	lastRefreshAttempt time.Time
 }
 
 // NewVerifier creates a Supabase JWT verifier.
@@ -197,6 +203,16 @@ func (v *Verifier) cachedKey(kid, alg string) (interface{}, bool) {
 }
 
 func (v *Verifier) refreshJWKS(ctx context.Context) error {
+	// Skip the outbound fetch when a recent attempt (success or failure) already
+	// ran within the cooldown, so unknown-kid tokens cannot amplify JWKS traffic.
+	v.mu.Lock()
+	if !v.lastRefreshAttempt.IsZero() && time.Since(v.lastRefreshAttempt) < jwksRefreshCooldown {
+		v.mu.Unlock()
+		return nil
+	}
+	v.lastRefreshAttempt = time.Now()
+	v.mu.Unlock()
+
 	keySet, err := v.fetchJWKS(ctx)
 	if err != nil {
 		return err

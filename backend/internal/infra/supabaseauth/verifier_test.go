@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -150,4 +151,30 @@ func signSupabaseJWT(t *testing.T, key *rsa.PrivateKey, keyID, issuer, audience,
 		t.Fatalf("SignedString failed: %v", err)
 	}
 	return rawToken
+}
+
+func TestRefreshJWKSCooldownLimitsFetches(t *testing.T) {
+	var fetches int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		atomic.AddInt32(&fetches, 1)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"keys":[]}`))
+	}))
+	defer srv.Close()
+
+	v := &Verifier{
+		jwksURL:    srv.URL,
+		cacheTTL:   defaultJWKSCacheTTL,
+		httpClient: srv.Client(),
+	}
+
+	// Five unknown-kid refreshes in quick succession must hit the network once;
+	// the cooldown absorbs the rest. Errors (e.g. an empty keyset) are ignored:
+	// the point is that a failing endpoint is not re-fetched per request.
+	for i := 0; i < 5; i++ {
+		_ = v.refreshJWKS(context.Background())
+	}
+	if got := atomic.LoadInt32(&fetches); got != 1 {
+		t.Fatalf("JWKS fetches = %d, want 1 (cooldown should suppress the rest)", got)
+	}
 }
