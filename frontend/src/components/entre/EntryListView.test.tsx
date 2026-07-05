@@ -70,13 +70,15 @@ describe("EntryListView", () => {
     expect(screen.getByText("（会社名未設定）")).toBeInTheDocument();
   });
 
-  it("進捗バーの近くにステージ名と「Nステップ中M」を表示する", () => {
+  it("進捗バーの近くに「Nステップ中M」を表示する（ステージ名はバッジと重複しないよう省く）", () => {
     render(
       <EntryListView
         entries={[E({ stageKind: "interview", stageLabel: "一次面接" })]}
       />,
     );
-    expect(screen.getByText("一次面接 ・ 6ステップ中4")).toBeInTheDocument();
+    expect(screen.getByText("6ステップ中4")).toBeInTheDocument();
+    // ステージ名バッジは残るが、重複表示（"一次面接 ・ ..."）は出さない。
+    expect(screen.queryByText(/一次面接 ・/)).not.toBeInTheDocument();
   });
 
   it("1件のときはツールバーを表示しない", () => {

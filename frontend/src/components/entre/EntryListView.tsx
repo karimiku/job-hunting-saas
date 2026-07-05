@@ -206,7 +206,7 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
                       })}
                     </div>
                     <p className="mt-1 text-[12px] font-bold text-ink-3">
-                      {e.stageLabel} ・ {STAGE_ORDER.length}ステップ中{stageIndexOf(e.stageKind) + 1}
+                      {STAGE_ORDER.length}ステップ中{stageIndexOf(e.stageKind) + 1}
                     </p>
                     {e.memo && <div className="mt-1 text-[12px] text-ink-2">{e.memo}</div>}
                   </div>
