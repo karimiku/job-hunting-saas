@@ -11,6 +11,7 @@ import {
   entrySourceUrl,
   type EntryResponse,
 } from "@/lib/api/entries";
+import type { TaskWithEntry } from "@/lib/api/server-resources";
 import {
   ENTRY_STATUS_LABEL,
   isKanbanStageKind,
@@ -93,7 +94,49 @@ function presentStages(entries: EntryResponse[]): { value: KanbanStageKind; labe
   }));
 }
 
-export function EntryListView({ entries }: { entries: EntryResponse[] }) {
+// その応募先の未完了タスクのうち、最も期日が近いものを返す（無ければ null）。
+export function nextTaskForEntry(
+  entryId: string,
+  tasks: TaskWithEntry[],
+  _now: Date = new Date(),
+): TaskWithEntry | null {
+  let best: TaskWithEntry | null = null;
+  let bestTime = Number.POSITIVE_INFINITY;
+  for (const t of tasks) {
+    if (t.entryId !== entryId || t.status === "done" || !t.dueDate) continue;
+    const time = new Date(t.dueDate).getTime();
+    if (Number.isNaN(time) || time >= bestTime) continue;
+    bestTime = time;
+    best = t;
+  }
+  return best;
+}
+
+// 次タスクの締切ラベル。暦日で本日/明日/超過を判定（時刻差の floor を使わない）。
+export function nextTaskBadgeLabel(
+  task: TaskWithEntry | null,
+  now: Date = new Date(),
+): string | null {
+  if (!task?.dueDate) return null;
+  const d = new Date(task.dueDate);
+  if (Number.isNaN(d.getTime())) return null;
+  const due = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = Math.round((due.getTime() - today.getTime()) / 86_400_000);
+  const md = `${d.getMonth() + 1}/${d.getDate()}`;
+  if (days < 0) return `${md} ・${Math.abs(days)}日超過（${task.title}）`;
+  if (days === 0) return `本日締切（${task.title}）`;
+  if (days === 1) return `明日締切（${task.title}）`;
+  return `締切 ${md}（${task.title}）`;
+}
+
+export function EntryListView({
+  entries,
+  tasks = [],
+}: {
+  entries: EntryResponse[];
+  tasks?: TaskWithEntry[];
+}) {
   const [query, setQuery] = useState("");
   const [stage, setStage] = useState<KanbanStageKind | null>(null);
   const [statusGroup, setStatusGroup] = useState<EntryStatusGroup>("all");
@@ -157,6 +200,7 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
         <ul className="entre-stagger flex flex-col gap-2">
           {visible.map((e) => {
             const sourceUrl = entrySourceUrl(e);
+            const nextBadge = nextTaskBadgeLabel(nextTaskForEntry(e.id, tasks));
             return (
               <li
                 key={e.id}
@@ -176,6 +220,14 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
                         </span>
                       )}
                     </div>
+                    {nextBadge && (
+                      <div
+                        className="mt-1 inline-block rounded border border-line bg-cream px-1.5 py-0.5 text-[11px] font-bold text-ink-2"
+                        title={nextBadge}
+                      >
+                        {nextBadge}
+                      </div>
+                    )}
                     <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[12px] text-ink-3">
                       <span
                         className="rounded-sm px-1.5 py-0.5 text-[11px] font-bold text-white"
@@ -206,7 +258,7 @@ export function EntryListView({ entries }: { entries: EntryResponse[] }) {
                       })}
                     </div>
                     <p className="mt-1 text-[12px] font-bold text-ink-3">
-                      {e.stageLabel} ・ {STAGE_ORDER.length}ステップ中{stageIndexOf(e.stageKind) + 1}
+                      {STAGE_ORDER.length}ステップ中{stageIndexOf(e.stageKind) + 1}
                     </p>
                     {e.memo && <div className="mt-1 text-[12px] text-ink-2">{e.memo}</div>}
                   </div>

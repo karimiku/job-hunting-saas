@@ -23,9 +23,9 @@ export default async function InboxPage() {
               保存した求人の一時置き場です。残したい求人だけ応募先にします。いらないものは削除。
             </p>
           </div>
-          <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-2">
+          <div className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-line bg-surface px-2.5 py-2">
             <span className="font-mono text-[12px] font-bold text-sage">{clips.length}</span>
-            <span className="text-[12px] font-semibold text-ink-3">保存中</span>
+            <span className="text-[12px] font-semibold text-ink-3">件保存中</span>
           </div>
         </header>
 

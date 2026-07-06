@@ -6,9 +6,25 @@ import {
   filterEntries,
   filterEntriesByStage,
   filterEntriesByStatusGroup,
+  nextTaskBadgeLabel,
+  nextTaskForEntry,
   sortEntries,
 } from "./EntryListView";
 import type { EntryResponse } from "@/lib/api/entries";
+import type { TaskWithEntry } from "@/lib/api/server-resources";
+
+const T = (over: Partial<TaskWithEntry>): TaskWithEntry =>
+  ({
+    id: "t1",
+    entryId: "e1",
+    title: "ES提出",
+    type: "deadline",
+    status: "todo",
+    dueDate: "2026-07-06T00:00:00.000Z",
+    memo: "",
+    companyName: "テスト社",
+    ...over,
+  }) as TaskWithEntry;
 
 const E = (over: Partial<EntryResponse>): EntryResponse => ({
   id: "e1",
@@ -70,13 +86,15 @@ describe("EntryListView", () => {
     expect(screen.getByText("（会社名未設定）")).toBeInTheDocument();
   });
 
-  it("進捗バーの近くにステージ名と「Nステップ中M」を表示する", () => {
+  it("進捗バーの近くに「Nステップ中M」を表示する（ステージ名はバッジと重複しないよう省く）", () => {
     render(
       <EntryListView
         entries={[E({ stageKind: "interview", stageLabel: "一次面接" })]}
       />,
     );
-    expect(screen.getByText("一次面接 ・ 6ステップ中4")).toBeInTheDocument();
+    expect(screen.getByText("6ステップ中4")).toBeInTheDocument();
+    // ステージ名バッジは残るが、重複表示（"一次面接 ・ ..."）は出さない。
+    expect(screen.queryByText(/一次面接 ・/)).not.toBeInTheDocument();
   });
 
   it("1件のときはツールバーを表示しない", () => {
@@ -264,5 +282,49 @@ describe("sortEntries", () => {
     const copy = [...entries];
     sortEntries(entries, "updated");
     expect(entries).toEqual(copy);
+  });
+});
+
+describe("nextTaskForEntry", () => {
+  it("その応募先の未完了タスクのうち最も近い期日を返す", () => {
+    const tasks = [
+      T({ id: "a", entryId: "e1", dueDate: "2026-07-10T00:00:00.000Z" }),
+      T({ id: "b", entryId: "e1", dueDate: "2026-07-06T00:00:00.000Z" }),
+      T({ id: "c", entryId: "e2", dueDate: "2026-07-01T00:00:00.000Z" }),
+    ];
+    expect(nextTaskForEntry("e1", tasks)?.id).toBe("b");
+  });
+  it("完了・期限なし・他応募先は除外し、無ければ null", () => {
+    const tasks = [
+      T({ id: "done", entryId: "e1", status: "done", dueDate: "2026-07-06T00:00:00.000Z" }),
+      T({ id: "nodue", entryId: "e1", dueDate: null }),
+      T({ id: "other", entryId: "e2" }),
+    ];
+    expect(nextTaskForEntry("e1", tasks)).toBeNull();
+  });
+});
+
+describe("nextTaskBadgeLabel", () => {
+  const now = new Date("2026-07-06T09:00:00Z");
+  it("本日/明日/超過を暦日で判定する", () => {
+    expect(nextTaskBadgeLabel(T({ dueDate: "2026-07-06T00:00:00.000Z", title: "ES" }), now)).toBe("本日締切（ES）");
+    expect(nextTaskBadgeLabel(T({ dueDate: "2026-07-07T00:00:00.000Z", title: "面接" }), now)).toBe("明日締切（面接）");
+    expect(nextTaskBadgeLabel(T({ dueDate: "2026-07-04T00:00:00.000Z", title: "SPI" }), now)).toBe("7/4 ・2日超過（SPI）");
+    expect(nextTaskBadgeLabel(T({ dueDate: "2026-07-10T00:00:00.000Z", title: "説明会" }), now)).toBe("締切 7/10（説明会）");
+  });
+  it("タスクが無ければ null", () => {
+    expect(nextTaskBadgeLabel(null, now)).toBeNull();
+  });
+});
+
+describe("EntryListView 次締切バッジ", () => {
+  it("カードに次タスクの締切を表示する", () => {
+    render(
+      <EntryListView
+        entries={[E({ id: "e1", companyName: "サイバー社" })]}
+        tasks={[T({ entryId: "e1", title: "ES提出", dueDate: "2026-07-10T00:00:00.000Z" })]}
+      />,
+    );
+    expect(screen.getByText(/ES提出/)).toBeInTheDocument();
   });
 });
