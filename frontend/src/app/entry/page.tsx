@@ -11,7 +11,7 @@ import { Plus } from "lucide-react";
 export default async function EntryListPage() {
   const pageData = await getAppPageDataServer();
   if (!pageData) redirect("/login");
-  const { user, entries, navCounts } = pageData;
+  const { user, entries, tasks, navCounts } = pageData;
 
   return (
     <AppShell userName={user.name} userSubtitle={user.email} navCounts={navCounts}>
@@ -42,7 +42,7 @@ export default async function EntryListPage() {
           <EntryViewSwitch active="list" />
         </div>
 
-        <EntryListView entries={entries} />
+        <EntryListView entries={entries} tasks={tasks} />
       </div>
     </AppShell>
   );
