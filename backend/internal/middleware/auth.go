@@ -77,7 +77,7 @@ type FirebaseSessionVerifier interface {
 	VerifySessionCookie(ctx context.Context, sessionCookie string) (*SessionClaims, error)
 }
 
-// BearerTokenVerifier は Authorization: Bearer で渡されたAI連携トークンを userID に解決する。
+// BearerTokenVerifier は Authorization: Bearer で渡されたトークンを userID に解決する。
 type BearerTokenVerifier interface {
 	VerifyBearerToken(ctx context.Context, rawToken string) (entity.UserID, error)
 }
@@ -141,6 +141,10 @@ func NewAuthWithBearerAndDevSession(
 
 			cookie, err := r.Cookie(SessionCookieName)
 			if err != nil || cookie.Value == "" {
+				http.Error(w, "unauthenticated", http.StatusUnauthorized)
+				return
+			}
+			if fbAuth == nil {
 				http.Error(w, "unauthenticated", http.StatusUnauthorized)
 				return
 			}

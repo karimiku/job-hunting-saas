@@ -6,6 +6,33 @@ import {
 } from "./DashboardNextAction";
 
 describe("getDashboardNextAction", () => {
+  it("超過タスクがあればinbox/entryより優先して警告する", () => {
+    expect(
+      getDashboardNextAction({
+        inboxCount: 2,
+        entryCount: 4,
+        openTaskCount: 3,
+        overdueTaskCount: 2,
+      }),
+    ).toMatchObject({
+      activeStep: "task",
+      href: "/task",
+      title: "締切が過ぎたタスクが2件あります",
+      variant: "warning",
+    });
+  });
+
+  it("超過タスクが無ければ従来どおりの分岐にする", () => {
+    expect(
+      getDashboardNextAction({
+        inboxCount: 2,
+        entryCount: 4,
+        openTaskCount: 3,
+        overdueTaskCount: 0,
+      }),
+    ).toMatchObject({ activeStep: "inbox", variant: "default" });
+  });
+
   it("保存クリップがあれば最優先でEntry化へ案内する", () => {
     expect(
       getDashboardNextAction({ inboxCount: 2, entryCount: 4, openTaskCount: 3 }),
@@ -16,17 +43,17 @@ describe("getDashboardNextAction", () => {
     });
   });
 
-  it("保存クリップもEntryも無ければEntry追加へ案内する", () => {
+  it("保存クリップも応募先も無ければ応募先追加へ案内する", () => {
     expect(
       getDashboardNextAction({ inboxCount: 0, entryCount: 0, openTaskCount: 0 }),
     ).toMatchObject({
       activeStep: "entry",
       href: "/entry/new",
-      cta: "Entryを追加",
+      cta: "応募先を追加",
     });
   });
 
-  it("Entryはあるが未完了タスクが無ければタスク追加へ案内する", () => {
+  it("応募先はあるが未完了タスクが無ければタスク追加へ案内する", () => {
     expect(
       getDashboardNextAction({ inboxCount: 0, entryCount: 3, openTaskCount: 0 }),
     ).toMatchObject({
@@ -54,11 +81,29 @@ describe("DashboardNextAction", () => {
     );
 
     expect(screen.getByText("次にやること")).toBeInTheDocument();
-    expect(screen.getByText("保存クリップ 1件をEntryにする")).toBeInTheDocument();
+    expect(screen.getByText("保存箱の求人 1件を応募先にする")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /保存箱を開く/ })).toHaveAttribute(
       "href",
       "/inbox",
     );
     expect(screen.queryByText("1. 保存")).toBeNull();
+  });
+
+  it("超過タスクがあれば警告トーンの文言・見出しを表示する", () => {
+    render(
+      <DashboardNextAction
+        inboxCount={0}
+        entryCount={3}
+        openTaskCount={3}
+        overdueTaskCount={2}
+      />,
+    );
+
+    expect(screen.getByText("要注意")).toBeInTheDocument();
+    expect(screen.getByText("締切が過ぎたタスクが2件あります")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /タスクを確認/ })).toHaveAttribute(
+      "href",
+      "/task",
+    );
   });
 });

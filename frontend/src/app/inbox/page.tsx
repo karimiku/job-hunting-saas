@@ -3,6 +3,7 @@
 // ここでは useEffect/useState を使わない。
 
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getAppPageDataServer } from "@/lib/api/server-resources";
 import { AppShell } from "@/components/entre/AppShell";
 import { InboxList } from "@/components/entre/InboxList";
@@ -18,15 +19,23 @@ export default async function InboxPage() {
         <header className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h1 className="font-serif text-2xl font-extrabold tracking-tight">保存箱</h1>
-            <p className="mt-0.5 text-[11px] text-ink-3">
-              保存した求人の一時置き場です。残す求人だけEntryに変換します。
+            <p className="mt-0.5 text-[12px] text-ink-3">
+              保存した求人の一時置き場です。残したい求人だけ応募先にします。いらないものは削除。
             </p>
           </div>
-          <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-2">
-            <span className="font-mono text-[10px] font-bold text-sage">{clips.length}</span>
-            <span className="text-[10px] font-semibold text-ink-3">保存中</span>
+          <div className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-line bg-surface px-2.5 py-2">
+            <span className="font-mono text-[12px] font-bold text-sage">{clips.length}</span>
+            <span className="text-[12px] font-semibold text-ink-3">件保存中</span>
           </div>
         </header>
+
+        <p className="mb-4 rounded-lg border border-line bg-cream-2/60 px-3 py-2 text-[12px] leading-relaxed text-ink-3">
+          求人はChrome拡張で閲覧中のページをワンクリック保存するとここに集まります。急ぐ場合は
+          <Link href="/entry/new" prefetch={false} className="mx-1 font-bold text-sage hover:underline">
+            応募先を追加
+          </Link>
+          からWebで直接登録してもOKです。
+        </p>
 
         <InboxList clips={clips} companies={companies} />
       </div>

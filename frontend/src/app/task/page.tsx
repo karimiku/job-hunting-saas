@@ -21,7 +21,7 @@ export default async function TaskPage() {
       userSubtitle={user.email}
       navCounts={navCounts}
     >
-      <div className="relative mx-auto max-w-[700px] px-5 py-6 md:px-8 md:py-7">
+      <div className="relative mx-auto max-w-[700px] px-5 py-6 md:px-8 md:py-7 lg:max-w-[1080px]">
         <header className="mb-4">
           <h1 className="font-serif text-2xl font-extrabold tracking-tight">
             タスク
@@ -29,8 +29,8 @@ export default async function TaskPage() {
               締切・予定
             </span>
           </h1>
-          <p className="mt-0.5 text-[11px] text-ink-3">
-            今日やることを上から片づけます。締切、面接予定、準備メモをEntryに紐づけます。
+          <p className="mt-0.5 text-[12px] text-ink-3">
+            今日やることを上から片づけます。締切、面接予定、準備メモを応募先に紐づけます。
           </p>
         </header>
 

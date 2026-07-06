@@ -48,5 +48,5 @@ func (p AuthProvider) Equals(other AuthProvider) bool {
 // AuthProviderGoogle は Google プロバイダーを返す定数コンストラクタ。
 func AuthProviderGoogle() AuthProvider { return AuthProvider{value: authProviderGoogle} }
 
-// AuthProviderSupabase は Supabase プロバイダーを返す定数コンストラクタ。
+// AuthProviderSupabase は Supabase Auth プロバイダーを返す定数コンストラクタ。
 func AuthProviderSupabase() AuthProvider { return AuthProvider{value: authProviderSupabase} }

@@ -85,8 +85,29 @@ describe("EntryDetailView", () => {
 
   it("initialEntry を表示する", () => {
     render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
-    expect(screen.getByText("一次面接")).toBeInTheDocument();
+    expect(screen.getByTestId("current-stage")).toHaveTextContent("一次面接");
     expect(screen.getByText("テストメモ")).toBeInTheDocument();
+  });
+
+  it("タスク追加フォームは既定で折りたたまれており、ボタンで開閉できる", async () => {
+    render(<EntryDetailView initialEntry={sample()} initialTasks={[task()]} />);
+
+    expect(screen.queryByLabelText("タスク名")).not.toBeInTheDocument();
+    expect(screen.getByText("ES提出")).toBeInTheDocument();
+
+    const toggle = screen.getByRole("button", { name: "タスクを追加" });
+    await userEvent.click(toggle);
+    expect(screen.getByLabelText("タスク名")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "閉じる" }));
+    expect(screen.queryByLabelText("タスク名")).not.toBeInTheDocument();
+  });
+
+  it("フェーズと結果の関係を説明する注記を表示する", () => {
+    render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
+    expect(
+      screen.getByText(/選考途中は上の「選考フェーズ」だけでOKです/),
+    ).toBeInTheDocument();
   });
 
   it("ステージボタンの選択で更新 action が走り stageKind を任意更新できる", async () => {
@@ -174,6 +195,7 @@ describe("EntryDetailView", () => {
 
     render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
 
+    await userEvent.click(screen.getByRole("button", { name: "タスクを追加" }));
     await userEvent.type(screen.getByLabelText("タスク名"), "一次面接準備");
     await userEvent.click(screen.getByRole("button", { name: "追加" }));
 
@@ -186,6 +208,16 @@ describe("EntryDetailView", () => {
       }),
     );
     expect(await screen.findByText("一次面接準備")).toBeInTheDocument();
+  });
+
+  it("定型チップをタップするとタスク名と種類欄に反映される", async () => {
+    render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "タスクを追加" }));
+    await userEvent.click(screen.getByRole("button", { name: "一次面接" }));
+
+    expect(screen.getByLabelText("タスク名")).toHaveValue("一次面接");
+    expect(screen.getByRole("radio", { name: "予定" })).toBeChecked();
   });
 
   it("Entry詳細でタスクの完了状態を切り替えられる", async () => {
@@ -204,7 +236,11 @@ describe("EntryDetailView", () => {
     await userEvent.click(screen.getByRole("button", { name: /タスク「ES提出」を削除/ }));
 
     await waitFor(() => expect(deleteTaskAction).toHaveBeenCalledWith("t1", "e1"));
-    await waitFor(() => expect(screen.queryByText("ES提出")).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: /タスク「ES提出」を削除/ }),
+      ).not.toBeInTheDocument(),
+    );
   });
 
   it("Entry詳細からEntryを削除できる", async () => {
@@ -217,19 +253,55 @@ describe("EntryDetailView", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "テスト商事 のEntryを削除" }));
+    await userEvent.click(screen.getByRole("button", { name: "テスト商事 の応募先を削除" }));
 
     await waitFor(() => expect(deleteEntryAction).toHaveBeenCalledWith("e1"));
   });
 
+  it("選考中の間は「結果を取り消す」導線を表示しない", () => {
+    render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
+    expect(
+      screen.queryByRole("button", { name: /結果を取り消す/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("結果確定後は「結果を取り消す」導線から選考中に戻せる", async () => {
+    render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
+    await userEvent.click(screen.getByRole("button", { name: "落選" }));
+
+    const revertButton = await screen.findByRole("button", {
+      name: /結果を取り消す/,
+    });
+    await userEvent.click(revertButton);
+
+    await waitFor(() =>
+      expect(updateEntryAction).toHaveBeenLastCalledWith(
+        "e1",
+        expect.objectContaining({ status: "in_progress" }),
+      ),
+    );
+  });
+
+  it("選考フェーズと結果が別セクションの見出しで分離されている", () => {
+    render(<EntryDetailView initialEntry={sample()} initialTasks={[]} />);
+
+    expect(screen.getByText("選考フェーズ")).toBeInTheDocument();
+    expect(screen.getByText("今どの段階かを選びます")).toBeInTheDocument();
+    expect(screen.getByText("結果（確定したら選ぶ）")).toBeInTheDocument();
+    expect(screen.getByText("内定・お見送りなどが決まったら選びます")).toBeInTheDocument();
+    // フェーズの「内定」と結果の「内定獲得」が文言で区別できる
+    expect(screen.getByRole("button", { name: "内定" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "内定獲得" })).toBeInTheDocument();
+  });
+
   it("Entry削除に失敗したらエラーを表示する", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    deleteEntryAction.mockResolvedValue({ ok: false, error: "Entryの削除に失敗しました" });
+    deleteEntryAction.mockResolvedValue({ ok: false, error: "応募先の削除に失敗しました" });
 
     render(<EntryDetailView initialEntry={sample({ companyName: "テスト商事" })} initialTasks={[]} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "テスト商事 のEntryを削除" }));
+    await userEvent.click(screen.getByRole("button", { name: "テスト商事 の応募先を削除" }));
 
-    expect(await screen.findByText("Entryの削除に失敗しました")).toBeInTheDocument();
+    expect(await screen.findByText("応募先の削除に失敗しました")).toBeInTheDocument();
   });
 });

@@ -21,20 +21,40 @@ export interface QuestItem {
 
 const MAX_QUESTS = 5;
 
-function dueLabel(dueDate: string | null): string {
+// 期日までの残り日数をカレンダー日で数える（双方をローカル0時に丸めた日付差）。
+// 単純な時刻差の floor だと、夕方に「明日(翌0時UTC)」の締切を登録したとき差が
+// 24時間未満になり本日扱いになってしまうため。
+function daysUntilDue(d: Date, now: Date): number {
+  const due = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((due.getTime() - today.getTime()) / 86_400_000);
+}
+
+// 期限切れ（dueDate < 今日）は「M/D ・n日超過」にして超過を明示する。
+// 本日・明日は専用ラベルにして緊急度を最優先で伝える。
+function dueLabel(dueDate: string | null, now: Date): string {
   if (!dueDate) return "期限なし";
   const d = new Date(dueDate);
   if (Number.isNaN(d.getTime())) return "期限なし";
-  return `${d.getMonth() + 1}/${d.getDate()}`;
+  const base = `${d.getMonth() + 1}/${d.getDate()}`;
+  const days = daysUntilDue(d, now);
+  if (days < 0) return `${base} ・${Math.abs(days)}日超過`;
+  if (days === 0) return "本日締切";
+  if (days === 1) return "明日締切";
+  return base;
 }
 
-// 期限の近さで色を決める。過ぎている/今日=pink、3日以内=amber、それ以降=sky、期限なし=sage。
+// 緊急度を段階表現する。
+// 超過: 1-2日=pink、3日以上=より濃い pink-deep。
+// 本日=最も強い ink、明日=pink-deep。それ以降=従来どおり (3日以内=amber、超=sky)。期限なし=sage。
 function dueColor(dueDate: string | null, now: Date): string {
   if (!dueDate) return "bg-sage";
   const d = new Date(dueDate);
   if (Number.isNaN(d.getTime())) return "bg-sage";
-  const days = Math.floor((d.getTime() - now.getTime()) / 86_400_000);
-  if (days <= 0) return "bg-pink";
+  const days = daysUntilDue(d, now);
+  if (days < 0) return Math.abs(days) >= 3 ? "bg-pink-deep" : "bg-pink";
+  if (days === 0) return "bg-ink";
+  if (days === 1) return "bg-pink-deep";
   if (days <= 3) return "bg-amber";
   return "bg-sky";
 }
@@ -57,7 +77,7 @@ export function buildQuests(
     const company = companyDisplayName({ companyName: t.companyName });
     return {
       id: t.id,
-      due: dueLabel(t.dueDate),
+      due: dueLabel(t.dueDate, now),
       label: `${company} ${t.title}`.trim(),
       sub: t.memo?.trim() || (t.type === "deadline" ? "締切タスク" : "予定"),
       color: dueColor(t.dueDate, now),
@@ -79,8 +99,8 @@ export function DashboardQuests({ tasks }: { tasks: TaskWithEntry[] }) {
   return (
     <div className="rounded-xl border border-line bg-surface p-5">
       <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="text-[14px] font-extrabold">今日のタスク</h2>
-        <Link href="/task" prefetch={false} className="text-[10px] font-bold text-sage">
+        <h2 className="text-[14px] font-extrabold">直近のタスク</h2>
+        <Link href="/task" prefetch={false} className="text-[12px] font-bold text-sage">
           一覧
         </Link>
       </div>
@@ -88,15 +108,15 @@ export function DashboardQuests({ tasks }: { tasks: TaskWithEntry[] }) {
       {quests.length === 0 ? (
         <div data-testid="quest-empty" className="py-6 text-center">
           <p className="text-[12px] font-bold text-ink-2">タスクはまだありません</p>
-          <p className="mt-1 text-[11px] text-ink-3">
-            Entryごとに締切や予定を追加すると、近い順に表示されます。
+          <p className="mt-1 text-[12px] text-ink-3">
+            応募先ごとに締切や予定を追加すると、近い順に表示されます。
           </p>
           <Link
             href="/entry"
             prefetch={false}
-            className="mt-3 inline-flex rounded-lg border border-line bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+            className="mt-3 inline-flex rounded-lg border border-line bg-surface px-3 py-1.5 text-[12px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
           >
-            Entryを確認
+            応募先を確認
           </Link>
         </div>
       ) : (
@@ -109,7 +129,7 @@ export function DashboardQuests({ tasks }: { tasks: TaskWithEntry[] }) {
               } ${r.done ? "opacity-50" : ""}`}
             >
               <span
-                className={`grid h-[18px] w-[18px] place-items-center rounded-full text-[10px] text-white ${
+                className={`grid h-[18px] w-[18px] place-items-center rounded-full text-[12px] text-white ${
                   r.done ? "border-[1.5px] border-sage bg-sage" : "border-[1.5px] border-line bg-transparent"
                 }`}
               >
@@ -119,10 +139,10 @@ export function DashboardQuests({ tasks }: { tasks: TaskWithEntry[] }) {
                 <div className={`truncate text-xs font-semibold ${r.done ? "line-through" : ""}`}>
                   {r.label}
                 </div>
-                <div className="mt-0.5 truncate text-[10px] text-ink-3">{r.sub}</div>
+                <div className="mt-0.5 truncate text-[12px] text-ink-3">{r.sub}</div>
               </div>
               <span
-                className={`shrink-0 rounded-md px-2 py-0.5 font-mono text-[10px] font-bold text-white ${r.color}`}
+                className={`shrink-0 rounded-md px-2 py-0.5 font-mono text-[12px] font-bold text-white ${r.color}`}
               >
                 {r.due}
               </span>

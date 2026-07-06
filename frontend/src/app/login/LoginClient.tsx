@@ -194,6 +194,17 @@ export function LoginClient({ devLoginEnabled = false }: LoginClientProps) {
               </Link>
             ) : null}
 
+            <p
+              style={{
+                marginTop: 14,
+                fontSize: 12,
+                color: "var(--lp-ink-3)",
+                lineHeight: 1.6,
+              }}
+            >
+              取得するのはGoogleアカウントの氏名とメールアドレスだけ。メール本文や連絡先は読み取りません。無料で使えます。
+            </p>
+
             {error ? (
               <p
                 role="alert"

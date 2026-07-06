@@ -3,7 +3,7 @@
 // useActionState で Server Action を呼ぶフォーム。
 // pending state は useFormStatus、エラーは Action からの戻り値で表示。
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { createNewEntryAction, type NewEntryFormState } from "./actions";
@@ -40,10 +40,10 @@ export function NewEntryForm() {
     <>
       <header className="mb-4">
         <h1 className="font-serif text-2xl font-extrabold tracking-tight">
-          Entryを追加
+          応募先を追加
         </h1>
-        <p className="mt-1 text-[11px] leading-relaxed text-ink-3">
-          会社名、応募経路、応募媒体だけ入れれば始められます。
+        <p className="mt-1 text-[12px] leading-relaxed text-ink-3">
+          会社名だけ入れれば登録できます。ほかはあとからでOK。
         </p>
       </header>
 
@@ -63,11 +63,11 @@ export function NewEntryForm() {
           />
         </Field>
 
-        <Field label="応募経路">
-          <RouteRadio defaultValue={v.route} />
+        <Field label="応募の種類">
+          <RouteInput defaultValue={v.route} />
         </Field>
 
-        <Field label="ソース (応募媒体)">
+        <Field label="どこで見つけた？">
           <select
             name="source"
             defaultValue={v.source}
@@ -92,6 +92,9 @@ export function NewEntryForm() {
         </Field>
 
         <Field label="選考フロー">
+          <p className="mb-2 text-[12px] leading-relaxed text-ink-3">
+            この会社の選考ステップです。標準のままでOK。あとから変更できます
+          </p>
           <fieldset className="mb-2 flex flex-wrap gap-1.5">
             {[
               ["template", "標準"],
@@ -99,7 +102,7 @@ export function NewEntryForm() {
             ].map(([value, label]) => (
               <label
                 key={value}
-                className="cursor-pointer rounded-full border border-line bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-2 transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage has-[:checked]:text-white"
+                className="cursor-pointer rounded-full border border-line bg-surface px-3 py-1.5 text-[12px] font-bold text-ink-2 transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage has-[:checked]:text-white"
               >
                 <input
                   type="radio"
@@ -124,7 +127,7 @@ export function NewEntryForm() {
         {state.error && (
           <p
             role="alert"
-            className="mb-3 rounded-md bg-pink/40 px-3 py-2 text-[11px] font-semibold text-ink"
+            className="mb-3 rounded-md bg-pink/40 px-3 py-2 text-[12px] font-semibold text-ink"
           >
             {state.error}
           </p>
@@ -145,26 +148,37 @@ export function NewEntryForm() {
   );
 }
 
-/** route はラジオではなくボタンチップ。state は input[type=hidden] で送る。 */
-function RouteRadio({ defaultValue }: { defaultValue: string }) {
+function RouteInput({ defaultValue }: { defaultValue: string }) {
+  const [route, setRoute] = useState(defaultValue || "本選考");
+
   return (
-    <fieldset className="flex flex-wrap gap-1.5">
-      {ROUTES.map((r) => (
-        <label
-          key={r}
-          className="cursor-pointer rounded-full border border-line bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-2 transition-colors has-[:checked]:border-sage has-[:checked]:bg-sage has-[:checked]:text-white"
-        >
-          <input
-            type="radio"
-            name="route"
-            value={r}
-            defaultChecked={r === defaultValue}
-            className="sr-only"
-          />
-          {r}
-        </label>
-      ))}
-    </fieldset>
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-1.5">
+        {ROUTES.map((r) => (
+          <button
+            key={r}
+            type="button"
+            onClick={() => setRoute(r)}
+            className={[
+              "rounded-full border px-3 py-1.5 text-[12px] font-bold transition-colors",
+              route === r
+                ? "border-sage bg-sage text-white"
+                : "border-line bg-surface text-ink-2 hover:bg-line-2",
+            ].join(" ")}
+          >
+            {r}
+          </button>
+        ))}
+      </div>
+      <input
+        type="text"
+        name="route"
+        value={route}
+        onChange={(e) => setRoute(e.target.value)}
+        placeholder="例: 説明会経由 / 逆求人 / 直接応募"
+        className="w-full rounded-lg border border-line bg-cream px-3 py-2 text-sm font-semibold outline-none transition-colors focus:border-sage"
+      />
+    </div>
   );
 }
 
@@ -176,7 +190,7 @@ function SubmitButton() {
       disabled={pending}
       className="flex-[2] rounded-lg bg-sage py-2.5 text-sm font-bold text-white transition-transform enabled:hover:-translate-y-0.5 disabled:opacity-60"
     >
-      {pending ? "保存中…" : "Entryを保存"}
+      {pending ? "保存中…" : "応募先を登録"}
     </button>
   );
 }
@@ -192,7 +206,7 @@ function Field({
 }) {
   return (
     <div className="mb-4">
-      <label className="mb-1.5 block text-[10px] font-bold text-ink-2">
+      <label className="mb-1.5 block text-[12px] font-bold text-ink-2">
         {label}
         {required && <span className="ml-1 text-pink-deep">*</span>}
       </label>

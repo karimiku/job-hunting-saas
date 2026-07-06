@@ -62,7 +62,7 @@ export function StatusBreakdown({ entries }: { entries: EntryResponse[] }) {
           ) : null,
         )}
       </svg>
-      <ul className="flex flex-1 flex-col gap-1.5 text-[11px]">
+      <ul className="flex flex-1 flex-col gap-1.5 text-[12px]">
         {ORDER.map((kind) => (
           <li key={kind} className="flex items-center gap-2">
             <span className="block h-2.5 w-2.5 rounded-sm" style={{ background: COLOR[kind] }} />

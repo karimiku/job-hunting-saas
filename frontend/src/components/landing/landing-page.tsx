@@ -21,6 +21,7 @@ export function LandingPage() {
       <Nav />
       <main>
         <Hero />
+        <DifferentiationSection />
         <CoreFlowSection />
         <CoreScreensSection />
         <FinalCTASection />
@@ -64,8 +65,8 @@ function Nav() {
         </a>
         <div className="lp-nav-links lp-hide-sm">
           <a href="#flow">流れ</a>
-          <a href="#entry">Entry</a>
-          <a href="#kanban">カンバン</a>
+          <a href="#entry">応募先</a>
+          <a href="#kanban">ボード</a>
         </div>
         <div className="lp-nav-cta">
           <Link href="/login" className="lp-btn lp-btn-ghost lp-hide-sm">
@@ -84,10 +85,10 @@ function Hero() {
   return (
     <section className="lp-simple-hero" id="top">
       <div className="lp-simple-hero-copy">
-        <p className="lp-simple-kicker">Entry とカンバンだけに絞った就活管理</p>
+        <p className="lp-simple-kicker">応募先とボードだけに絞った就活管理</p>
         <h1>Entré</h1>
         <p className="lp-simple-lead">
-          保存した求人を Entry にまとめて、選考状況はカンバンで動かす。
+          保存した求人を応募先にまとめて、選考状況はボードで動かす。
           締切、URL、メモ、次のタスクを一箇所に置けるシンプルな就活ボードです。
         </p>
         <div className="lp-simple-actions">
@@ -103,7 +104,7 @@ function Hero() {
       <div className="lp-simple-hero-visual">
         <Image
           src={productShots.dashboard.src}
-          alt="Entré のホーム画面。保存箱から Entry に変換する次の行動と今日のタスクを表示している。"
+          alt="Entré のホーム画面。保存箱から応募先に変換する次の行動と今日のタスクを表示している。"
           width={productShots.dashboard.width}
           height={productShots.dashboard.height}
           loading="eager"
@@ -127,21 +128,32 @@ function Hero() {
   );
 }
 
+function DifferentiationSection() {
+  return (
+    <section className="lp-simple-diff lp-reveal">
+      <p>
+        マイナビもリクナビもワンキャリも、バラバラな就活を1つに集めて
+        <strong>「次にやること」</strong>を教えてくれる。
+      </p>
+    </section>
+  );
+}
+
 function CoreFlowSection() {
   const steps = [
     {
       label: "保存する",
       title: "気になる求人を保存箱へ",
-      text: "あとで見る求人を一旦ためる。必要なものだけ Entry に変換します。",
+      text: "あとで見る求人はURLとタイトルをWeb上で保存箱へ。Chrome拡張を使えば閲覧中のページをワンクリックで保存できます（任意）。必要なものだけ応募先に変換します。",
     },
     {
       label: "まとめる",
-      title: "Entry に情報を集約",
+      title: "応募先に情報を集約",
       text: "会社名、応募元URL、メモ、ステータス、次のタスクを同じ場所に置きます。",
     },
     {
       label: "動かす",
-      title: "カンバンで選考を進める",
+      title: "ボードで選考を進める",
       text: "書類、テスト、面接、内定まで、今どこにあるかだけを見ます。",
     },
   ];
@@ -174,19 +186,20 @@ function CoreScreensSection() {
     <section className="lp-simple-section lp-simple-screens">
       <ScreenFeature
         id="entry"
-        eyebrow="ENTRY"
-        title="応募先の情報は、Entry に全部置く。"
+        eyebrow="応募先"
+        title="応募先の情報は、この画面に全部まとめる。"
         body="会社ごとの応募フェーズ、応募経路、メモ、元URLを一覧で確認。探す時間を減らして、次の準備に集中できます。"
         image={productShots.entry}
-        alt="Entré の Entry 一覧画面。応募先ごとの選考フェーズと応募経路を一覧表示している。"
+        alt="Entré の応募先一覧画面。応募先ごとの選考フェーズと応募経路を一覧表示している。"
+        mobileImage={productShots.mobileEntry}
       />
       <ScreenFeature
         id="kanban"
-        eyebrow="KANBAN BOARD"
-        title="選考状況は、カンバンで迷わない。"
-        body="Entry をステージごとに並べて、進捗を俯瞰。今詰まっている列と次に動かす応募先がすぐ分かります。"
+        eyebrow="ボード"
+        title="選考状況は、ボードで迷わない。"
+        body="応募先をステージごとに並べて、進捗を俯瞰。今詰まっている列と次に動かす応募先がすぐ分かります。"
         image={productShots.kanban}
-        alt="Entré のカンバン画面。Entry をエントリー、書類通過、面接、内定などの列で管理している。"
+        alt="Entré のボード画面。応募先をエントリー、書類通過、面接、内定などの列で管理している。"
         mobileImage={productShots.mobileKanban}
         reverse
       />
@@ -250,7 +263,7 @@ function FinalCTASection() {
     <section className="lp-simple-final lp-reveal">
       <div>
         <p className="lp-simple-kicker">START</p>
-        <h2>Entry とカンバンで、就活を軽くする。</h2>
+        <h2>応募先とボードで、就活を軽くする。</h2>
       </div>
       <Link href="/login" className="lp-btn lp-btn-primary lp-btn-lg">
         無料で始める

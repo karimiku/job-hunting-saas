@@ -5,11 +5,13 @@ import { TaskDetailView } from "./TaskDetailView";
 import type { EntryResponse } from "@/lib/api/entries";
 import type { TaskWithEntry } from "@/lib/api/server-resources";
 
-const { push, setTaskStatusAction, deleteTaskAction } = vi.hoisted(() => ({
-  push: vi.fn(),
-  setTaskStatusAction: vi.fn(),
-  deleteTaskAction: vi.fn(),
-}));
+const { push, setTaskStatusAction, deleteTaskAction, updateTaskAction } =
+  vi.hoisted(() => ({
+    push: vi.fn(),
+    setTaskStatusAction: vi.fn(),
+    deleteTaskAction: vi.fn(),
+    updateTaskAction: vi.fn(),
+  }));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push }),
@@ -23,6 +25,11 @@ vi.mock("@/app/task/actions", () => ({
   ) => setTaskStatusAction(taskId, status, entryId),
   deleteTaskAction: (taskId: string, entryId?: string) =>
     deleteTaskAction(taskId, entryId),
+  updateTaskAction: (
+    taskId: string,
+    input: Record<string, unknown>,
+    entryId?: string,
+  ) => updateTaskAction(taskId, input, entryId),
 }));
 
 const task = (overrides: Partial<TaskWithEntry> = {}): TaskWithEntry => ({
@@ -59,8 +66,13 @@ describe("TaskDetailView", () => {
     push.mockReset();
     setTaskStatusAction.mockReset();
     deleteTaskAction.mockReset();
+    updateTaskAction.mockReset();
     setTaskStatusAction.mockResolvedValue({ ok: true, status: "done" });
     deleteTaskAction.mockResolvedValue({ ok: true });
+    updateTaskAction.mockResolvedValue({
+      ok: true,
+      task: { dueDate: "2026-06-10T00:00:00.000Z" },
+    });
   });
 
   it("タスク詳細と紐づくEntry導線を表示する", () => {
@@ -137,5 +149,65 @@ describe("TaskDetailView", () => {
       expect(deleteTaskAction).toHaveBeenCalledWith("t1", "e1"),
     );
     expect(push).toHaveBeenCalledWith("/task");
+  });
+
+  it("編集ボタンでフォームに切り替わり、保存で updateTaskAction を呼んで表示に戻る", async () => {
+    render(<TaskDetailView task={task()} entry={entry()} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "編集" }));
+
+    const titleInput = screen.getByLabelText("タスク名");
+    await userEvent.clear(titleInput);
+    await userEvent.type(titleInput, "ES提出（修正）");
+
+    const memoInput = screen.getByLabelText("メモ");
+    await userEvent.clear(memoInput);
+    await userEvent.type(memoInput, "誤字を直した");
+
+    await userEvent.click(screen.getByRole("button", { name: "予定" }));
+    await userEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() =>
+      expect(updateTaskAction).toHaveBeenCalledWith(
+        "t1",
+        {
+          title: "ES提出（修正）",
+          type: "schedule",
+          dueDate: "2026-06-01",
+          memo: "誤字を直した",
+        },
+        "e1",
+      ),
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "ES提出（修正）" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("誤字を直した")).toBeInTheDocument();
+    expect(screen.getByText("予定")).toBeInTheDocument();
+    expect(screen.queryByLabelText("タスク名")).not.toBeInTheDocument();
+  });
+
+  it("編集フォームでタスク名を空にすると保存できずエラーを表示する", async () => {
+    render(<TaskDetailView task={task()} entry={entry()} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "編集" }));
+    await userEvent.clear(screen.getByLabelText("タスク名"));
+    await userEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("タスク名は必須です");
+    expect(updateTaskAction).not.toHaveBeenCalled();
+  });
+
+  it("編集フォームのキャンセルで変更を破棄して表示モードに戻る", async () => {
+    render(<TaskDetailView task={task()} entry={entry()} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "編集" }));
+    await userEvent.clear(screen.getByLabelText("タスク名"));
+    await userEvent.type(screen.getByLabelText("タスク名"), "破棄されるタイトル");
+    await userEvent.click(screen.getByRole("button", { name: "キャンセル" }));
+
+    expect(screen.getByRole("heading", { name: "ES提出" })).toBeInTheDocument();
+    expect(updateTaskAction).not.toHaveBeenCalled();
   });
 });

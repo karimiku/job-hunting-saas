@@ -182,7 +182,7 @@ func run() error {
 			log.Println("supabase auth bearer verifier wired")
 		}
 
-		projectID := os.Getenv("FIREBASE_PROJECT_ID")
+		projectID := strings.TrimSpace(os.Getenv("FIREBASE_PROJECT_ID"))
 		var sessionVerifier middleware.FirebaseSessionVerifier
 		var sessionCreator handler.FirebaseSessionCreator
 		if projectID != "" {
@@ -503,19 +503,11 @@ func allowedOrigins(allowedOriginsRaw string) []string {
 	return origins
 }
 
-// warnOnCredentialedWildcardCORS logs a startup warning when the CORS config
-// combines wildcard origins (e.g. https://*.vercel.app) with credentialed
-// responses. corsMiddleware always returns Access-Control-Allow-Credentials:
-// true, so a wildcard host lets ANY matching subdomain (evil.vercel.app) make
-// credentialed cross-origin requests. That is only exploitable while an ambient
-// credential is in play — most dangerously a legacy `session` cookie with
-// COOKIE_SAME_SITE=none, which the browser attaches cross-site. The Supabase
-// Bearer path is not ambient and is unaffected.
-//
-// This is a non-breaking guardrail: preview deployments legitimately use
-// *.vercel.app, so we warn rather than reject. To eliminate the risk, list exact
-// preview origins in CORS_ALLOWED_ORIGINS instead of a wildcard, and avoid
-// COOKIE_SAME_SITE=none for session cookies.
+// warnOnCredentialedWildcardCORS logs a startup warning when a wildcard origin is
+// configured for credentialed CORS. Any matching subdomain (e.g. evil.vercel.app)
+// could then send cookie/credentialed requests; combined with SameSite=none the
+// legacy session cookie becomes cross-site theftable. Behavior is unchanged — this
+// only surfaces a misconfiguration risk that must be resolved at the ops layer.
 func warnOnCredentialedWildcardCORS(origins []string, cookieSameSite string) {
 	var wildcards []string
 	for _, o := range origins {
@@ -537,10 +529,17 @@ func warnOnCredentialedWildcardCORS(origins []string, cookieSameSite string) {
 }
 
 func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
+	allowed := make(map[string]struct{})
+	for _, o := range allowedOrigins {
+		o = strings.TrimSpace(o)
+		if o != "" {
+			allowed[o] = struct{}{}
+		}
+	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
-			if origin != "" && middleware.OriginAllowed(origin, allowedOrigins) {
+			if _, ok := allowed[origin]; ok && origin != "" {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
 				w.Header().Set("Vary", "Origin")

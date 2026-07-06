@@ -25,7 +25,7 @@ export function InboxClipDelete({ clip }: { clip: InboxClipResponse }) {
       {state.error && (
         <p
           role="alert"
-          className="rounded-md bg-pink/40 px-2 py-1 text-[10px] font-semibold text-ink"
+          className="rounded-md bg-pink/40 px-2 py-1 text-[12px] font-semibold text-ink"
         >
           {state.error}
         </p>
@@ -42,11 +42,11 @@ function DeleteButton({ title }: { title: string }) {
       disabled={pending}
       aria-label={`クリップ「${title}」を削除`}
       onClick={(e) => {
-        if (!window.confirm("このクリップを削除しますか？")) {
+        if (!window.confirm("この保存クリップを削除しますか？")) {
           e.preventDefault();
         }
       }}
-      className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[11px] font-bold text-ink-3 transition-colors enabled:hover:border-pink-deep enabled:hover:text-pink-deep disabled:opacity-60"
+      className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px] font-bold text-ink-3 transition-colors enabled:hover:border-pink-deep enabled:hover:text-pink-deep disabled:opacity-60"
     >
       {pending ? "削除中…" : "削除"}
     </button>
