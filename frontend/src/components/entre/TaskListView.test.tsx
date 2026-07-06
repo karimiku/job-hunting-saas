@@ -518,6 +518,17 @@ describe("isDueThisWeek / filterTasksByStatusFilter", () => {
     expect(isDueThisWeek("2026-05-27", now)).toBe(true);
   });
 
+  it("日中に見ても本日締切 (00:00Z 起点) は含める", () => {
+    // 時刻差の floor だと -1 日扱いになり除外されるリグレッションを防ぐ。
+    const daytime = new Date("2026-05-27T10:00:00Z");
+    expect(isDueThisWeek("2026-05-27T00:00:00.000Z", daytime)).toBe(true);
+  });
+
+  it("日中に見ても8日後は含めない (floor で 7 に切り下がらない)", () => {
+    const daytime = new Date("2026-05-27T10:00:00Z");
+    expect(isDueThisWeek("2026-06-04T00:00:00.000Z", daytime)).toBe(false);
+  });
+
   it("7日後は含める", () => {
     expect(isDueThisWeek("2026-06-03", now)).toBe(true);
   });

@@ -47,36 +47,43 @@ export interface NextTaskInfo {
   dueDate: string | null;
 }
 
-/** entryId に紐づく未完了タスクのうち、dueDate が現在時刻に最も近いものを返す。
+/** entryId に紐づく未完了タスクのうち、dueDate が最も早いものを返す（超過分も含む）。
+ *  一覧側 (EntryListView.nextTaskForEntry) と同じ選び方に揃える。
  *  dueDate なし・完了済みは対象外。候補がなければ null。 */
 export function nextTaskFor(
   entryId: string,
   tasks: TaskWithEntry[],
-  now: Date = new Date(),
 ): NextTaskInfo | null {
-  const nowMs = now.getTime();
-  let nearest: TaskWithEntry | null = null;
-  let nearestDiff = Number.POSITIVE_INFINITY;
+  let best: TaskWithEntry | null = null;
+  let bestTime = Number.POSITIVE_INFINITY;
 
   for (const task of tasks) {
     if (task.entryId !== entryId || task.status === "done" || !task.dueDate) continue;
     const dueMs = new Date(task.dueDate).getTime();
-    if (Number.isNaN(dueMs)) continue;
-    const diff = Math.abs(dueMs - nowMs);
-    if (diff < nearestDiff) {
-      nearest = task;
-      nearestDiff = diff;
-    }
+    if (Number.isNaN(dueMs) || dueMs >= bestTime) continue;
+    best = task;
+    bestTime = dueMs;
   }
 
-  return nearest ? { title: nearest.title, dueDate: nearest.dueDate } : null;
+  return best ? { title: best.title, dueDate: best.dueDate } : null;
 }
 
-function nextTaskBadgeLabel(nextTask: NextTaskInfo | null | undefined): string | null {
+// 超過タスクも選ばれるため、暦日で本日/明日/超過を出し分ける（一覧側と同じ体系）。
+export function nextTaskBadgeLabel(
+  nextTask: NextTaskInfo | null | undefined,
+  now: Date = new Date(),
+): string | null {
   if (!nextTask?.dueDate) return null;
   const d = new Date(nextTask.dueDate);
   if (Number.isNaN(d.getTime())) return null;
-  return `締切 ${d.getMonth() + 1}/${d.getDate()}（${nextTask.title}）`;
+  const due = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = Math.round((due.getTime() - today.getTime()) / 86_400_000);
+  const md = `${d.getMonth() + 1}/${d.getDate()}`;
+  if (days < 0) return `${md} ・${Math.abs(days)}日超過（${nextTask.title}）`;
+  if (days === 0) return `本日締切（${nextTask.title}）`;
+  if (days === 1) return `明日締切（${nextTask.title}）`;
+  return `締切 ${md}（${nextTask.title}）`;
 }
 
 type EntryOverride = Pick<EntryResponse, "stageKind" | "stageLabel" | "status">;

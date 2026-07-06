@@ -91,11 +91,13 @@ export function sortTasksForDisplay(tasks: TaskWithEntry[]): TaskWithEntry[] {
 export type TaskStatusFilter = "all" | "todo" | "week";
 
 // 今日〜7日以内 (両端含む) を「今週締切」とする。期日なし・8日後以降・超過は含めない。
+// dueLabel/dueColor と同じ暦日基準 (daysUntilDue)。時刻差の floor だと 00:00Z 起点の
+// 期日が当日朝以降に「超過」扱いになり、本日締切が今週フィルタから消えてしまう。
 export function isDueThisWeek(dueDate: string | null, now: Date = new Date()): boolean {
   if (!dueDate) return false;
   const d = new Date(dueDate);
   if (Number.isNaN(d.getTime())) return false;
-  const days = Math.floor((d.getTime() - now.getTime()) / 86_400_000);
+  const days = daysUntilDue(d, now);
   return days >= 0 && days <= 7;
 }
 

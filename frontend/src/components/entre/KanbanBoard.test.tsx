@@ -3,6 +3,7 @@ import { render, screen, within } from "@testing-library/react";
 import {
   KanbanBoard,
   kanbanStageUpdateInput,
+  nextTaskBadgeLabel,
   nextTaskFor,
   normalizeKanbanStageKind,
 } from "./KanbanBoard";
@@ -143,10 +144,11 @@ describe("KanbanBoard", () => {
   });
 
   it("未完了タスクがあれば次の締切バッジを表示する", () => {
+    // 実行日から十分遠い将来日にして、本日/明日表示に切り替わらないようにする。
     render(
       <KanbanBoard
         initialEntries={[e("application", "リクナビ")]}
-        tasks={[t({ title: "ES提出", dueDate: "2026-07-10", status: "todo" })]}
+        tasks={[t({ title: "ES提出", dueDate: "2099-07-10", status: "todo" })]}
       />,
     );
     expect(screen.getAllByText("締切 7/10（ES提出）").length).toBeGreaterThan(0);
@@ -200,36 +202,69 @@ describe("normalizeKanbanStageKind", () => {
 });
 
 describe("nextTaskFor", () => {
-  const now = new Date("2026-07-06T00:00:00Z");
-
   it("未完了タスクがなければ null を返す", () => {
-    expect(nextTaskFor("e-リクナビ", [], now)).toBeNull();
+    expect(nextTaskFor("e-リクナビ", [])).toBeNull();
   });
 
   it("未完了タスクが全て done なら null を返す", () => {
     const tasks = [t({ status: "done", dueDate: "2026-07-10" })];
-    expect(nextTaskFor("e-リクナビ", tasks, now)).toBeNull();
+    expect(nextTaskFor("e-リクナビ", tasks)).toBeNull();
   });
 
   it("dueDate がないタスクは対象外", () => {
     const tasks = [t({ status: "todo", dueDate: null })];
-    expect(nextTaskFor("e-リクナビ", tasks, now)).toBeNull();
+    expect(nextTaskFor("e-リクナビ", tasks)).toBeNull();
   });
 
   it("他 entry のタスクは対象外", () => {
     const tasks = [t({ entryId: "e-マイナビ", dueDate: "2026-07-10" })];
-    expect(nextTaskFor("e-リクナビ", tasks, now)).toBeNull();
+    expect(nextTaskFor("e-リクナビ", tasks)).toBeNull();
   });
 
-  it("複数の未完了タスクから最も近い dueDate のものを返す", () => {
+  it("複数の未完了タスクから最も dueDate が早いものを返す", () => {
     const tasks = [
       t({ id: "t-far", title: "面接対策", dueDate: "2026-08-01" }),
       t({ id: "t-near", title: "ES提出", dueDate: "2026-07-08" }),
       t({ id: "t-mid", title: "説明会", dueDate: "2026-07-20" }),
     ];
-    expect(nextTaskFor("e-リクナビ", tasks, now)).toEqual({
+    expect(nextTaskFor("e-リクナビ", tasks)).toEqual({
       title: "ES提出",
       dueDate: "2026-07-08",
     });
+  });
+
+  it("超過タスクは将来のタスクより優先される（一覧側と同じ選び方）", () => {
+    const tasks = [
+      t({ id: "t-future", title: "面接", dueDate: "2026-07-08" }),
+      t({ id: "t-overdue", title: "ES提出", dueDate: "2026-06-20" }),
+    ];
+    expect(nextTaskFor("e-リクナビ", tasks)).toEqual({
+      title: "ES提出",
+      dueDate: "2026-06-20",
+    });
+  });
+});
+
+describe("nextTaskBadgeLabel", () => {
+  const now = new Date("2026-07-06T09:00:00Z");
+
+  it("本日/明日/超過/それ以降を暦日で出し分ける", () => {
+    expect(nextTaskBadgeLabel({ title: "ES", dueDate: "2026-07-06T00:00:00.000Z" }, now)).toBe(
+      "本日締切（ES）",
+    );
+    expect(nextTaskBadgeLabel({ title: "面接", dueDate: "2026-07-07T00:00:00.000Z" }, now)).toBe(
+      "明日締切（面接）",
+    );
+    expect(nextTaskBadgeLabel({ title: "SPI", dueDate: "2026-07-04T00:00:00.000Z" }, now)).toBe(
+      "7/4 ・2日超過（SPI）",
+    );
+    expect(nextTaskBadgeLabel({ title: "説明会", dueDate: "2026-07-10T00:00:00.000Z" }, now)).toBe(
+      "締切 7/10（説明会）",
+    );
+  });
+
+  it("タスクなし・期日なしは null", () => {
+    expect(nextTaskBadgeLabel(null, now)).toBeNull();
+    expect(nextTaskBadgeLabel({ title: "ES", dueDate: null }, now)).toBeNull();
   });
 });

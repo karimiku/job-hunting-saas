@@ -93,12 +93,17 @@ export async function setTaskStatusAction(
   }
 }
 
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
 // dueDate は "YYYY-MM-DD" を受け取り、他アクションと同じ 00:00:00.000Z 起点の ISO に変換して PATCH する。
 export async function rescheduleTaskAction(
   taskId: string,
   dueDate: string,
   entryId?: string,
 ): Promise<RescheduleTaskResult> {
+  if (!DATE_ONLY.test(dueDate)) {
+    return { ok: false, error: "期日の形式が不正です" };
+  }
   try {
     const updated = await serverFetch<TaskResponse>(`/api/v1/tasks/${taskId}`, {
       method: "PATCH",
@@ -129,6 +134,9 @@ export async function updateTaskAction(
   if (input.type !== undefined) body.type = input.type;
   if (input.memo !== undefined) body.memo = input.memo;
   if (input.dueDate !== undefined) {
+    if (input.dueDate && !DATE_ONLY.test(input.dueDate)) {
+      return { ok: false, error: "期日の形式が不正です" };
+    }
     body.dueDate = input.dueDate ? `${input.dueDate}T00:00:00.000Z` : null;
   }
 
