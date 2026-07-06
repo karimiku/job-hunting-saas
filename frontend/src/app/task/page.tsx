@@ -21,7 +21,7 @@ export default async function TaskPage() {
       userSubtitle={user.email}
       navCounts={navCounts}
     >
-      <div className="relative mx-auto max-w-[700px] px-5 py-6 md:px-8 md:py-7">
+      <div className="relative mx-auto max-w-[700px] px-5 py-6 md:px-8 md:py-7 lg:max-w-[1080px]">
         <header className="mb-4">
           <h1 className="font-serif text-2xl font-extrabold tracking-tight">
             タスク

@@ -15,7 +15,7 @@ export default async function EntryListPage() {
 
   return (
     <AppShell userName={user.name} userSubtitle={user.email} navCounts={navCounts}>
-      <div className="mx-auto max-w-[900px] px-5 py-6 md:px-8 md:py-7">
+      <div className="mx-auto max-w-[900px] px-5 py-6 md:px-8 md:py-7 lg:max-w-[1200px]">
         <header className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h1 className="font-serif text-2xl font-extrabold tracking-tight">

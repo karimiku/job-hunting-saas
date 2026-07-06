@@ -280,7 +280,7 @@ export function TaskListView({ initialTasks, entries }: Props) {
               </p>
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-3">
               {groupedTasks.map((group) => (
                 <section
                   key={group.entryId}

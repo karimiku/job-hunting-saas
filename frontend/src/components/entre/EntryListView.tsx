@@ -98,7 +98,6 @@ function presentStages(entries: EntryResponse[]): { value: KanbanStageKind; labe
 export function nextTaskForEntry(
   entryId: string,
   tasks: TaskWithEntry[],
-  _now: Date = new Date(),
 ): TaskWithEntry | null {
   let best: TaskWithEntry | null = null;
   let bestTime = Number.POSITIVE_INFINITY;
@@ -197,7 +196,7 @@ export function EntryListView({
           条件に一致する応募先がありません。
         </div>
       ) : (
-        <ul className="entre-stagger flex flex-col gap-2">
+        <ul className="entre-stagger flex flex-col gap-2 lg:grid lg:grid-cols-2 lg:gap-2">
           {visible.map((e) => {
             const sourceUrl = entrySourceUrl(e);
             const nextBadge = nextTaskBadgeLabel(nextTaskForEntry(e.id, tasks));
