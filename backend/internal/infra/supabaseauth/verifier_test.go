@@ -75,6 +75,44 @@ func TestVerifierVerifyBearerTokenSyncsUnknownSupabaseUser(t *testing.T) {
 	}
 }
 
+func TestVerifierVerifyBearerTokenRejectsUnverifiedEmailForSync(t *testing.T) {
+	key := newRSAKey(t)
+	jwksServer := newJWKSServer(t, key, "test-key")
+	defer jwksServer.Close()
+
+	ctx := context.Background()
+	identityRepo := inmemory.NewExternalIdentityRepository()
+	syncCalled := false
+	verifier := newTestVerifierWithSync(t, jwksServer.URL, identityRepo, func(ctx context.Context, info UserInfo) (entity.UserID, error) {
+		syncCalled = true
+		return entity.NewUserID(), nil
+	})
+
+	// email_verified が無い（= 未検証メール）のトークン。email 一致リンクによる
+	// 既存アカウント乗っ取りを防ぐため、初回同期は拒否されること。
+	claims := jwt.MapClaims{
+		"iss":   testIssuer,
+		"sub":   "supabase-user-id",
+		"aud":   defaultAudience,
+		"exp":   time.Now().Add(time.Hour).Unix(),
+		"iat":   time.Now().Add(-time.Minute).Unix(),
+		"email": "victim@example.com",
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	token.Header["kid"] = "test-key"
+	rawToken, err := token.SignedString(key)
+	if err != nil {
+		t.Fatalf("SignedString failed: %v", err)
+	}
+
+	if _, err := verifier.VerifyBearerToken(ctx, rawToken); !errors.Is(err, value.ErrAuthTokenInvalid) {
+		t.Fatalf("error = %v, want ErrAuthTokenInvalid", err)
+	}
+	if syncCalled {
+		t.Fatal("userSync must not be called for unverified email")
+	}
+}
+
 func TestVerifierVerifyBearerTokenRejectsInvalidClaims(t *testing.T) {
 	key := newRSAKey(t)
 	jwksServer := newJWKSServer(t, key, "test-key")
@@ -238,6 +276,7 @@ func signSupabaseJWTWithUser(
 	}
 	if email != "" {
 		claims["email"] = email
+		claims["email_verified"] = true
 	}
 	if name != "" {
 		claims["user_metadata"] = map[string]any{"name": name}

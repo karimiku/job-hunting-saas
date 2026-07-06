@@ -64,13 +64,13 @@ type UserSyncFunc func(ctx context.Context, info UserInfo) (entity.UserID, error
 
 // Verifier resolves a valid Supabase access token to this app's UserID.
 type Verifier struct {
-	issuer       string
-	audience     string
-	jwksURL      string
-	cacheTTL     time.Duration
-	httpClient   *http.Client
-	extIDRepo    repository.ExternalIdentityRepository
-	userSync     UserSyncFunc
+	issuer        string
+	audience      string
+	jwksURL       string
+	cacheTTL      time.Duration
+	httpClient    *http.Client
+	extIDRepo     repository.ExternalIdentityRepository
+	userSync      UserSyncFunc
 	mu            sync.RWMutex
 	cachedJWKS    jose.JSONWebKeySet
 	jwksExpireAt  time.Time
@@ -148,6 +148,13 @@ func (v *Verifier) VerifyBearerToken(ctx context.Context, rawToken string) (enti
 }
 
 func (v *Verifier) syncUser(ctx context.Context, claims *accessTokenClaims) (entity.UserID, error) {
+	// UserSync は email 一致で既存ユーザーに external identity をリンクするため、
+	// 未検証メールを通すと「被害者の email で Supabase サインアップ → 被害者
+	// アカウントに攻撃者の identity が紐付く」乗っ取りが成立する。Supabase の
+	// email_verified クレームが true のトークンだけを初回同期に通す。
+	if !claims.EmailVerified {
+		return entity.UserID{}, value.ErrAuthTokenInvalid
+	}
 	info := UserInfo{
 		Subject: claims.Subject,
 		Email:   strings.TrimSpace(claims.Email),
@@ -161,8 +168,9 @@ func (v *Verifier) syncUser(ctx context.Context, claims *accessTokenClaims) (ent
 
 type accessTokenClaims struct {
 	jwt.RegisteredClaims
-	Email        string         `json:"email"`
-	UserMetadata map[string]any `json:"user_metadata"`
+	Email         string         `json:"email"`
+	EmailVerified bool           `json:"email_verified"`
+	UserMetadata  map[string]any `json:"user_metadata"`
 }
 
 func (c *accessTokenClaims) displayName() string {
@@ -286,7 +294,9 @@ func (v *Verifier) fetchJWKS(ctx context.Context) (jose.JSONWebKeySet, error) {
 	if err != nil {
 		return jose.JSONWebKeySet{}, fmt.Errorf("supabaseauth: fetch JWKS: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		_, _ = io.Copy(io.Discard, resp.Body)

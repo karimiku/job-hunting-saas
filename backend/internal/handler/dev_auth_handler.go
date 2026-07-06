@@ -71,6 +71,7 @@ func (h *DevAuthHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// #nosec G124 -- Secure is runtime-configured: true in HTTPS deployments, false for local HTTP.
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    devsession.Sign(out.User.ID(), h.secret),
