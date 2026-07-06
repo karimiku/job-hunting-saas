@@ -48,7 +48,7 @@ export default async function DashboardPage() {
 
   return (
     <AppShell userName={user.name} userSubtitle={user.email} navCounts={navCounts}>
-      <div className="mx-auto max-w-[980px] px-4 py-5 md:px-8 md:py-8">
+      <div className="mx-auto max-w-[980px] px-4 py-5 md:px-8 md:py-8 lg:max-w-[1200px]">
         <header className="mb-4 flex flex-col gap-3 md:mb-5 md:flex-row md:items-start md:justify-between">
           <div>
             <h1 className="font-serif text-2xl font-extrabold tracking-tight md:text-[28px]">
