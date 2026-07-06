@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  AlertTriangle,
   ArrowRight,
   CheckSquare,
   ClipboardList,
@@ -11,6 +12,8 @@ export interface DashboardNextActionInput {
   inboxCount: number;
   entryCount: number;
   openTaskCount: number;
+  /** 超過タスク数。1件以上あれば inbox/entry より優先して警告トーンにする。 */
+  overdueTaskCount?: number;
 }
 
 export interface DashboardNextActionModel {
@@ -20,13 +23,27 @@ export interface DashboardNextActionModel {
   cta: string;
   activeStep: "inbox" | "entry" | "task";
   Icon: LucideIcon;
+  variant: "default" | "warning";
 }
 
 export function getDashboardNextAction({
   inboxCount,
   entryCount,
   openTaskCount,
+  overdueTaskCount = 0,
 }: DashboardNextActionInput): DashboardNextActionModel {
+  if (overdueTaskCount > 0) {
+    return {
+      title: `締切が過ぎたタスクが${overdueTaskCount}件あります`,
+      body: "まず期限切れから確認しましょう。近い順に、ひとつずつ片づけます。",
+      href: "/task",
+      cta: "タスクを確認",
+      activeStep: "task",
+      Icon: AlertTriangle,
+      variant: "warning",
+    };
+  }
+
   if (inboxCount > 0) {
     return {
       title: `保存箱の求人 ${inboxCount}件を応募先にする`,
@@ -35,6 +52,7 @@ export function getDashboardNextAction({
       cta: "保存箱を開く",
       activeStep: "inbox",
       Icon: Inbox,
+      variant: "default",
     };
   }
 
@@ -46,6 +64,7 @@ export function getDashboardNextAction({
       cta: "応募先を追加",
       activeStep: "entry",
       Icon: ClipboardList,
+      variant: "default",
     };
   }
 
@@ -57,6 +76,7 @@ export function getDashboardNextAction({
       cta: "タスクを追加",
       activeStep: "task",
       Icon: CheckSquare,
+      variant: "default",
     };
   }
 
@@ -67,23 +87,33 @@ export function getDashboardNextAction({
     cta: "タスクを見る",
     activeStep: "task",
     Icon: CheckSquare,
+    variant: "default",
   };
 }
 
 export function DashboardNextAction(props: DashboardNextActionInput) {
   const action = getDashboardNextAction(props);
   const ActionIcon = action.Icon;
+  const warning = action.variant === "warning";
 
   return (
-    <section className="mb-4 rounded-xl border border-sage/30 bg-sage-wash p-4 md:mb-5 md:p-5">
+    <section
+      className={`mb-4 rounded-xl border p-4 md:mb-5 md:p-5 ${
+        warning ? "border-pink-deep/50 bg-pink/15" : "border-sage/30 bg-sage-wash"
+      }`}
+    >
       <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
         <div className="flex items-start gap-3">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-surface text-sage shadow-sm">
+          <div
+            className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-surface shadow-sm ${
+              warning ? "text-pink-deep" : "text-sage"
+            }`}
+          >
             <ActionIcon size={20} aria-hidden />
           </div>
           <div className="min-w-0">
-            <p className="text-[12px] font-black text-sage">
-              次にやること
+            <p className={`text-[12px] font-black ${warning ? "text-pink-deep" : "text-sage"}`}>
+              {warning ? "要注意" : "次にやること"}
             </p>
             <h2 className="mt-0.5 text-[17px] font-extrabold text-ink">
               {action.title}
@@ -97,7 +127,11 @@ export function DashboardNextAction(props: DashboardNextActionInput) {
         <Link
           href={action.href}
           prefetch={false}
-          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg bg-sage px-4 text-[12px] font-bold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-sage/40"
+          className={`inline-flex h-10 items-center justify-center gap-1.5 rounded-lg px-4 text-[12px] font-bold text-white transition-transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 ${
+            warning
+              ? "bg-pink-deep focus:ring-pink-deep/40"
+              : "bg-sage focus:ring-sage/40"
+          }`}
         >
           {action.cta}
           <ArrowRight size={13} aria-hidden />

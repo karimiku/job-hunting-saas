@@ -71,7 +71,90 @@ describe("DashboardEntries", () => {
     expect(screen.getByText("進行中の応募先")).toBeInTheDocument();
     expect(screen.getByText("テスト商事")).toBeInTheDocument();
     expect(screen.getByText("面接")).toBeInTheDocument();
-    expect(screen.getByText("未完了 1")).toBeInTheDocument();
+    expect(screen.getByText("未完了 1件")).toBeInTheDocument();
+  });
+
+  it("タスク期日にラベルを付けて表示する", () => {
+    render(
+      <DashboardEntries
+        entries={[entry({ companyName: "テスト商事", stageKind: "interview", stageLabel: "面接" })]}
+        tasks={[task({ entryId: "e1", dueDate: "2026-07-03T00:00:00Z" })]}
+      />,
+    );
+
+    expect(screen.getByText("締切 7/3")).toBeInTheDocument();
+  });
+
+  it("未完了タスクがなければ期日ラベルなしで「期日なし」を表示する", () => {
+    render(
+      <DashboardEntries
+        entries={[entry({ companyName: "タスクなし", stageKind: "interview", stageLabel: "面接" })]}
+        tasks={[]}
+      />,
+    );
+
+    expect(screen.getByText("期日なし")).toBeInTheDocument();
+  });
+
+  it("進捗バーの近くにステージ名と「Nステップ中M」を表示する", () => {
+    render(
+      <DashboardEntries
+        entries={[entry({ companyName: "テスト商事", stageKind: "interview", stageLabel: "面接" })]}
+        tasks={[task({ entryId: "e1" })]}
+      />,
+    );
+
+    expect(screen.getByText("面接")).toBeInTheDocument();
+    expect(screen.getByText("6ステップ中4")).toBeInTheDocument();
+  });
+
+  it("選考中は自明なため status を表示せず、確定した結果のみ表示する", () => {
+    render(
+      <DashboardEntries
+        entries={[
+          entry({ companyName: "選考中の会社", stageKind: "interview", stageLabel: "面接" }),
+        ]}
+        tasks={[]}
+      />,
+    );
+
+    expect(screen.queryByText("選考中")).not.toBeInTheDocument();
+  });
+
+  it("確定した結果（内定獲得等）は status ラベルを表示する", () => {
+    render(
+      <DashboardEntries
+        entries={[
+          entry({
+            companyName: "内定の会社",
+            stageKind: "offer",
+            stageLabel: "内定",
+            status: "offered",
+          }),
+        ]}
+        tasks={[]}
+      />,
+    );
+
+    expect(screen.getByText("内定獲得")).toBeInTheDocument();
+  });
+
+  it("未知の status 値は素で出さない", () => {
+    render(
+      <DashboardEntries
+        entries={[
+          entry({
+            companyName: "不明ステータスの会社",
+            stageKind: "interview",
+            stageLabel: "面接",
+            status: "active",
+          }),
+        ]}
+        tasks={[]}
+      />,
+    );
+
+    expect(screen.queryByText("active")).not.toBeInTheDocument();
   });
 
   it("応募先が無ければ登録を促す空状態を表示する", () => {

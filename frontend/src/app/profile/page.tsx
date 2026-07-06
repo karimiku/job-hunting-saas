@@ -65,7 +65,7 @@ async function loadAiAccessTokens(): Promise<AiAccessTokenLoadResult> {
     }
     return {
       tokens: [],
-      error: "AI連携トークンを読み込めませんでした。時間をおいて再読み込みしてください。",
+      error: "いまは表示できませんでした。使う場合はあとで開いてください。",
     };
   }
 }

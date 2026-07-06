@@ -48,23 +48,49 @@ describe("buildQuests", () => {
 
   it("期限の近さでバッジ色を決める", () => {
     const now = new Date("2026-05-29T00:00:00Z");
-    expect(buildQuests([t({ dueDate: "2026-05-28" })], now)[0].color).toBe("bg-pink");
     expect(buildQuests([t({ dueDate: "2026-05-31" })], now)[0].color).toBe("bg-amber");
     expect(buildQuests([t({ dueDate: "2026-06-15" })], now)[0].color).toBe("bg-sky");
     expect(buildQuests([t({ dueDate: null })], now)[0].color).toBe("bg-sage");
   });
 
-  it("期限切れは「M/D ・n日超過」を due ラベルにし bg-pink のまま強調する", () => {
+  it("超過1-2日は通常のpink、3日以上はより濃いpink-deepにする", () => {
+    const now = new Date("2026-05-29T00:00:00Z");
+    expect(buildQuests([t({ dueDate: "2026-05-28" })], now)[0].color).toBe("bg-pink"); // 1日超過
+    expect(buildQuests([t({ dueDate: "2026-05-27" })], now)[0].color).toBe("bg-pink"); // 2日超過
+    expect(buildQuests([t({ dueDate: "2026-05-26" })], now)[0].color).toBe("bg-pink-deep"); // 3日超過
+    expect(buildQuests([t({ dueDate: "2026-05-20" })], now)[0].color).toBe("bg-pink-deep"); // 9日超過
+  });
+
+  it("期限切れは「M/D ・n日超過」を due ラベルにする", () => {
     const now = new Date("2026-05-29T00:00:00Z");
     const [q] = buildQuests([t({ dueDate: "2026-05-20" })], now);
     expect(q.due).toBe("5/20 ・9日超過");
-    expect(q.color).toBe("bg-pink");
   });
 
-  it("今日が期限なら超過表記にしない", () => {
+  it("本日締切は専用ラベルと最も強い色(ink)にする", () => {
     const now = new Date("2026-05-29T00:00:00Z");
     const [q] = buildQuests([t({ dueDate: "2026-05-29" })], now);
-    expect(q.due).toBe("5/29");
+    expect(q.due).toBe("本日締切");
+    expect(q.color).toBe("bg-ink");
+  });
+
+  it("明日締切は専用ラベルと次に強い色(pink-deep)にする", () => {
+    const now = new Date("2026-05-29T00:00:00Z");
+    const [q] = buildQuests([t({ dueDate: "2026-05-30" })], now);
+    expect(q.due).toBe("明日締切");
+    expect(q.color).toBe("bg-pink-deep");
+  });
+
+  it("3日以内はamber、それより先はskyにする", () => {
+    const now = new Date("2026-05-29T00:00:00Z");
+    expect(buildQuests([t({ dueDate: "2026-05-31" })], now)[0]).toMatchObject({
+      due: "5/31",
+      color: "bg-amber",
+    });
+    expect(buildQuests([t({ dueDate: "2026-06-02" })], now)[0]).toMatchObject({
+      due: "6/2",
+      color: "bg-sky",
+    });
   });
 });
 

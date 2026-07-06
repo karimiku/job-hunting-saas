@@ -11,7 +11,7 @@ import { Plus } from "lucide-react";
 export default async function KanbanPage() {
   const pageData = await getAppPageDataServer();
   if (!pageData) redirect("/login");
-  const { user, entries, navCounts } = pageData;
+  const { user, entries, tasks, navCounts } = pageData;
 
   return (
     <AppShell userName={user.name} userSubtitle={user.email} navCounts={navCounts}>
@@ -20,7 +20,7 @@ export default async function KanbanPage() {
           <div>
             <h1 className="font-serif text-2xl font-extrabold tracking-tight">ボード</h1>
             <p className="mt-0.5 text-[12px] text-ink-3">
-              選考が進んだら、カードを次のフェーズへドラッグして動かします。
+              選考が進んだら、カードを次のフェーズへ動かします。
             </p>
           </div>
           <Link
@@ -37,7 +37,7 @@ export default async function KanbanPage() {
           <EntryViewSwitch active="board" />
         </div>
 
-        <KanbanBoard initialEntries={entries} />
+        <KanbanBoard initialEntries={entries} tasks={tasks} />
       </div>
     </AppShell>
   );

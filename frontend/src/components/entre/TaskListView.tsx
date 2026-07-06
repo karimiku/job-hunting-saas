@@ -5,10 +5,19 @@
 import { useActionState, useMemo, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
-import { ArrowRight, CalendarPlus, CheckCircle2, ClipboardList, Plus, Trash2 } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarPlus,
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import {
   createTaskFromTaskPageAction,
   deleteTaskAction,
+  rescheduleTaskAction,
   setTaskStatusAction,
   type CreateTaskFormState,
 } from "@/app/task/actions";
@@ -19,24 +28,49 @@ import {
 } from "@/lib/api/entries";
 import { Confetti } from "./Confetti";
 import { TaskTemplateChips, type TaskTemplate } from "./TaskTemplateChips";
+import { addDays, DueDateQuickPicker } from "./DueDateQuickPicker";
 
 interface Props {
   initialTasks: TaskWithEntry[];
   entries: EntryResponse[];
 }
 
-// type ごとのバッジ色。deadline = 締切で目立つ色、schedule = 予定で落ち着いた色。
-const TYPE_BADGE: Record<string, string> = {
-  deadline: "bg-pink",
-  schedule: "bg-sky",
-};
+// 期日バッジは type (締切/予定) ではなく緊急度で色分けする
+// (type の区別は sub テキストの「締切タスク」「予定」が担う)。
+// 期日までの残り日数をカレンダー日で数える。単純な時刻差の floor だと、夕方に
+// 「明日(翌0時UTC)」の締切を登録したとき差が24時間未満になり本日扱いになってしまう。
+// 双方をローカル0時に丸めた日付差で数えることで、暦の上での日数と一致させる。
+export function daysUntilDue(d: Date, now: Date): number {
+  const due = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((due.getTime() - today.getTime()) / 86_400_000);
+}
 
-function formatDue(dueDate: string | null): string {
+// 超過: 1-2日=pink、3日以上=より濃いpink-deep。本日=最も強いink、明日=pink-deep。
+// それ以降=従来どおり (3日以内=amber、超=sky)。期日なし=sage。
+export function dueLabel(dueDate: string | null, now: Date = new Date()): string {
   if (!dueDate) return "期日なし";
-  // ISO 文字列 (YYYY-MM-DD...) を M/D に短縮表示。パースできなければ原文を返す。
   const d = new Date(dueDate);
+  // ISO 文字列 (YYYY-MM-DD...) を M/D に短縮表示。パースできなければ原文を返す。
   if (Number.isNaN(d.getTime())) return dueDate;
-  return `${d.getMonth() + 1}/${d.getDate()}`;
+  const base = `${d.getMonth() + 1}/${d.getDate()}`;
+  const days = daysUntilDue(d, now);
+  if (days < 0) return `${base} ・${Math.abs(days)}日超過`;
+  if (days === 0) return "本日締切";
+  if (days === 1) return "明日締切";
+  return base;
+}
+
+export function dueColor(dueDate: string | null, now: Date = new Date()): string {
+  if (!dueDate) return "bg-sage";
+  const d = new Date(dueDate);
+  if (Number.isNaN(d.getTime())) return "bg-sage";
+  const days = daysUntilDue(d, now);
+  if (days < 0) return Math.abs(days) >= 3 ? "bg-pink-deep" : "bg-pink";
+  if (days === 0) return "bg-ink";
+  if (days === 1) return "bg-pink-deep";
+  if (days <= 3) return "bg-amber";
+  return "bg-sky";
 }
 
 function taskSortValue(task: TaskWithEntry): number {
@@ -54,16 +88,62 @@ export function sortTasksForDisplay(tasks: TaskWithEntry[]): TaskWithEntry[] {
   });
 }
 
+export type TaskStatusFilter = "all" | "todo" | "week";
+
+// 今日〜7日以内 (両端含む) を「今週締切」とする。期日なし・8日後以降・超過は含めない。
+// dueLabel/dueColor と同じ暦日基準 (daysUntilDue)。時刻差の floor だと 00:00Z 起点の
+// 期日が当日朝以降に「超過」扱いになり、本日締切が今週フィルタから消えてしまう。
+export function isDueThisWeek(dueDate: string | null, now: Date = new Date()): boolean {
+  if (!dueDate) return false;
+  const d = new Date(dueDate);
+  if (Number.isNaN(d.getTime())) return false;
+  const days = daysUntilDue(d, now);
+  return days >= 0 && days <= 7;
+}
+
+export function filterTasksByStatusFilter(
+  tasks: TaskWithEntry[],
+  filter: TaskStatusFilter,
+  now: Date = new Date(),
+): TaskWithEntry[] {
+  if (filter === "todo") return tasks.filter((task) => task.status !== "done");
+  if (filter === "week") return tasks.filter((task) => isDueThisWeek(task.dueDate, now));
+  return tasks;
+}
+
+export type TaskTypeFilter = "all" | "deadline" | "schedule";
+
+export function filterTasksByTypeFilter(
+  tasks: TaskWithEntry[],
+  filter: TaskTypeFilter,
+): TaskWithEntry[] {
+  if (filter === "all") return tasks;
+  return tasks.filter((task) => task.type === filter);
+}
+
+// 延期ワンタップの相対日付選択肢。今日は「延期」の選択肢としては不要なので含めない。
+const RESCHEDULE_OPTIONS: { label: string; days: number }[] = [
+  { label: "明日", days: 1 },
+  { label: "+3日", days: 3 },
+  { label: "+1週間", days: 7 },
+];
+
 export function TaskListView({ initialTasks, entries }: Props) {
   const [confetti, setConfetti] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [selectedEntryId, setSelectedEntryId] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<TaskStatusFilter>("all");
+  const [typeFilter, setTypeFilter] = useState<TaskTypeFilter>("all");
   const [isPending, startTransition] = useTransition();
   const [deletingIds, setDeletingIds] = useState<Record<string, boolean>>({});
   // 楽観更新用に「いまトグル中の taskId → 目標 status」を保持する。
   const [optimistic, setOptimistic] = useState<Record<string, "todo" | "done">>(
     {},
   );
+  // 延期の楽観更新用に「いま延期中の taskId → 目標 dueDate (YYYY-MM-DD)」を保持する。
+  const [optimisticDueDate, setOptimisticDueDate] = useState<
+    Record<string, string>
+  >({});
 
   const toggle = (task: TaskWithEntry) => {
     const next = task.status === "done" ? "todo" : "done";
@@ -106,6 +186,23 @@ export function TaskListView({ initialTasks, entries }: Props) {
     });
   };
 
+  const reschedule = (task: TaskWithEntry, dueDate: string) => {
+    setError(null);
+    setOptimisticDueDate((prev) => ({ ...prev, [task.id]: dueDate }));
+
+    startTransition(async () => {
+      const result = await rescheduleTaskAction(task.id, dueDate, task.entryId);
+      if (!result.ok) {
+        setOptimisticDueDate((prev) => {
+          const next = { ...prev };
+          delete next[task.id];
+          return next;
+        });
+        setError(result.error ?? "タスクの延期に失敗しました");
+      }
+    });
+  };
+
   const entryById = useMemo(
     () => new Map(entries.map((entry) => [entry.id, entry])),
     [entries],
@@ -114,10 +211,12 @@ export function TaskListView({ initialTasks, entries }: Props) {
   const allVisibleTasks = sortTasksForDisplay(initialTasks).filter(
     (task) => !deletingIds[task.id],
   );
-  const tasks =
+  const entryFilteredTasks =
     selectedEntryId === "all"
       ? allVisibleTasks
       : allVisibleTasks.filter((task) => task.entryId === selectedEntryId);
+  const typeFilteredTasks = filterTasksByTypeFilter(entryFilteredTasks, typeFilter);
+  const tasks = filterTasksByStatusFilter(typeFilteredTasks, statusFilter);
   const groupedTasks = groupTasksByEntry(tasks, entryById);
   const remainingCount = tasks.filter(
     (task) => (optimistic[task.id] ?? task.status) === "todo",
@@ -151,6 +250,18 @@ export function TaskListView({ initialTasks, entries }: Props) {
               {remainingCount}件残り
             </span>
           </div>
+
+          <TaskStatusFilterChips
+            tasks={allVisibleTasks}
+            selected={statusFilter}
+            onSelect={setStatusFilter}
+          />
+
+          <TaskTypeFilterChips
+            tasks={allVisibleTasks}
+            selected={typeFilter}
+            onSelect={setTypeFilter}
+          />
 
           <EntryTaskFilter
             entries={entries}
@@ -191,14 +302,18 @@ export function TaskListView({ initialTasks, entries }: Props) {
                     {group.tasks.map((task) => {
                       const status = optimistic[task.id] ?? task.status;
                       const done = status === "done";
+                      const dueDate = optimisticDueDate[task.id] ?? task.dueDate;
+                      const displayTask =
+                        dueDate === task.dueDate ? task : { ...task, dueDate };
                       return (
                         <TaskRow
                           key={task.id}
-                          task={task}
+                          task={displayTask}
                           done={done}
                           isPending={isPending}
                           onToggle={toggle}
                           onDelete={deleteTask}
+                          onReschedule={reschedule}
                         />
                       );
                     })}
@@ -221,71 +336,189 @@ function TaskRow({
   isPending,
   onToggle,
   onDelete,
+  onReschedule,
 }: {
   task: TaskWithEntry;
   done: boolean;
   isPending: boolean;
   onToggle: (task: TaskWithEntry) => void;
   onDelete: (task: TaskWithEntry) => void;
+  onReschedule: (task: TaskWithEntry, dueDate: string) => void;
 }) {
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+
   return (
     <li
-      className={`flex items-center gap-3 rounded-lg border border-line bg-cream px-3 py-2.5 transition-opacity ${
+      className={`flex flex-col gap-1.5 rounded-lg border border-line bg-cream px-3 py-2.5 transition-opacity ${
         done ? "opacity-50" : ""
       }`}
     >
-      <button
-        type="button"
-        onClick={() => onToggle(task)}
-        disabled={isPending}
-        aria-pressed={done}
-        aria-label={done ? "タスク未完了に戻す" : "タスク完了にする"}
-        className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] text-white transition-colors focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:opacity-60 ${
-          done
-            ? "border-[1.5px] border-sage bg-sage"
-            : "border-[1.5px] border-line bg-transparent"
-        }`}
-      >
-        {done ? <CheckCircle2 size={15} aria-hidden /> : ""}
-      </button>
-      <Link
-        href={`/task/${task.id}`}
-        prefetch={false}
-        className="group -my-1 flex min-w-0 flex-1 items-center gap-3 rounded-md py-1 pr-1 transition-colors hover:text-sage focus:outline-none focus:ring-2 focus:ring-sage/30"
-      >
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <div className={`truncate text-[12px] font-semibold ${done ? "line-through" : ""}`}>
-              {task.title}
-            </div>
-            <ArrowRight
-              size={12}
-              className="shrink-0 text-ink-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus:opacity-100"
-              aria-hidden
-            />
-          </div>
-          <div className="mt-0.5 truncate text-[12px] text-ink-3">
-            {task.memo ? task.memo : task.type === "deadline" ? "締切タスク" : "予定"}
-          </div>
-        </div>
-        <span
-          className={`shrink-0 rounded-md px-2 py-0.5 font-mono text-[12px] font-bold text-white ${
-            TYPE_BADGE[task.type] ?? "bg-sage"
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => onToggle(task)}
+          disabled={isPending}
+          aria-pressed={done}
+          aria-label={done ? "タスク未完了に戻す" : "タスク完了にする"}
+          className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] text-white transition-colors focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:opacity-60 ${
+            done
+              ? "border-[1.5px] border-sage bg-sage"
+              : "border-[1.5px] border-line bg-transparent"
           }`}
         >
-          {formatDue(task.dueDate)}
-        </span>
-      </Link>
-      <button
-        type="button"
-        onClick={() => onDelete(task)}
-        disabled={isPending}
-        aria-label={`タスク「${task.title}」を削除`}
-        className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-line text-ink-3 transition-colors hover:border-pink-deep hover:text-pink-deep focus:outline-none focus:ring-2 focus:ring-pink-deep/30 disabled:opacity-60"
-      >
-        <Trash2 size={13} aria-hidden />
-      </button>
+          {done ? <CheckCircle2 size={15} aria-hidden /> : ""}
+        </button>
+        <Link
+          href={`/task/${task.id}`}
+          prefetch={false}
+          className="group -my-1 flex min-w-0 flex-1 items-center gap-3 rounded-md py-1 pr-1 transition-colors hover:text-sage focus:outline-none focus:ring-2 focus:ring-sage/30"
+        >
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 items-start gap-1.5">
+              <div className={`line-clamp-2 break-words text-[12px] font-semibold ${done ? "line-through" : ""}`}>
+                {task.title}
+              </div>
+              <ArrowRight
+                size={12}
+                className="mt-0.5 shrink-0 text-ink-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus:opacity-100"
+                aria-hidden
+              />
+            </div>
+            <div className="mt-0.5 truncate text-[12px] text-ink-3">
+              {task.memo ? task.memo : task.type === "deadline" ? "締切タスク" : "予定"}
+            </div>
+          </div>
+          <span
+            className={`shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[12px] font-bold text-white ${dueColor(task.dueDate)}`}
+          >
+            {dueLabel(task.dueDate)}
+          </span>
+        </Link>
+        {!done && (
+          <button
+            type="button"
+            onClick={() => setRescheduleOpen((prev) => !prev)}
+            disabled={isPending}
+            aria-expanded={rescheduleOpen}
+            aria-label={`タスク「${task.title}」の期日を延期`}
+            className="flex shrink-0 items-center gap-1 rounded-md border border-line px-1.5 py-1 text-[12px] font-bold text-ink-3 transition-colors hover:border-sage hover:text-sage focus:outline-none focus:ring-2 focus:ring-sage/30 disabled:opacity-60 sm:px-2"
+          >
+            <Clock size={13} aria-hidden />
+            <span className="hidden sm:inline">延期</span>
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => onDelete(task)}
+          disabled={isPending}
+          aria-label={`タスク「${task.title}」を削除`}
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-line text-ink-3 transition-colors hover:border-pink-deep hover:text-pink-deep focus:outline-none focus:ring-2 focus:ring-pink-deep/30 disabled:opacity-60"
+        >
+          <Trash2 size={13} aria-hidden />
+        </button>
+      </div>
+      {rescheduleOpen && (
+        <div className="flex gap-1.5 pl-9">
+          {RESCHEDULE_OPTIONS.map((option) => (
+            <button
+              key={option.label}
+              type="button"
+              onClick={() => {
+                onReschedule(task, addDays(new Date(), option.days));
+                setRescheduleOpen(false);
+              }}
+              className="rounded-md border border-line bg-surface px-2 py-1 text-[12px] font-bold text-ink-2 transition-colors hover:border-sage hover:text-sage"
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
     </li>
+  );
+}
+
+const STATUS_FILTER_OPTIONS: { value: TaskStatusFilter; label: string }[] = [
+  { value: "all", label: "すべて" },
+  { value: "todo", label: "未完了のみ" },
+  { value: "week", label: "今週締切" },
+];
+
+function TaskStatusFilterChips({
+  tasks,
+  selected,
+  onSelect,
+}: {
+  tasks: TaskWithEntry[];
+  selected: TaskStatusFilter;
+  onSelect: (filter: TaskStatusFilter) => void;
+}) {
+  return (
+    <div className="-mx-5 overflow-x-auto px-5 md:mx-0 md:px-0">
+      <div className="flex min-w-max gap-1.5 pb-1">
+        {STATUS_FILTER_OPTIONS.map((option) => {
+          const selectedOption = selected === option.value;
+          const count = filterTasksByStatusFilter(tasks, option.value).length;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onSelect(option.value)}
+              aria-pressed={selectedOption}
+              className={`h-8 rounded-full border px-3 text-[12px] font-black transition-colors ${
+                selectedOption
+                  ? "border-sage bg-sage text-white"
+                  : "border-line bg-surface text-ink-3 hover:border-sage hover:text-sage"
+              }`}
+            >
+              {option.label} {count}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const TYPE_FILTER_OPTIONS: { value: TaskTypeFilter; label: string }[] = [
+  { value: "all", label: "すべて" },
+  { value: "deadline", label: "締切" },
+  { value: "schedule", label: "予定" },
+];
+
+function TaskTypeFilterChips({
+  tasks,
+  selected,
+  onSelect,
+}: {
+  tasks: TaskWithEntry[];
+  selected: TaskTypeFilter;
+  onSelect: (filter: TaskTypeFilter) => void;
+}) {
+  return (
+    <div className="-mx-5 overflow-x-auto px-5 md:mx-0 md:px-0">
+      <div className="flex min-w-max gap-1.5 pb-1">
+        {TYPE_FILTER_OPTIONS.map((option) => {
+          const selectedOption = selected === option.value;
+          const count = filterTasksByTypeFilter(tasks, option.value).length;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onSelect(option.value)}
+              aria-pressed={selectedOption}
+              className={`h-8 rounded-full border px-3 text-[12px] font-black transition-colors ${
+                selectedOption
+                  ? "border-sage bg-sage text-white"
+                  : "border-line bg-surface text-ink-3 hover:border-sage hover:text-sage"
+              }`}
+            >
+              {option.label} {count}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -399,11 +632,13 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
   // (useEffect は使わず、レンダー中に前回値と比較して同期する)。
   const [title, setTitle] = useState(values.title);
   const [type, setType] = useState(values.type);
+  const [dueDate, setDueDate] = useState(values.dueDate);
   const [syncedState, setSyncedState] = useState(state);
   if (syncedState !== state) {
     setSyncedState(state);
     setTitle(values.title);
     setType(values.type);
+    setDueDate(values.dueDate);
   }
 
   const applyTemplate = (template: TaskTemplate) => {
@@ -511,9 +746,13 @@ function TaskCreatePanel({ entries }: { entries: EntryResponse[] }) {
                 name="dueDate"
                 type="date"
                 aria-label="期日"
-                defaultValue={values.dueDate}
+                value={dueDate}
+                onChange={(event) => setDueDate(event.target.value)}
                 className="h-9 w-full rounded-md border border-line bg-cream px-2.5 font-mono text-[12px] font-semibold outline-none focus:border-sage focus:ring-2 focus:ring-sage/20"
               />
+              <div className="mt-1.5">
+                <DueDateQuickPicker onSelect={setDueDate} />
+              </div>
             </label>
           </div>
 

@@ -42,7 +42,7 @@ function DeleteButton({ title }: { title: string }) {
       disabled={pending}
       aria-label={`クリップ「${title}」を削除`}
       onClick={(e) => {
-        if (!window.confirm("このクリップを削除しますか？")) {
+        if (!window.confirm("この保存クリップを削除しますか？")) {
           e.preventDefault();
         }
       }}

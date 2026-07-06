@@ -42,7 +42,7 @@ export function DashboardStats({ entries }: { entries: EntryResponse[] }) {
             data-testid={s.testId}
             className={`mt-1.5 font-serif text-3xl font-extrabold leading-tight ${s.c}`}
           >
-            <CountUp end={s.v} duration={900 + i * 100} />.
+            <CountUp end={s.v} duration={900 + i * 100} />
           </div>
         </div>
       ))}
