@@ -1,6 +1,6 @@
 // Server Component から使う型付きフェッチャー集。
-// Client 用 (entries.ts / inboxClips.ts 等) と同じ型を返すが、Cookie を Next.js Server から
-// backend に転送するため serverFetch を呼ぶ。
+// Client 用 (entries.ts / inboxClips.ts 等) と同じ型を返すが、Next.js Server から
+// Supabase access token を backend に渡すため serverFetch を呼ぶ。
 //
 // SSR 化済み画面はここを使う。Client Component 配下のフックや mutate 系は引き続き client.ts。
 

@@ -25,6 +25,11 @@ const (
 	defaultJWKSCacheTTL = 10 * time.Minute
 	maxJWKSCacheTTL     = 10 * time.Minute
 	defaultHTTPTimeout  = 5 * time.Second
+	// jwksRefreshCooldown bounds how often an unknown kid may trigger an outbound
+	// JWKS fetch. Without it, an attacker replaying tokens with random kids forces
+	// one external HTTP request per request (amplification). Key rotation is still
+	// picked up within this window plus the cache TTL.
+	jwksRefreshCooldown = 30 * time.Second
 )
 
 var (
@@ -44,25 +49,32 @@ type Config struct {
 	JWKSURL      string
 	JWKSCacheTTL time.Duration
 	HTTPClient   *http.Client
+	UserSync     UserSyncFunc
 }
 
-// jwksRefreshCooldown bounds how often a JWKS refresh may hit the network.
-// Unknown-kid tokens trigger refreshJWKS; without a cooldown an attacker
-// replaying random kids would amplify outbound fetches to the JWKS endpoint.
-const jwksRefreshCooldown = 30 * time.Second
+// UserInfo contains verified Supabase Auth user claims needed for app user sync.
+type UserInfo struct {
+	Subject string
+	Email   string
+	Name    string
+}
+
+// UserSyncFunc creates or links an app user for a verified Supabase subject.
+type UserSyncFunc func(ctx context.Context, info UserInfo) (entity.UserID, error)
 
 // Verifier resolves a valid Supabase access token to this app's UserID.
 type Verifier struct {
-	issuer             string
-	audience           string
-	jwksURL            string
-	cacheTTL           time.Duration
-	httpClient         *http.Client
-	extIDRepo          repository.ExternalIdentityRepository
-	mu                 sync.RWMutex
-	cachedJWKS         jose.JSONWebKeySet
-	jwksExpireAt       time.Time
-	lastRefreshAttempt time.Time
+	issuer        string
+	audience      string
+	jwksURL       string
+	cacheTTL      time.Duration
+	httpClient    *http.Client
+	extIDRepo     repository.ExternalIdentityRepository
+	userSync      UserSyncFunc
+	mu            sync.RWMutex
+	cachedJWKS    jose.JSONWebKeySet
+	jwksExpireAt  time.Time
+	lastRefreshAt time.Time
 }
 
 // NewVerifier creates a Supabase JWT verifier.
@@ -107,6 +119,7 @@ func NewVerifier(cfg Config, extIDRepo repository.ExternalIdentityRepository) (*
 		cacheTTL:   cacheTTL,
 		httpClient: httpClient,
 		extIDRepo:  extIDRepo,
+		userSync:   cfg.UserSync,
 	}, nil
 }
 
@@ -123,7 +136,10 @@ func (v *Verifier) VerifyBearerToken(ctx context.Context, rawToken string) (enti
 	identity, err := v.extIDRepo.FindByProviderAndSubject(ctx, value.AuthProviderSupabase(), claims.Subject)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
-			return entity.UserID{}, value.ErrAuthTokenInvalid
+			if v.userSync == nil {
+				return entity.UserID{}, value.ErrAuthTokenInvalid
+			}
+			return v.syncUser(ctx, claims)
 		}
 		return entity.UserID{}, err
 	}
@@ -131,12 +147,53 @@ func (v *Verifier) VerifyBearerToken(ctx context.Context, rawToken string) (enti
 	return identity.UserID(), nil
 }
 
-func (v *Verifier) verifyJWT(ctx context.Context, rawToken string) (*jwt.RegisteredClaims, error) {
+func (v *Verifier) syncUser(ctx context.Context, claims *accessTokenClaims) (entity.UserID, error) {
+	// UserSync は email 一致で既存ユーザーに external identity をリンクするため、
+	// 未検証メールを通すと「被害者の email で Supabase サインアップ → 被害者
+	// アカウントに攻撃者の identity が紐付く」乗っ取りが成立する。Supabase の
+	// email_verified クレームが true のトークンだけを初回同期に通す。
+	if !claims.EmailVerified {
+		return entity.UserID{}, value.ErrAuthTokenInvalid
+	}
+	info := UserInfo{
+		Subject: claims.Subject,
+		Email:   strings.TrimSpace(claims.Email),
+		Name:    claims.displayName(),
+	}
+	if info.Subject == "" || info.Email == "" {
+		return entity.UserID{}, value.ErrAuthTokenInvalid
+	}
+	return v.userSync(ctx, info)
+}
+
+type accessTokenClaims struct {
+	jwt.RegisteredClaims
+	Email         string         `json:"email"`
+	EmailVerified bool           `json:"email_verified"`
+	UserMetadata  map[string]any `json:"user_metadata"`
+}
+
+func (c *accessTokenClaims) displayName() string {
+	for _, key := range []string{"name", "full_name", "user_name"} {
+		if value, ok := c.UserMetadata[key].(string); ok {
+			if trimmed := strings.TrimSpace(value); trimmed != "" {
+				return trimmed
+			}
+		}
+	}
+	email := strings.TrimSpace(c.Email)
+	if local, _, ok := strings.Cut(email, "@"); ok && strings.TrimSpace(local) != "" {
+		return local
+	}
+	return "Supabase User"
+}
+
+func (v *Verifier) verifyJWT(ctx context.Context, rawToken string) (*accessTokenClaims, error) {
 	if rawToken == "" {
 		return nil, errInvalidJWT
 	}
 
-	claims := &jwt.RegisteredClaims{}
+	claims := &accessTokenClaims{}
 	parser := jwt.Parser{ValidMethods: supportedJWTAlgorithms}
 	token, err := parser.ParseWithClaims(rawToken, claims, func(token *jwt.Token) (interface{}, error) {
 		return v.publicKey(ctx, token)
@@ -203,14 +260,16 @@ func (v *Verifier) cachedKey(kid, alg string) (interface{}, bool) {
 }
 
 func (v *Verifier) refreshJWKS(ctx context.Context) error {
-	// Skip the outbound fetch when a recent attempt (success or failure) already
-	// ran within the cooldown, so unknown-kid tokens cannot amplify JWKS traffic.
+	// Negative-cache the refresh itself: within the cooldown window skip the
+	// outbound fetch entirely so repeated unknown-kid requests cannot amplify
+	// into one external HTTP call each. The attempt time is recorded up front
+	// (even for failures) so a failing JWKS endpoint is not retried per request.
 	v.mu.Lock()
-	if !v.lastRefreshAttempt.IsZero() && time.Since(v.lastRefreshAttempt) < jwksRefreshCooldown {
+	if !v.lastRefreshAt.IsZero() && time.Now().Before(v.lastRefreshAt.Add(jwksRefreshCooldown)) {
 		v.mu.Unlock()
 		return nil
 	}
-	v.lastRefreshAttempt = time.Now()
+	v.lastRefreshAt = time.Now()
 	v.mu.Unlock()
 
 	keySet, err := v.fetchJWKS(ctx)

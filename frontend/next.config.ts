@@ -1,13 +1,6 @@
 import path from "node:path";
 import type { NextConfig } from "next";
 
-const firebaseAuthProxyHost = trustedProxyHost({
-  envName: "FIREBASE_AUTH_PROXY_HOST",
-  fallback: "job-hunting-saas.firebaseapp.com",
-  allowedHostsEnvName: "FIREBASE_AUTH_PROXY_ALLOWED_HOSTS",
-  defaultAllowedHosts: ["*.firebaseapp.com", "*.web.app"],
-});
-
 const backendOrigin = trustedProxyOrigin({
   envName: "BACKEND_API_BASE_URL",
   legacyEnvNames: ["NEXT_PUBLIC_API_BASE_URL"],
@@ -26,11 +19,55 @@ const securityHeaders = [
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-  { key: "Content-Security-Policy", value: "base-uri 'self'; object-src 'none'; frame-ancestors 'self'" },
+  { key: "Content-Security-Policy", value: buildCSP() },
   ...(process.env.NODE_ENV === "production"
     ? [{ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" }]
     : []),
 ];
+
+// XSS の第二防御線として script/style/connect 系のポリシーを追加する。
+// nonce 方式 (strict-dynamic) が最も厳格だが、proxy.ts でのリクエスト単位の
+// nonce 生成・全ページ dynamic rendering 化が必要になり影響範囲が大きいため、
+// まずは Next.js 公式ドキュメント (node_modules/next/dist/docs/01-app/02-guides/
+// content-security-policy.md の "Without Nonces" 節) が示す構成を採用する。
+//
+// script-src / style-src に 'unsafe-inline' が必要な理由:
+//   - Next.js は RSC のストリーミング hydration 用に nonce なしの inline
+//     `<script>self.__next_f.push(...)</script>` を各ページに埋め込む。
+//     nonce/strict-dynamic を使わない限り 'unsafe-inline' なしでは
+//     hydration が CSP 違反でブロックされ、アプリが動作しなくなる。
+//   - style-src も同様に、開発時のエラーオーバーレイ等が inline style を使う。
+// 'unsafe-eval' は開発時のみ許可 (React が dev only でスタックトレース復元に
+// eval を使うため。本番の React/Next はビルド成果物に eval を含まない)。
+function buildCSP(): string {
+  const isDev = process.env.NODE_ENV !== "production";
+  const supabaseOrigin = supabaseOriginForCSP();
+  const directives = [
+    "default-src 'self'",
+    `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    "font-src 'self'",
+    `connect-src 'self'${supabaseOrigin ? ` ${supabaseOrigin}` : ""}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'self'",
+  ];
+  return directives.join("; ");
+}
+
+// ブラウザから Supabase Auth (NEXT_PUBLIC_SUPABASE_URL) へ直接 fetch するため、
+// connect-src に許可する。値が壊れていても CSP 生成自体は落とさず、単に追加しない。
+function supabaseOriginForCSP(): string | undefined {
+  const raw = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  if (!raw) return undefined;
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return undefined;
+  }
+}
 
 const nextConfig: NextConfig = {
   devIndicators: false,
@@ -41,14 +78,10 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
-      {
-        source: "/__/auth/:path*",
-        destination: `https://${firebaseAuthProxyHost}/__/auth/:path*`,
-      },
       // ブラウザからの backend 呼び出しを同一 origin に寄せる proxy。
       // cross-origin で直接叩くと POST/PATCH ごとに CORS preflight (OPTIONS) が
       // 1往復余分に乗るため、Client Component の fetch は /backend/* を使う。
-      // (COOKIE_DOMAIN=.entre.kamiriku.com なので Set-Cookie もこの経路で有効)
+      // Supabase Auth は Authorization header を主経路にし、dev/legacy cookie も同一originで扱える。
       {
         source: "/backend/:path*",
         destination: `${backendOrigin}/:path*`,
@@ -103,26 +136,6 @@ function firstEnvValue(envNames: string[]): string {
     if (value) return value;
   }
   return "";
-}
-
-function trustedProxyHost({
-  envName,
-  fallback,
-  allowedHostsEnvName,
-  defaultAllowedHosts,
-}: {
-  envName: string;
-  fallback: string;
-  allowedHostsEnvName: string;
-  defaultAllowedHosts: string[];
-}): string {
-  const raw = process.env[envName]?.trim() || fallback;
-  if (!raw || raw.includes("://") || raw.includes("/") || raw.includes("?") || raw.includes("#") || raw.includes("@")) {
-    throw new Error(`${envName} must be a bare hostname`);
-  }
-  const parsed = new URL(`https://${raw}`);
-  assertHostAllowed(parsed.hostname, allowedHosts(allowedHostsEnvName, defaultAllowedHosts), envName);
-  return parsed.hostname;
 }
 
 function allowedHosts(envName: string, defaults: string[]): string[] {

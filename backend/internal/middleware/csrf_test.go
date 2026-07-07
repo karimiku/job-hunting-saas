@@ -37,6 +37,36 @@ func TestOriginGuard_AllowsAllowedReferer(t *testing.T) {
 	}
 }
 
+func TestOriginGuard_AllowsWildcardPreviewOrigin(t *testing.T) {
+	handler := NewOriginGuard([]string{"https://*.vercel.app"})(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req.Header.Set("Origin", "https://job-hunting-saas-git-main-kamirikus-projects.vercel.app")
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d", w.Code, http.StatusNoContent)
+	}
+}
+
+func TestOriginGuard_RejectsWildcardApexOrigin(t *testing.T) {
+	handler := NewOriginGuard([]string{"https://*.vercel.app"})(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req.Header.Set("Origin", "https://vercel.app")
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d", w.Code, http.StatusForbidden)
+	}
+}
+
 func TestOriginGuard_RejectsMissingOriginForUnsafeMethod(t *testing.T) {
 	handler := NewOriginGuard([]string{"https://entre.example"})(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)

@@ -73,8 +73,22 @@ func NewAuthHandler(fb FirebaseSessionCreator, uc *useruc.Authenticate, userRepo
 }
 
 // PublicRoutes は認証不要なルート（ログイン/ログアウト）を登録する。
+// firebaseAuth が必須の LoginRoute を含むため、Firebase 未設定時は呼ばないこと
+// （main.go では LoginRoute / LogoutRoute を個別に条件登録する）。
 func (h *AuthHandler) PublicRoutes(r chi.Router) {
+	h.LoginRoute(r)
+	h.LogoutRoute(r)
+}
+
+// LoginRoute は Firebase ID Token ログインを登録する。firebaseAuth が nil の場合、
+// 呼び出すと CreateSession が nil interface 呼び出しでパニックするため、
+// firebaseAuth が設定されている場合のみ呼び出すこと。
+func (h *AuthHandler) LoginRoute(r chi.Router) {
 	r.Post("/auth/session", h.CreateSession)
+}
+
+// LogoutRoute はログアウトを登録する（Firebase 不要、未ログインでも叩ける）。
+func (h *AuthHandler) LogoutRoute(r chi.Router) {
 	r.Delete("/auth/session", h.DeleteSession)
 }
 

@@ -2,58 +2,32 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { DeerMascot } from "@/components/landing/mascot";
-import {
-  completeGoogleRedirectSignIn,
-  startGoogleRedirectSignIn,
-} from "@/lib/auth";
-import { hasFirebaseClientConfig } from "@/lib/firebase";
+import { startGoogleRedirectSignIn } from "@/lib/auth";
+import { hasSupabaseBrowserConfig } from "@/lib/supabase/client";
 
-type LoginPhase = "checking" | "idle" | "submitting" | "redirecting";
+type LoginPhase = "idle" | "submitting" | "redirecting";
 
-export function LoginClient() {
+type LoginClientProps = {
+  devLoginEnabled?: boolean;
+};
+
+export function LoginClient({ devLoginEnabled = false }: LoginClientProps) {
   const router = useRouter();
-  const [phase, setPhase] = useState<LoginPhase>(
-    hasFirebaseClientConfig() ? "checking" : "idle",
-  );
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!hasFirebaseClientConfig()) return;
-
-    let cancelled = false;
-
-    completeGoogleRedirectSignIn()
-      .then((user) => {
-        if (cancelled) return;
-        if (user) {
-          setPhase("redirecting");
-          router.replace("/dashboard");
-          return;
-        }
-        setPhase("idle");
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        const code = (err as { code?: string })?.code;
-        if (code === "auth/invalid-api-key" || code === "auth/api-key-not-valid") {
-          router.push("/");
-          return;
-        }
-        setError(err instanceof Error ? err.message : "ログインに失敗しました");
-        setPhase("idle");
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [router]);
+  const [phase, setPhase] = useState<LoginPhase>("idle");
+  const [error, setError] = useState<string | null>(() => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+    const params = new URLSearchParams(window.location.search);
+    return params.get("error")
+      ? "ログインに失敗しました。時間を置いてもう一度お試しください。"
+      : null;
+  });
 
   async function handleGoogleSignIn() {
-    // Firebase の公開 env がまだ設定されていない環境（本番投入前のプレビュー等）では
-    // ログインを試みず LP に戻す。invalid-api-key のエラー画面を見せないため。
-    if (!hasFirebaseClientConfig()) {
+    if (!hasSupabaseBrowserConfig()) {
       router.push("/");
       return;
     }
@@ -62,13 +36,9 @@ export function LoginClient() {
     setError(null);
 
     try {
-      await startGoogleRedirectSignIn();
+      await startGoogleRedirectSignIn("/dashboard");
+      setPhase("redirecting");
     } catch (err) {
-      const code = (err as { code?: string })?.code;
-      if (code === "auth/invalid-api-key" || code === "auth/api-key-not-valid") {
-        router.push("/");
-        return;
-      }
       setError(err instanceof Error ? err.message : "ログインに失敗しました");
       setPhase("idle");
     }
@@ -76,15 +46,9 @@ export function LoginClient() {
 
   const loading = phase !== "idle";
 
-  if (phase === "checking" || phase === "redirecting") {
+  if (phase === "redirecting") {
     return (
-      <LoginLoadingScreen
-        title={
-          phase === "redirecting"
-            ? "ホームを準備しています"
-            : "Googleログインを確認しています"
-        }
-      />
+      <LoginLoadingScreen title="Googleログインへ移動しています" />
     );
   }
 
@@ -207,6 +171,28 @@ export function LoginClient() {
               <GoogleColoredG size={18} />
               {phase === "submitting" ? "Googleへ移動中..." : "Google でログイン"}
             </button>
+            {devLoginEnabled ? (
+              <Link
+                href="/dev/login"
+                style={{
+                  marginTop: 12,
+                  width: "100%",
+                  height: 40,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 10,
+                  border: "1px solid var(--lp-line)",
+                  background: "transparent",
+                  color: "var(--lp-ink-2)",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textDecoration: "none",
+                }}
+              >
+                開発用ログイン
+              </Link>
+            ) : null}
 
             <p
               style={{

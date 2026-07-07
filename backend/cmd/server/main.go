@@ -9,11 +9,15 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 	"github.com/karimiku/job-hunting-saas/internal/gen/openapi"
 	"github.com/karimiku/job-hunting-saas/internal/handler"
@@ -48,8 +52,21 @@ func run() error {
 	if port == "" {
 		port = "8080"
 	}
+	devAuthEnabled := os.Getenv("DEV_AUTH_ENABLED") == "true"
+	if devAuthEnabled && isProductionRuntime() {
+		return errors.New("DEV_AUTH_ENABLED must not be true in production")
+	}
+	devSessionSecret := ""
+	if devAuthEnabled {
+		devSessionSecret = strings.TrimSpace(os.Getenv("DEV_AUTH_SECRET"))
+		if devSessionSecret == "" {
+			devSessionSecret = uuid.NewString()
+			log.Println("dev auth enabled with ephemeral session secret")
+		}
+	}
 
-	ctx := context.Background()
+	ctx, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignals()
 
 	var (
 		accountRepo          repository.AccountRepository
@@ -95,7 +112,7 @@ func run() error {
 			return errors.New("DATABASE_URL is not set, which disables authentication and " +
 				"causes all clips/entries to share a zero-value UserID; set " +
 				"ALLOW_INSECURE_NO_AUTH=true to proceed in dev mode, or configure DATABASE_URL " +
-				"and FIREBASE_PROJECT_ID for a real environment")
+				"and SUPABASE_AUTH_ISSUER for a real environment")
 		}
 		inMemoryCompanyRepo := inmemory.NewCompanyRepository()
 		inMemoryEntryRepo := inmemory.NewEntryRepository()
@@ -117,11 +134,14 @@ func run() error {
 
 	// Auth 配線は DB 永続化できる場合のみ有効化する。
 	var (
-		authHandler    *handler.AuthHandler
-		authMiddleware func(http.Handler) http.Handler
-		authConfig     handler.AuthConfig
+		authHandler             *handler.AuthHandler
+		devAuthHandler          *handler.DevAuthHandler
+		authMiddleware          func(http.Handler) http.Handler
+		authConfig              handler.AuthConfig
+		firebaseLoginConfigured bool
 	)
 	if userRepo != nil && extIDRepo != nil {
+		authenticateUC := useruc.NewAuthenticate(userRepo, extIDRepo)
 		cookieSameSite, err := parseCookieSameSite(os.Getenv("COOKIE_SAME_SITE"))
 		if err != nil {
 			return err
@@ -141,6 +161,18 @@ func run() error {
 				Issuer:   supabaseIssuer,
 				Audience: os.Getenv("SUPABASE_JWT_AUDIENCE"),
 				JWKSURL:  os.Getenv("SUPABASE_JWKS_URL"),
+				UserSync: func(ctx context.Context, info supabaseauth.UserInfo) (entity.UserID, error) {
+					out, err := authenticateUC.Execute(ctx, useruc.AuthenticateInput{
+						Provider: "supabase",
+						Subject:  info.Subject,
+						Email:    info.Email,
+						Name:     info.Name,
+					})
+					if err != nil {
+						return entity.UserID{}, err
+					}
+					return out.User.ID(), nil
+				},
 			}, extIDRepo)
 			if err != nil {
 				return fmt.Errorf("init supabase auth verifier: %w", err)
@@ -152,6 +184,7 @@ func run() error {
 
 		projectID := strings.TrimSpace(os.Getenv("FIREBASE_PROJECT_ID"))
 		var sessionVerifier middleware.FirebaseSessionVerifier
+		var sessionCreator handler.FirebaseSessionCreator
 		if projectID != "" {
 			// GOOGLE_APPLICATION_CREDENTIALS を使うなら credentialsPath を空にして ADC に任せる
 			credentialsPath := os.Getenv("FIREBASE_CREDENTIALS_FILE")
@@ -161,28 +194,38 @@ func run() error {
 				return fmt.Errorf("init firebase: %w", err)
 			}
 
-			authenticateUC := useruc.NewAuthenticate(userRepo, extIDRepo)
 			// Firebase SDK 型を handler / middleware に漏らさないため、adapter で DTO に変換する。
-			sessionCreator := fbinfra.NewSessionCreator(fb.Auth)
+			sessionCreator = fbinfra.NewSessionCreator(fb.Auth)
 			sessionVerifierCacheTTL, err := firebaseSessionVerifierCacheTTL(os.Getenv("FIREBASE_SESSION_VERIFY_CACHE_TTL"))
 			if err != nil {
 				return err
 			}
 			sessionVerifier = fbinfra.NewSessionVerifier(fb.Auth)
 			sessionVerifier = middleware.NewCachedSessionVerifier(sessionVerifier, sessionVerifierCacheTTL)
-			authHandler = handler.NewAuthHandler(sessionCreator, authenticateUC, userRepo, authConfig)
+			firebaseLoginConfigured = true
 			log.Println("firebase auth wired")
 		}
+		// authHandler は GET /auth/me・DELETE /auth/session（ログアウト）を提供し、
+		// どちらも firebaseAuth を必要としない。POST /auth/session（ログイン）だけが
+		// firebaseAuth を使うため、Firebase 未設定時は sessionCreator が nil のまま渡す。
+		// この場合でも main.go 側のルーティングで LoginRoute を登録しない限り
+		// CreateSession（nil interface 呼び出し）は到達しない。
+		authHandler = handler.NewAuthHandler(sessionCreator, authenticateUC, userRepo, authConfig)
 
-		if projectID == "" && !supabaseAuthConfigured {
+		if projectID == "" && !supabaseAuthConfigured && !devAuthEnabled {
 			return errors.New("FIREBASE_PROJECT_ID or SUPABASE_AUTH_ISSUER must be set when DATABASE_URL is configured")
 		}
 
-		authMiddleware = middleware.NewAuthWithBearer(
+		authMiddleware = middleware.NewAuthWithBearerAndDevSession(
 			sessionVerifier,
 			extIDRepo,
 			bearerVerifier,
+			devSessionSecret,
 		)
+		if devAuthEnabled {
+			devAuthHandler = handler.NewDevAuthHandler(authenticateUC, authConfig, devSessionSecret)
+			log.Println("dev auth wired")
+		}
 	}
 
 	companyHandler := handler.NewCompanyHandler(
@@ -275,6 +318,7 @@ func run() error {
 	}
 
 	router := chi.NewRouter()
+	router.Use(stripPathPrefixMiddleware("/backend"))
 	// CORS_ALLOWED_ORIGINS (新): カンマ区切りで複数 origin を許可 (chrome 拡張等を追加するときに使う)。
 	// CORS_ALLOWED_ORIGIN (旧, 後方互換): 単一 origin。両方セットされていれば新の方を優先。
 	corsOriginsRaw := os.Getenv("CORS_ALLOWED_ORIGINS")
@@ -308,11 +352,23 @@ func run() error {
 	})
 
 	// 認証不要ルート（ログイン / ログアウト）
+	// LogoutRoute は firebaseAuth 不要なので Firebase 未設定でも常に登録する。
+	// LoginRoute（Firebase ID Token 検証）は firebaseAuth が設定されている場合のみ登録する。
 	if authHandler != nil {
 		router.Group(func(r chi.Router) {
 			r.Use(middleware.NewIPRateLimiter(authRateLimit, time.Minute))
 			r.Use(middleware.NewOriginGuard(corsOrigins))
-			authHandler.PublicRoutes(r)
+			authHandler.LogoutRoute(r)
+			if firebaseLoginConfigured {
+				authHandler.LoginRoute(r)
+			}
+		})
+	}
+	if devAuthHandler != nil {
+		router.Group(func(r chi.Router) {
+			r.Use(middleware.NewIPRateLimiter(authRateLimit, time.Minute))
+			r.Use(middleware.NewOriginGuard(corsOrigins))
+			devAuthHandler.PublicRoutes(r)
 		})
 	}
 
@@ -342,10 +398,28 @@ func run() error {
 
 	// #nosec G706 -- port is deployment configuration, not user-controlled request data.
 	log.Printf("server listening on :%s", port)
-	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("listen: %w", err)
+	serverErr := make(chan error, 1)
+	go func() {
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErr <- fmt.Errorf("listen: %w", err)
+			return
+		}
+		serverErr <- nil
+	}()
+
+	select {
+	case err := <-serverErr:
+		return err
+	case <-ctx.Done():
+		stopSignals()
+		log.Println("server shutting down")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+		defer cancel()
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			return fmt.Errorf("shutdown: %w", err)
+		}
+		return <-serverErr
 	}
-	return nil
 }
 
 func requestsPerMinuteFromEnv(name string, defaultValue int) (int, error) {
@@ -361,6 +435,23 @@ func requestsPerMinuteFromEnv(name string, defaultValue int) (int, error) {
 		return 0, fmt.Errorf("invalid %s %q (must be non-negative)", name, raw)
 	}
 	return value, nil
+}
+
+// isProductionRuntime is a best-effort guard used only to hard-fail startup when
+// DEV_AUTH_ENABLED is left on in an environment that self-identifies as
+// production. It intentionally does NOT flip unset envs to "production": doing so
+// would block local dev (where these envs are commonly unset) and would trade a
+// startup failure for a false sense of safety. The real protection against dev
+// sessions in production is (a) never setting DEV_AUTH_ENABLED=true there, and
+// (b) isLocalDevRequest trusting only the server-observed r.Host, which is not a
+// loopback value on a public deployment. Keep both in place.
+func isProductionRuntime() bool {
+	for _, name := range []string{"APP_ENV", "GO_ENV", "ENV", "GIN_MODE"} {
+		if strings.EqualFold(strings.TrimSpace(os.Getenv(name)), "production") {
+			return true
+		}
+	}
+	return false
 }
 
 func parseCookieSameSite(raw string) (http.SameSite, error) {
@@ -465,4 +556,26 @@ func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func stripPathPrefixMiddleware(prefix string) func(http.Handler) http.Handler {
+	prefix = "/" + strings.Trim(strings.TrimSpace(prefix), "/")
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			path := r.URL.Path
+			if path == prefix {
+				r = cloneRequestWithPath(r, "/")
+			} else if strings.HasPrefix(path, prefix+"/") {
+				r = cloneRequestWithPath(r, strings.TrimPrefix(path, prefix))
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func cloneRequestWithPath(r *http.Request, path string) *http.Request {
+	clone := r.Clone(r.Context())
+	clone.URL.Path = path
+	clone.URL.RawPath = ""
+	return clone
 }

@@ -38,7 +38,6 @@ const sections = [
       "本サービスは、認証、ホスティング、API実行、データベース、ログ監視、メール送信などのために外部のクラウドサービスを利用する場合があります。",
     ],
     items: [
-      "Firebase Authentication",
       "Vercel",
       "Google Cloud",
       "Supabase",
@@ -76,7 +75,7 @@ export default function PrivacyPage() {
     <LegalPage
       title="プライバシーポリシー"
       description="Entré が取得する情報、利用目的、Cookie、外部サービスの扱いをまとめています。"
-      updatedAt="2026-06-09"
+      updatedAt="2026-07-01"
       sections={sections}
     />
   );

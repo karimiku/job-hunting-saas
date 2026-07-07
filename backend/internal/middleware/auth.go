@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/karimiku/job-hunting-saas/internal/devsession"
 	"github.com/karimiku/job-hunting-saas/internal/domain/entity"
 	"github.com/karimiku/job-hunting-saas/internal/domain/repository"
 	"github.com/karimiku/job-hunting-saas/internal/domain/value"
@@ -101,6 +102,17 @@ func NewAuthWithBearer(
 	extIDRepo repository.ExternalIdentityRepository,
 	bearerVerifier BearerTokenVerifier,
 ) func(http.Handler) http.Handler {
+	return NewAuthWithBearerAndDevSession(fbAuth, extIDRepo, bearerVerifier, "")
+}
+
+// NewAuthWithBearerAndDevSession は開発専用の署名付き session cookie も受け付ける。
+// devSessionSecret が空なら通常の Firebase Session Cookie 検証だけを行う。
+func NewAuthWithBearerAndDevSession(
+	fbAuth FirebaseSessionVerifier,
+	extIDRepo repository.ExternalIdentityRepository,
+	bearerVerifier BearerTokenVerifier,
+	devSessionSecret string,
+) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
@@ -130,6 +142,16 @@ func NewAuthWithBearer(
 			cookie, err := r.Cookie(SessionCookieName)
 			if err != nil || cookie.Value == "" {
 				http.Error(w, "unauthenticated", http.StatusUnauthorized)
+				return
+			}
+			if fbAuth == nil {
+				http.Error(w, "unauthenticated", http.StatusUnauthorized)
+				return
+			}
+
+			if userID, ok := devsession.Verify(cookie.Value, devSessionSecret); ok {
+				ctx = SetAuthMethod(SetUserID(ctx, userID), AuthMethodSession)
+				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
 			if fbAuth == nil {
