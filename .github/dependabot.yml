@@ -33,6 +33,13 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    groups:
+      # codeql-action は init/autobuild/analyze/upload-sarif が別依存扱いのため、
+      # 分割 PR になるとバージョン混在で Analyze が失敗する。常に1本にまとめる
+      codeql-action:
+        patterns: ["github/codeql-action*"]
+      minor-and-patch:
+        update-types: [minor, patch]
     labels: [dependencies, ci]
 
   - package-ecosystem: docker
