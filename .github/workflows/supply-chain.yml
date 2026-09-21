@@ -69,7 +69,7 @@ jobs:
       # We must not let continue-on-error swallow the error range, so the scan step always
       # continues and we classify the outcome explicitly in the next step instead.
       - id: scan
-        uses: google/osv-scanner-action/osv-scanner-action@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
+        uses: google/osv-scanner-action/osv-scanner-action@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0
         continue-on-error: true
         with:
           scan-args: |-
@@ -101,7 +101,7 @@ jobs:
             exit 1
           fi
       # Keep SARIF upload best-effort because code scanning may be unavailable on the repository plan.
-      - uses: github/codeql-action/upload-sarif@f205ea1c3313d32999d8d6a48b4f6530d4437b38 # v4.37.4
+      - uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
         if: always() && github.event_name != 'pull_request' && hashFiles('osv-results.sarif') != ''
         continue-on-error: true
         with:
